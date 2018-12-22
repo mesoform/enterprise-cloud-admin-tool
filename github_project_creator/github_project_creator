@@ -1,0 +1,12 @@
+#!/usr/bin/env python
+"""
+@author: Gareth Brown
+@contact: gareth@mesoform.com
+@date: 2017
+
+Wrapper Python script for running GithubProjectCreator command line tool.
+"""
+import github_project_creator
+
+if __name__ == '__main__':
+    github_project_creator.main()
