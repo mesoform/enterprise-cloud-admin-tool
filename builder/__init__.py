@@ -2,6 +2,7 @@ from __future__ import print_function
 
 import argparse
 import os
+import json
 # noinspection PyPackageRequirements
 from github import Github, GithubException
 from exceptions import ValueError
@@ -14,6 +15,11 @@ DEFAULT_CODE_ORG = 'my-code-org'
 DEFAULT_CONFIG_ORG = 'my-config-org'
 PROJECT_DATA_DIR = MODULE_ROOT_DIR + 'resources/project_data/' + \
                    DEFAULT_PROJECT_ID
+DEFAULT_TOKEN_FILE = MODULE_ROOT_DIR + '/resources/token.json'
+if os.path.exists(DEFAULT_TOKEN_FILE):
+    DEFAULT_TOKEN = json.load(open(DEFAULT_TOKEN_FILE))['token']
+else:
+    DEFAULT_TOKEN = ""
 
 
 def arg_parser():
@@ -34,11 +40,11 @@ def arg_parser():
     parser.add_argument('--output-data',
                         help='Output repo data to files in ' + PROJECT_DATA_DIR,
                         action='store_true')
-    parser.add_argument('-o', '--code-organisation',
+    parser.add_argument('-o', '--code-org',
                         help="ID of the organisation where the Terraform code"
                              "repository is",
                         default=DEFAULT_CODE_ORG)
-    parser.add_argument('-O', '--config-organisation',
+    parser.add_argument('-O', '--config-org',
                         help="ID of the organisation where the configuration"
                              "repository is",
                         default=DEFAULT_CONFIG_ORG)
@@ -70,7 +76,7 @@ class QueuedProjectsArgAction(argparse.Action):
 def get_org(settings):
     github = Github(
         base_url=settings.api_url, login_or_token=settings.token)
-    return github.get_organization(settings.org)
+    return github.get_organization(settings.config_org)
 
 
 def get_repo(org, name=DEFAULT_PROJECT_ID):

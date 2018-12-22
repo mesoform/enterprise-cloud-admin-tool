@@ -1,14 +1,19 @@
 #!/usr/bin/env python
 
+
 from unittest import TestLoader, TestCase, TextTestRunner
 import json
 import os
+# github package is PyGithub
+# noinspection PyPackageRequirements
 from github import Organization, Team, Repository
 from exceptions import ValueError
-from github_project_creator import get_org, create_repo, create_team, \
-    get_repo, configure_remote_object, update_repo_file, \
+from github_project_creator import create_repo, create_team, \
+    configure_remote_object, update_repo_file, \
     configure_project_data, set_repo_team_perms, set_master_branch_permissions,\
     write_project_data, set_repo_visibility, DEFAULT_GITHUB_API_URL
+from builder import get_org, get_repo
+
 
 TOKEN = json.load(open('resources/token.json'))['token']
 GCP_PROJECT_TEMPLATE = 'resources/templates/gcp_project_settings.json'
@@ -108,6 +113,7 @@ class TestRepo(TestCase):
         set_repo_visibility(self.repo, 'public')
         self.assertFalse(self.repo.private)
 
+    # noinspection PyUnresolvedReferences
     @classmethod
     def tearDownClass(cls):
         cls.repo.delete()
@@ -169,6 +175,7 @@ class TestTeam(TestCase):
             self.repo.raw_data
         )
 
+    # noinspection PyUnresolvedReferences
     @classmethod
     def tearDownClass(cls):
         cls.team_child.delete()
