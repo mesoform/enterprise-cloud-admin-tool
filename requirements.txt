@@ -1,3 +1,5 @@
+terraform_validate
+python_terraform
 requests
 Deprecated==1.2.4
 PyGithub==1.43.3

@@ -99,3 +99,13 @@ def get_team(org, team_name):
         if team.slug == team_name:
             return team
     return None
+
+
+def get_files(version, repo):
+    """
+    Get a list of the files from given repository
+    :param version: string : branch or tag of repo
+    :param repo: object :class:`github.Repository.Repository`
+    :return: list :class:`github.ContentFile.ContentFile`
+    """
+    return repo.get_dir_contents('/', version)
