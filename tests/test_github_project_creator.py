@@ -32,7 +32,7 @@ STANDARD_TEAM_ATTRIBUTES = {
 
 
 def arguments():
-    arg_dict = {"org": ORG_NAME,
+    arg_dict = {"config_org": ORG_NAME,
                 "project_name": PROJECT_NAME,
                 "templates_repo": None,
                 "token": TOKEN,
