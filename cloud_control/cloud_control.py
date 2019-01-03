@@ -1,5 +1,4 @@
 import builder 
-import github_project_creator
 
 def get_settings():
   root_parser = builder.arg_parser()
@@ -34,3 +33,28 @@ def get_settings():
   
   return root_parser.parse_args()
   
+
+def get_files(org, repo_name, directory, file_type_fn):
+  pass
+  
+  
+def main():
+  settings = get_settings()
+  if settings.deploy:
+    import deployer as deploy 
+    import checker as check
+    config_org = builder.get_org(settings, settings.config_org)
+    code_org = builder.get_org(settings, settings.code_org)
+    settings.cloud == 'gcp':
+      config_files = get_files(config_org, settings.project_id, 'gcp', 
+                              __config_files)
+      code_files = get_files(code_org, settings.project_id, 'gcp', 
+                              __code_files)
+      check.gcp(config_files)
+      deploy(settings, config_files, code_files)
+  elif settings.config:
+    import github_project_creator
+
+
+if __name__ = '__main__':
+  main()
