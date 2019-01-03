@@ -34,24 +34,24 @@ def get_settings():
   return root_parser.parse_args()
   
 
-def get_files(org, repo_name, directory, file_type_fn):
-  pass
-  
+def get_files(org, repo_name, directory):
+  repo = builder.get_repo(org, repo_name)
+  return repo.get_dir_contents(directory)
+
   
 def main():
   settings = get_settings()
   if settings.deploy:
-    import deployer as deploy 
-    import checker as check
+    from deployer import deploy
+    from checker import check
     config_org = builder.get_org(settings, settings.config_org)
     code_org = builder.get_org(settings, settings.code_org)
-    settings.cloud == 'gcp':
-      config_files = get_files(config_org, settings.project_id, 'gcp', 
-                              __config_files)
-      code_files = get_files(code_org, settings.project_id, 'gcp', 
-                              __code_files)
-      check.gcp(config_files)
-      deploy(settings, config_files, code_files)
+    config_files = get_files(config_org, settings.project_id, settings.cloud)
+    # code repo should contain any lists or maps that define security policies
+    # and operating requirements. The code repo should be public.
+    code_files = get_files(code_org, settings.project_id, settings.cloud)
+    check(settings.cloud, config_files)
+    deploy(settings, config_files, code_files)
   elif settings.config:
     import github_project_creator
 
