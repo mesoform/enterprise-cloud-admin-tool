@@ -32,11 +32,6 @@ def get_settings():
   add_config_parser(mgmt_parser)
   
   return root_parser.parse_args()
-  
-
-def get_files(org, repo_name, directory):
-  repo = builder.get_repo(org, repo_name)
-  return repo.get_dir_contents(directory)
 
   
 def main():
@@ -46,10 +41,10 @@ def main():
     from checker import check
     config_org = builder.get_org(settings, settings.config_org)
     code_org = builder.get_org(settings, settings.code_org)
-    config_files = get_files(config_org, settings.project_id, settings.cloud)
+    config_files = builder.get_files(config_org, settings.project_id, settings.cloud, settings.version)
     # code repo should contain any lists or maps that define security policies
     # and operating requirements. The code repo should be public.
-    code_files = get_files(code_org, settings.project_id, settings.cloud)
+    code_files = builder.get_files(code_org, settings.project_id, settings.cloud, settings.version)
     check(settings.cloud, config_files)
     deploy(settings, config_files, code_files)
   elif settings.config:
