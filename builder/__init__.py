@@ -114,5 +114,5 @@ def get_files(org, repo_name, directory, version):
     :param repo: object :class:`github.Repository.Repository`
     :return: list :class:`github.ContentFile.ContentFile`
     """
-    repo = builder.get_repo(org, repo_name)
+    repo = get_repo(org, repo_name)
     return repo.get_dir_contents(directory, version)
