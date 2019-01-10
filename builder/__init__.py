@@ -33,6 +33,12 @@ def arg_parser():
     parser.add_argument('-a', '--api_url',
                         help='URL to GitHub API',
                         default=DEFAULT_GITHUB_API_URL)
+    parser.add_argument('--code-version',
+                        help='version (branch or tag) of the deployment code to use',
+                        default='master')
+    parser.add_argument('--config-version',
+                        help='version (branch or tag) of the cloud configuration to use',
+                        default='master')
     parser.add_argument('-f', '--force',
                         help='Force actions on preexisting repo',
                         default=False,
@@ -57,7 +63,7 @@ def arg_parser():
                        action=QueuedProjectsArgAction)
     parser.add_argument('-t', '--token',
                         help='Token for authentication')
-
+    
     return parser
 
 
@@ -101,11 +107,12 @@ def get_team(org, team_name):
     return None
 
 
-def get_files(version, repo):
+def get_files(org, repo_name, directory, version):
     """
     Get a list of the files from given repository
     :param version: string : branch or tag of repo
     :param repo: object :class:`github.Repository.Repository`
     :return: list :class:`github.ContentFile.ContentFile`
     """
-    return repo.get_dir_contents('/', version)
+    repo = builder.get_repo(org, repo_name)
+    return repo.get_dir_contents(directory, version)

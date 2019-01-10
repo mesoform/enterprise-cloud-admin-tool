@@ -75,13 +75,11 @@ def main():
     settings = add_args()
     # needs to differentiate between orgs and repo for code and config
     config_org = builder.get_org(settings)
-    config_repo = builder.get_repo(config_org, settings.project_name)
-    config_files = builder.get_files(settings.config_version, config_repo)
+    config_files = builder.get_files(config_org, settings.project_name, settings.cloud settings.config_version)
     # pull args.tf_code_version (default = master)
     # pull files from args.branch
     code_org = builder.get_org(settings)
-    code_repo = builder.get_repo(code_org, settings.project_name)
-    code_files = builder.get_files(settings.code_version, code_repo)
+    code_files = builder.get_files(code_org, settings.project_name, settings.cloud settings.config_version)
     # pass through code checker
     # test deploy
     # compare test project state file against actual state file
