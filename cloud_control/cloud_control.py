@@ -4,12 +4,13 @@ import argparse
 
 def get_settings():
     root_parser = builder.arg_parser()
-    root_parser.description = 'cloud_control is an application for managing cloud'
-    ' infrastructure in the enterprise. It interfaces with other known tooling'
-    ' like Terraform, GitHub and Jira. It does this rather than try to create'
-    ' something new so as to maintain clear delegation of duties but also'
-    ' allowing cross-functional working by keeping different functions separated'
-    ' in reusable modules'
+    root_parser.description = \
+        'cloud_control is an application for managing cloud infrastructure in' \
+        ' the enterprise. It interfaces with other known tooling like' \
+        ' Terraform, GitHub and Jira. It does this rather than try to create' \
+        ' something new so as to maintain clear delegation of duties but also' \
+        ' allowing cross-functional working by keeping different functions' \
+        ' separated in reusable modules'
 
     def add_deploy_parser(parser):
         d_parser = parser.add_parser('deploy',
@@ -57,7 +58,7 @@ def main():
         check(settings.cloud, config_files)
         deploy(settings, config_files, code_files)
     elif settings.config:
-        import github_project_creator
+        import code_control
 
 
 if __name__ == '__main__':

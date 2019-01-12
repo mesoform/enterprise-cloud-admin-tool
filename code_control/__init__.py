@@ -317,7 +317,7 @@ def main():
     # grab the last field from delimited project name
     environment = settings.project_id.upper().split('-').pop()
     try:
-        org = get_org(settings)
+        org = get_org(settings, settings.config_org)
     except BadCredentialsException as e:
         print(e.data)
         print("check token and pass using the --token (-t) argument or setting"

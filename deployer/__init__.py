@@ -1,33 +1,12 @@
 #!/usr/bin/env python
 from __future__ import print_function, absolute_import
 
-import json
 from python_terraform import Terraform
 import os
-import builder
-
+import threading
 
 MODULE_ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
-DEFAULT_CONFIG_BRANCH = 'master'
-DEFAULT_CODE_BRANCH = 'master'
 WORKING_DIR_BASE = '/tmp'
-
-
-def add_args():
-    """
-    parses arguments passed on command line when running program
-    :return: list of arguments
-    """
-    parser = builder.arg_parser()
-    parser.description = 'General module for processing and deploying ' \
-                         'infrastructure'
-    parser.add_argument('-c', '--config-version',
-                        help="git branch for the configuration",
-                        default=DEFAULT_CONFIG_BRANCH)
-    parser.add_argument('-T', '--code-version',
-                        help="git branch for the code",
-                        default=DEFAULT_CODE_BRANCH)
-    return parser.parse_args()
 
 
 def setup_tf_env(settings, code_files, config_files):
@@ -47,55 +26,62 @@ def setup_tf_env(settings, code_files, config_files):
     return tf
 
 
-def tf_plan():
-    pass
+def get_plan(terraform_instance, testing=False):
+    tf_vars = None
+    if testing:
+        tf_vars = {}
+    return terraform_instance.plan(tf_vars)
 
 
-def tf_apply():
-    pass
+def get_current_state(terraform_instance):
+    return terraform_instance.read_state_file
+
+
+def tf_apply(terraform_instance, testing=False):
+    if testing:
+        plan = get_plan(terraform_instance, testing=True)
+    else:
+        plan = get_plan(terraform_instance)
+    terraform_instance.apply(dir_or_plan=plan)
+    return terraform_instance.read_state_file()
 
 
 def tf_destroy():
     pass
 
 
-def tidy_up():
+def __tidy_up():
     pass
 
 
-def delete_test_project():
+def delete_test_project(terraform_instance, project_id):
+    return_code, std_out, std_err = terraform_instance.destroy(project_id)
+    if return_code is not 200:
+        return False, std_err
+    return True
+
+
+def __retry_tf_apply():
     pass
 
 
-def retry_tf_apply():
-    pass
+def compare_deployments(current_deployment, new_deployment):
+    if current_deployment == new_deployment:
+        return True
+    return False
 
 
-def main():
-    settings = add_args()
-    # needs to differentiate between orgs and repo for code and config
-    config_org = builder.get_org(settings)
-    config_files = builder.get_files(
-        config_org,
-        settings.project_name,
-        settings.cloud,
-        settings.config_version)
-    # pull args.tf_code_version (default = master)
-    # pull files from args.branch
-    code_org = builder.get_org(settings)
-    code_files = builder.get_files(
-        code_org,
-        settings.project_name,
-        settings.cloud,
-        settings.config_version)
-    # pass through code checker
+def deploy(settings, config, code):
+    terraform_instance = setup_tf_env(settings, code, config)
     # test deploy
+    test_deployment = tf_apply(terraform_instance, testing=True)
     # compare test project state file against actual state file
-    # plan
-    # deploy
+    compare_deployments(test_deployment, settings.project_id)
+    # full deploy & destroy test project
+    full_deployment = threading.Thread(target=tf_apply)
+    test_deletion = threading.Thread(
+        target=delete_test_project)
+    full_deployment.start()
+    test_deletion.start()
     # validate
     pass
-
-
-if __name__ == '__main__':
-    main()

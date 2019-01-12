@@ -8,7 +8,7 @@ import os
 # noinspection PyPackageRequirements
 from github import Organization, Team, Repository
 from exceptions import ValueError
-from github_project_creator import create_repo, create_team, \
+from code_control import create_repo, create_team, \
     configure_remote_object, update_repo_file, \
     configure_project_data, set_repo_team_perms, set_master_branch_permissions,\
     write_project_data, set_repo_visibility, DEFAULT_GITHUB_API_URL
@@ -50,14 +50,14 @@ class TestOrg(TestCase):
 
     def test_org_setup(self):
         self.assertIsInstance(
-            get_org(self.settings), Organization.Organization)
+            get_org(self.settings, ORG_NAME), Organization.Organization)
 
 
 class TestRepo(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.settings = arguments()
-        cls.org = get_org(cls.settings)
+        cls.org = get_org(cls.settings, ORG_NAME)
         existing_repo = get_repo(cls.org, PROJECT_NAME)
         if existing_repo:
             cls.repo = existing_repo
@@ -123,7 +123,7 @@ class TestTeam(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.settings = arguments()
-        cls.org = get_org(cls.settings)
+        cls.org = get_org(cls.settings, ORG_NAME)
         cls.repo = create_repo(cls.org, PROJECT_NAME)
         cls.team = create_team(cls.org, TEAM_NAME)
         cls.team_child = create_team(cls.org, CHILD_TEAM_NAME)

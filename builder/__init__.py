@@ -16,6 +16,7 @@ DEFAULT_CONFIG_ORG = 'my-config-org'
 PROJECT_DATA_DIR = MODULE_ROOT_DIR + 'resources/project_data/' + \
                    DEFAULT_PROJECT_ID
 DEFAULT_TOKEN_FILE = MODULE_ROOT_DIR + '/resources/token.json'
+DEFAULT_GIT_REF = 'master'
 if os.path.exists(DEFAULT_TOKEN_FILE):
     DEFAULT_TOKEN = json.load(open(DEFAULT_TOKEN_FILE))['token']
 else:
@@ -34,10 +35,12 @@ def arg_parser():
                         help='URL to GitHub API',
                         default=DEFAULT_GITHUB_API_URL)
     parser.add_argument('--code-version',
-                        help='version (branch or tag) of the deployment code to use',
+                        help='version (branch or tag) of the deployment code '
+                             'to use',
                         default='master')
     parser.add_argument('--config-version',
-                        help='version (branch or tag) of the cloud configuration to use',
+                        help='version (branch or tag) of the cloud '
+                             'configuration to use',
                         default='master')
     parser.add_argument('-f', '--force',
                         help='Force actions on preexisting repo',
@@ -63,6 +66,12 @@ def arg_parser():
                        action=QueuedProjectsArgAction)
     parser.add_argument('-t', '--token',
                         help='Token for authentication')
+    parser.add_argument('-c', '--config-version',
+                        help="git branch for the configuration",
+                        default=DEFAULT_GIT_REF)
+    parser.add_argument('-T', '--code-version',
+                        help="git branch for the code",
+                        default=DEFAULT_GIT_REF)
     
     return parser
 
@@ -79,10 +88,10 @@ class QueuedProjectsArgAction(argparse.Action):
         setattr(namespace, 'projects_list', [])
 
 
-def get_org(settings):
+def get_org(settings, org):
     github = Github(
         base_url=settings.api_url, login_or_token=settings.token)
-    return github.get_organization(settings.config_org)
+    return github.get_organization(org)
 
 
 def get_repo(org, name=DEFAULT_PROJECT_ID):
@@ -110,8 +119,11 @@ def get_team(org, team_name):
 def get_files(org, repo_name, directory, version):
     """
     Get a list of the files from given repository
+    :param org: object: of :class:`github.Organization.Organization`
+    :param repo_name: string: of name of the organisational repository where
+     files are located
+    :param directory: string: of directory in reposo
     :param version: string : branch or tag of repo
-    :param repo: object :class:`github.Repository.Repository`
     :return: list :class:`github.ContentFile.ContentFile`
     """
     repo = get_repo(org, repo_name)
