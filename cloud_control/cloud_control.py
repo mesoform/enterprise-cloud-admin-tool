@@ -17,7 +17,7 @@ def get_settings():
                                      help='deploy configuration to the cloud')
         d_parser.formatter_class = argparse.RawTextHelpFormatter
         d_parser.add_argument(
-            'cloud', choices=('all', 'aws', 'gcp', 'triton'))
+            'cloud', choices=('all', builder.SUPPORTED_CLOUDS))
         return d_parser
 
     def add_config_parser(parser):
@@ -25,7 +25,7 @@ def get_settings():
             'config',
             help='Administer cloud configuration on respective repository')
         c_parser.formatter_class = argparse.RawTextHelpFormatter
-        c_parser.add_argument('-h', '--github')
+        c_parser.add_argument('--github')
         c_parser.add_argument(
             'c_action', choices=('create', 'delete', 'update'))
         return c_parser
@@ -43,7 +43,9 @@ def get_settings():
 
 def main():
     settings = get_settings()
-    if settings.deploy:
+    if settings.command == "deploy":
+        if settings.cloud == "all":
+            settings.cloud = "all_"
         from deployer import deploy
         from checker import check
         config_org = builder.get_org(settings, settings.config_org)
@@ -57,8 +59,9 @@ def main():
                                        settings.cloud, settings.version)
         check(settings.cloud, config_files)
         deploy(settings, config_files, code_files)
-    elif settings.config:
-        import code_control
+    elif settings.command == "config":
+        # import code_control
+        pass
 
 
 if __name__ == '__main__':

@@ -21,6 +21,7 @@ if os.path.exists(DEFAULT_TOKEN_FILE):
     DEFAULT_TOKEN = json.load(open(DEFAULT_TOKEN_FILE))['token']
 else:
     DEFAULT_TOKEN = ""
+SUPPORTED_CLOUDS = ['aws', 'gcp', 'triton']
 
 
 def arg_parser():
