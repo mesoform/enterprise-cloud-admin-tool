@@ -22,6 +22,8 @@ if os.path.exists(DEFAULT_TOKEN_FILE):
 else:
     DEFAULT_TOKEN = ""
 SUPPORTED_CLOUDS = ['aws', 'gcp', 'triton']
+SUPPORTED_VCS_PLATFORMS = ['github']
+SUPPORTED_ORCHESTRATORS = ['terraform']
 
 
 def arg_parser():
