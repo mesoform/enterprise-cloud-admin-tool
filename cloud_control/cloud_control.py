@@ -58,7 +58,7 @@ def main():
         code_files = builder.get_files(code_org, settings.project_id,
                                        settings.cloud, settings.version)
         check(settings.cloud, config_files)
-        deploy(settings, config_files, code_files)
+        deploy(settings, code_files, config_files)
     elif settings.command == "config":
         # import code_control
         pass
