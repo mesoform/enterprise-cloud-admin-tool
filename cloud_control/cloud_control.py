@@ -18,6 +18,10 @@ def get_settings():
         d_parser.formatter_class = argparse.RawTextHelpFormatter
         d_parser.add_argument(
             'cloud', choices=('all', builder.SUPPORTED_CLOUDS))
+        d_parser.add_argument('--gcp-keyfile',
+                              help='path to the file containing the private '
+                                   'key used for authentication on GCP',
+                              type=argparse.FileType)
         return d_parser
 
     def add_config_parser(parser):

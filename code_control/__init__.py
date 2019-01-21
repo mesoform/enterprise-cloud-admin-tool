@@ -9,7 +9,6 @@ import os
 # github package is PyGithub
 # noinspection PyPackageRequirements
 from github import GithubException, BadCredentialsException
-from exceptions import ValueError
 from builder import get_team, get_repo, get_org, arg_parser, \
     DEFAULT_PROJECT_ID, DEFAULT_TOKEN_FILE
 
@@ -251,7 +250,7 @@ def configure_project_data(config_file, **kwargs):
 
 def write_project_data(repo, teams, data_dir=PROJECT_DATA_DIR):
     if not os.path.isdir(data_dir):
-        os.mkdir(data_dir, 0700)
+        os.mkdir(data_dir, 0o0700)
 
     repo_file = data_dir + '/repo.json'
     with open(repo_file, 'w') as rf:

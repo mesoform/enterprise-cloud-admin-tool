@@ -1,3 +1,5 @@
+google
+httplib2
 terraform_validate
 python_terraform
 requests

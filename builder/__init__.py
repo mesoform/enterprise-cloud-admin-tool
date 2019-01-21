@@ -1,12 +1,10 @@
-from __future__ import print_function
-
 import argparse
 import os
 import json
 # noinspection PyPackageRequirements
 from github import Github, GithubException
-from exceptions import ValueError
 import re
+from httplib2 import Http
 
 MODULE_ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_GITHUB_API_URL = "https://api.github.com"
@@ -77,16 +75,72 @@ def arg_parser():
     group.add_argument('-q', '--queued-projects',
                        help="fetch a list of projects from requests queue",
                        action=QueuedProjectsArgAction)
-    parser.add_argument('-t', '--token',
-                        help='Token for authentication')
+    parser.add_argument('-t', '--vcs-token',
+                        help='Authentication for VCS platform')
     parser.add_argument('-c', '--config-version',
                         help="git branch for the configuration",
                         default=DEFAULT_GIT_REF)
     parser.add_argument('-T', '--code-version',
                         help="git branch for the code",
                         default=DEFAULT_GIT_REF)
-    
+
     return parser
+
+
+class GcpAuth:
+    def __init__(self, key_file=None):
+        self.key_file = key_file
+        self.service_account_info = self.get_service_account_info(key_file)
+
+    def get_gcp_credentials(self):
+        """
+        construct credentials object to authenticate against APIs with
+        :return: A credentials object
+        """
+        if self.key_file:
+            from google.oauth2 import service_account
+            return service_account.Credentials.from_service_account_info(
+                self.service_account_info)
+        else:
+            import google.auth
+            return google.auth.default()
+
+    def _get_http_auth(self):
+        """
+        Add credentials to an HTTP request object
+        :return: HTTP request object with added credential information
+        """
+        credentials = self.get_gcp_credentials()
+        return credentials.authorize(Http())
+
+    @staticmethod
+    def get_service_account_info(creds_file):
+        with open(creds_file, 'r') as f:
+            ext = os.path.splitext(f.name)[-1].lower()
+            if ext == '.json':
+                return json.loads(f)
+
+    # def _get_project_id():
+    #     """
+    #     query Google Metadata server
+    #     :return: string of project id
+    #     """
+    #     url = GCP_METADATA_URL + '/project/project-id'
+    #     try:
+    #         project_id = requests.get(url)
+    #     except (requests.ConnectionError, requests.ConnectTimeout):
+    #         return _DEFAULT_GCP_PROJECT
+    #
+    #     return project_id
+    #
+    # def _get_storage_client(storage_class=storage.Client):
+    #     """
+    #     set up our local storage client
+    #     :param storage_class: what Python class to use to set up our client
+    #     :return: Object of our client
+    #     """
+    #     return storage_class(project=_get_project_id(),
+    #                          credentials=get_gcs_credentials())
 
 
 class QueuedProjectsArgAction(argparse.Action):
