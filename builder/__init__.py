@@ -6,6 +6,7 @@ import json
 # noinspection PyPackageRequirements
 from github import Github, GithubException
 from exceptions import ValueError
+import re
 
 MODULE_ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_GITHUB_API_URL = "https://api.github.com"
@@ -24,6 +25,15 @@ else:
 SUPPORTED_CLOUDS = ['aws', 'gcp', 'triton']
 SUPPORTED_VCS_PLATFORMS = ['github']
 SUPPORTED_ORCHESTRATORS = ['terraform']
+VALID_PROJECT_ID_FORMAT = "^[a-z]{4}-[a-z0-9]{4,31}-(?:dev|prod|test)$"
+
+
+class ProjectIdFormatError(Exception):
+    pass
+
+
+class RepositoryNotFoundError(Exception):
+    pass
 
 
 def arg_parser():
@@ -131,3 +141,10 @@ def get_files(org, repo_name, directory, version):
     """
     repo = get_repo(org, repo_name)
     return repo.get_dir_contents(directory, version)
+
+
+def valid_project_id_format(project_id):
+    if not re.match(VALID_PROJECT_ID_FORMAT, project_id):
+        raise ProjectIdFormatError(project_id + ' does not match the ' +
+                                   VALID_PROJECT_ID_FORMAT + 'format')
+    return True
