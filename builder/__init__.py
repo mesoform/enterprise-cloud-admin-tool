@@ -90,12 +90,14 @@ def arg_parser():
 class GcpAuth:
     def __init__(self, key_file=None):
         self.key_file = key_file
-        self.service_account_info = self.get_service_account_info(key_file)
+        if self.key_file:
+            self.service_account_info = self._get_service_account_info(key_file)
+        self.credentials = self.get_gcp_credentials()
 
     def get_gcp_credentials(self):
         """
         construct credentials object to authenticate against APIs with
-        :return: A credentials object
+        :return: object: of type google.auth.credentials.Credentials
         """
         if self.key_file:
             from google.oauth2 import service_account
@@ -103,7 +105,8 @@ class GcpAuth:
                 self.service_account_info)
         else:
             import google.auth
-            return google.auth.default()
+            credentials, project_id = google.auth.default()
+            return credentials
 
     def _get_http_auth(self):
         """
@@ -114,11 +117,11 @@ class GcpAuth:
         return credentials.authorize(Http())
 
     @staticmethod
-    def get_service_account_info(creds_file):
-        with open(creds_file, 'r') as f:
+    def _get_service_account_info(creds_file):
+        with open(creds_file.name, 'r') as f:
             ext = os.path.splitext(f.name)[-1].lower()
             if ext == '.json':
-                return json.loads(f)
+                return json.loads(f.read())
 
     # def _get_project_id():
     #     """

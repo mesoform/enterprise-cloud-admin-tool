@@ -44,5 +44,5 @@ setup(
         'Projects :: Continuous Delivery'
     ],
     install_requires=install_requirements,
-    data_files=[]
+    data_files=[('/var/log/enterprise_cloud_admin', [])]
 )
