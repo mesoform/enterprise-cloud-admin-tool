@@ -37,15 +37,15 @@ class Metrics(monitoring_v3.MetricServiceClient):
     def __init__(self, monitoring_project: str, credentials: Credentials,
                  metrics: dict):
         super(Metrics, self).__init__(credentials=credentials)
-        self._monitoring_project = monitoring_project
-        self._metrics = metrics
+        self._monitoring_project: str = monitoring_project
+        self._metrics: list = metrics
 
     @property
     def monitoring_project(self):
         return self._monitoring_project
 
     @monitoring_project.setter
-    def monitoring_project(self, value):
+    def monitoring_project(self, value: str):
         self._monitoring_project = value
 
     @property
@@ -53,7 +53,7 @@ class Metrics(monitoring_v3.MetricServiceClient):
         return self._metrics
 
     @metrics.setter
-    def metrics(self, value):
+    def metrics(self, value: list):
         self._metrics = value
 
     @staticmethod
@@ -73,9 +73,12 @@ class Metrics(monitoring_v3.MetricServiceClient):
         data_point.interval.end_time.seconds = int(now)
 
     def send_metrics(self):
-        for project_id, cost, time_window in self.metrics.items():
+        for metric in self.metrics:
+            project_id = metric['project_id']
+            cost = metric['cost']
+            time_window = metric['time_window']
             self.create_time_series(
-                self.monitoring_project,
+                self.project_path(self.monitoring_project),
                 self.__data_point(project_id, cost, time_window))
 
 
