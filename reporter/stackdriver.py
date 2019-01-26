@@ -1,6 +1,6 @@
 from google.cloud import monitoring_v3
 from google.auth.credentials import Credentials
-import time
+from datetime import datetime
 
 DEFAULT_MONITORING_PROJECT = 'gb-me-services'
 
@@ -35,7 +35,7 @@ class Alert(monitoring_v3.AlertPolicyServiceClient):
 
 class Metrics(monitoring_v3.MetricServiceClient):
     def __init__(self, monitoring_project: str, credentials: Credentials,
-                 metrics: dict):
+                 metrics: list):
         super(Metrics, self).__init__(credentials=credentials)
         self._monitoring_project: str = monitoring_project
         self._metrics: list = metrics
@@ -56,30 +56,33 @@ class Metrics(monitoring_v3.MetricServiceClient):
     def metrics(self, value: list):
         self._metrics = value
 
-    @staticmethod
-    def __series_for(billable_project_id: str, time_window: str):
+    def __series_for(self, billable_project_id: str, time_window: str):
         series = monitoring_v3.types.TimeSeries()
-        series.metric.type = 'custom.googleapis.com/project_spend'
-        series.resource.type = 'metric'
-        series.resource.labels['project_id'] = billable_project_id
-        series.resource.labels['time_window'] = time_window
-        return series.points.add()
+        series.metric.type = 'custom.googleapis.com/billing/project_spend'
+        series.resource.type = 'global'
+        series.metric.labels['project_id'] = billable_project_id
+        series.metric.labels['time_window'] = time_window
+        return series
 
     def __data_point(self, billable_project_id: str, cost: float,
                      time_window: str):
-        data_point = self.__series_for(billable_project_id, time_window)
+        series = self.__series_for(billable_project_id, time_window)
+        data_point = series.points.add()
         data_point.value.double_value = cost
-        now = time.time()
-        data_point.interval.end_time.seconds = int(now)
+        data_point.interval.end_time.FromDatetime(datetime.utcnow())
+        return series
 
     def send_metrics(self):
+        data_series: list = []
         for metric in self.metrics:
             project_id = metric['project_id']
             cost = metric['cost']
             time_window = metric['time_window']
-            self.create_time_series(
-                self.project_path(self.monitoring_project),
-                self.__data_point(project_id, cost, time_window))
+            data_point = self.__data_point(project_id, cost, time_window)
+            data_series.append(data_point)
+
+        return self.create_time_series(
+            self.project_path(self.monitoring_project), data_series)
 
 
 def create_alert():
