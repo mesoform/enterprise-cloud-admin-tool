@@ -73,16 +73,16 @@ class Metrics(monitoring_v3.MetricServiceClient):
         return series
 
     def send_metrics(self):
-        data_series: list = []
+        data_series_set: list = []
         for metric in self.metrics:
             project_id = metric['project_id']
             cost = metric['cost']
             time_window = metric['time_window']
-            data_point = self.__data_point(project_id, cost, time_window)
-            data_series.append(data_point)
+            data_series = self.__data_point(project_id, cost, time_window)
+            data_series_set.append(data_series)
 
         return self.create_time_series(
-            self.project_path(self.monitoring_project), data_series)
+            self.project_path(self.monitoring_project), data_series_set)
 
 
 def create_alert():
