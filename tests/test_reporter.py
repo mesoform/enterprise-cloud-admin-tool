@@ -3,12 +3,13 @@
 @contact: gareth@mesoform.com
 @date: 2017
 """
-from unittest import TestCase, TextTestRunner, TestSuite
+from unittest import TestCase, TextTestRunner, TestSuite, skip
 from builder import GcpAuth
 from reporter.stackdriver import Metrics, AlertPolicy
 from google.cloud.monitoring_v3 import MetricServiceClient, \
     AlertPolicyServiceClient
 from google.cloud.monitoring_v3.types import AlertPolicy as GoogleAlertPolicy
+from google.api_core.exceptions import InvalidArgument
 
 _TEST_CREDENTIALS_FILE_PATH = 'resources/gcp_token.json'
 _TEST_ALERT_POLICY_ID = \
@@ -44,7 +45,34 @@ class TestReporterAlertPolicy(TestCase):
             cls.gcp_auth = GcpAuth(f)
         cls.client = AlertPolicy(
             "gb-me-services",
-            cls.gcp_auth.credentials)
+            cls.gcp_auth.credentials,
+            {
+                "displayName": "magic alert policy",
+                "conditions": [
+                    {
+                        "conditionThreshold": {
+                            "thresholdValue": 0,
+                            "filter": "resource.type=global AND metric.labels.time_window = '2hr' AND metric.type = 'custom/billing/project_spend'",
+                            "duration": "60s",
+                            "comparison": "COMPARISON_GT"
+
+                        },
+                        "displayName": "magic condition"
+
+                    }
+
+                ],
+                "documentation": {
+                    "content": "link to documentation",
+                    "mimeType": "text/markdown"
+                },
+                "combiner": "AND"
+            }
+        )
+
+        # cls.policy = GoogleAlertPolicy
+        # cls.policy.display_name = "my magic policy"
+        # cls.policy.conditions.display_name = "my magic condition"
 
     def test_client_setup(self):
         self.assertIsInstance(self.client, AlertPolicyServiceClient)
@@ -59,9 +87,22 @@ class TestReporterAlertPolicy(TestCase):
         self.assertIn(_TEST_ALERT_POLICY_ID, policy_ids)
 
     def test_get_policy(self):
+        print(self.client.get_alert_policy(_TEST_ALERT_POLICY_ID))
         self.assertIsInstance(
-            self.client.get_alert_policy(
-                'projects/gb-me-services/alertPolicies/7522594986680907020'),
+            self.client.get_alert_policy(_TEST_ALERT_POLICY_ID),
+            GoogleAlertPolicy)
+
+    @skip
+    def test_create_policy_fails(self):
+        self.assertRaises(
+            self.client.create_alert_policy(self.client.monitoring_project_path,
+                                            {}), InvalidArgument)
+
+    def test_create_policy_succeeds(self):
+        self.assertIsInstance(
+            self.client.create_alert_policy(
+                self.client.monitoring_project_path,
+                self.client.policy),
             GoogleAlertPolicy)
 
 

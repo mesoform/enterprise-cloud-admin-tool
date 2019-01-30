@@ -10,10 +10,11 @@ class InvalidMonitoringClientType(Exception):
 
 
 class AlertPolicy(monitoring_v3.AlertPolicyServiceClient):
-    def __init__(self, monitoring_project: str, credentials: Credentials):
+    def __init__(self, monitoring_project: str, credentials: Credentials,
+                 policy: dict):
         super(AlertPolicy, self).__init__(credentials=credentials)
-        self._monitoring_project = monitoring_project
-        # self._policy = policy
+        self._monitoring_project: str = monitoring_project
+        self._policy: dict = policy
 
     @property
     def monitoring_project(self):
@@ -23,13 +24,17 @@ class AlertPolicy(monitoring_v3.AlertPolicyServiceClient):
     def monitoring_project(self, value):
         self._monitoring_project = value
 
-    # @property
-    # def policy(self):
-    #     return self._policy
-    #
-    # @policy.setter
-    # def policy(self, value):
-    #     self._policy = value
+    @property
+    def monitoring_project_path(self):
+        return self.project_path(self.monitoring_project)
+
+    @property
+    def policy(self):
+        return self._policy
+
+    @policy.setter
+    def policy(self, value):
+        self._policy = value
 
 
 class Metrics(monitoring_v3.MetricServiceClient):
@@ -46,6 +51,10 @@ class Metrics(monitoring_v3.MetricServiceClient):
     @monitoring_project.setter
     def monitoring_project(self, value: str):
         self._monitoring_project = value
+
+    @property
+    def monitoring_project_path(self):
+        return self.project_path(self.monitoring_project)
 
     @property
     def metrics(self):
@@ -80,8 +89,8 @@ class Metrics(monitoring_v3.MetricServiceClient):
             data_series = self.__data_point(project_id, cost, time_window)
             data_series_set.append(data_series)
 
-        return self.create_time_series(
-            self.project_path(self.monitoring_project), data_series_set)
+        return self.create_time_series(self.monitoring_project_path,
+                                       data_series_set)
 
 
 def create_alert():
