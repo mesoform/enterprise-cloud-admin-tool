@@ -9,12 +9,11 @@ class InvalidMonitoringClientType(Exception):
     pass
 
 
-class Alert(monitoring_v3.AlertPolicyServiceClient):
-    def __init__(self, monitoring_project: str, credentials: Credentials,
-                 policy: dict):
-        super(Alert, self).__init__(credentials=credentials)
+class AlertPolicy(monitoring_v3.AlertPolicyServiceClient):
+    def __init__(self, monitoring_project: str, credentials: Credentials):
+        super(AlertPolicy, self).__init__(credentials=credentials)
         self._monitoring_project = monitoring_project
-        self._policy = policy
+        # self._policy = policy
 
     @property
     def monitoring_project(self):
@@ -24,13 +23,13 @@ class Alert(monitoring_v3.AlertPolicyServiceClient):
     def monitoring_project(self, value):
         self._monitoring_project = value
 
-    @property
-    def policy(self):
-        return self._policy
-
-    @policy.setter
-    def policy(self, value):
-        self._policy = value
+    # @property
+    # def policy(self):
+    #     return self._policy
+    #
+    # @policy.setter
+    # def policy(self, value):
+    #     self._policy = value
 
 
 class Metrics(monitoring_v3.MetricServiceClient):
