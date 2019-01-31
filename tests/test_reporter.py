@@ -7,8 +7,9 @@ from unittest import TestCase, TextTestRunner, TestSuite, skip
 from builder import GcpAuth
 from reporter.stackdriver import Metrics, AlertPolicy
 from google.cloud.monitoring_v3 import MetricServiceClient, \
-    AlertPolicyServiceClient
+    AlertPolicyServiceClient, NotificationChannelServiceClient
 from google.cloud.monitoring_v3.types import AlertPolicy as GoogleAlertPolicy
+from google.cloud.monitoring_v3.types import NotificationChannel
 from google.api_core.exceptions import InvalidArgument
 
 _TEST_CREDENTIALS_FILE_PATH = 'resources/gcp_token.json'
@@ -55,6 +56,16 @@ class TestReporterAlertPolicy(TestCase):
         cls.policy.documentation.content = 'link to my documentation'
         cls.policy.documentation.mime_type = 'text/markdown'
         cls.policy.combiner = cls.policy.AND
+        notification_channel1 = NotificationChannel()
+        notification_channel1.type = 'email'
+        notification_channel1.display_name = 'email_support'
+        notification_channel1.labels['key'] = 'email_address'
+        new_channel = NotificationChannelServiceClient(
+            "gb-me-services",
+            cls.gcp_auth.credentials)
+        new_channel.create_notification_channel(cls.client.monitoring_project_path, notification_channel1)
+        # print(created_channel.ListFields())
+        cls.policy.notification_channels.append(created_channel.name)
         condition1 = cls.policy.conditions.add()
         condition1.display_name = 'my magic alert policy condition 1'
         condition1.condition_threshold.threshold_value = 22.00
@@ -62,7 +73,6 @@ class TestReporterAlertPolicy(TestCase):
         condition1.condition_threshold.duration.seconds = 60
         condition1.condition_threshold.comparison = 1
         condition1.condition_threshold.trigger.count = 3
-        # cls.policy.notification_channels.append('support@mesoform.com')
 
     def test_client_setup(self):
         self.assertIsInstance(self.client, AlertPolicyServiceClient)
