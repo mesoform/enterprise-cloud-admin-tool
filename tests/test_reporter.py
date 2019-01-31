@@ -46,33 +46,23 @@ class TestReporterAlertPolicy(TestCase):
         cls.client = AlertPolicy(
             "gb-me-services",
             cls.gcp_auth.credentials,
-            {
-                "displayName": "magic alert policy",
-                "conditions": [
-                    {
-                        "conditionThreshold": {
-                            "thresholdValue": 0,
-                            "filter": "resource.type=global AND metric.labels.time_window = '2hr' AND metric.type = 'custom/billing/project_spend'",
-                            "duration": "60s",
-                            "comparison": "COMPARISON_GT"
-
-                        },
-                        "displayName": "magic condition"
-
-                    }
-
-                ],
-                "documentation": {
-                    "content": "link to documentation",
-                    "mimeType": "text/markdown"
-                },
-                "combiner": "AND"
-            }
+            {}
         )
 
-        # cls.policy = GoogleAlertPolicy
-        # cls.policy.display_name = "my magic policy"
-        # cls.policy.conditions.display_name = "my magic condition"
+        cls.policy = GoogleAlertPolicy()
+        cls.policy.display_name = "magic alert policy"
+        assert not cls.policy.HasField('documentation')
+        cls.policy.documentation.content = 'link to my documentation'
+        cls.policy.documentation.mime_type = 'text/markdown'
+        cls.policy.combiner = cls.policy.AND
+        condition1 = cls.policy.conditions.add()
+        condition1.display_name = 'my magic alert policy condition 1'
+        condition1.condition_threshold.threshold_value = 22.00
+        condition1.condition_threshold.filter = 'resource.type=global AND metric.label.time_window = "2hr" AND metric.type = "custom.googleapis.com/billing/my-project"'
+        condition1.condition_threshold.duration.seconds = 60
+        condition1.condition_threshold.comparison = 1
+        condition1.condition_threshold.trigger.count = 3
+        # cls.policy.notification_channels.append('support@mesoform.com')
 
     def test_client_setup(self):
         self.assertIsInstance(self.client, AlertPolicyServiceClient)
@@ -102,7 +92,7 @@ class TestReporterAlertPolicy(TestCase):
         self.assertIsInstance(
             self.client.create_alert_policy(
                 self.client.monitoring_project_path,
-                self.client.policy),
+                self.policy),
             GoogleAlertPolicy)
 
 
