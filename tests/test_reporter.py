@@ -63,7 +63,6 @@ class TestReporterAlertPolicy(TestCase):
         created_channel = new_channel.create_notification_channel(
             cls.client.monitoring_project_path, cls.notification_channel)
 
-
         cls.policy.display_name = "magic alert policy"
         assert not cls.policy.HasField('documentation')
         cls.policy.documentation.content = 'link to my documentation'

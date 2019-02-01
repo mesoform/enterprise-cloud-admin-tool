@@ -23,14 +23,3 @@
   },
   "combiner": "AND"
 }
-
-{
-  "billing_project": true,
-  "budget_amount": true
-  "notifications": [
-    {
-      "notify": "support@mesoform.com",
-      "by": "email"
-    }
-  ]
-}

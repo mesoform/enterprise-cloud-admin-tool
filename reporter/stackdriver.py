@@ -1,6 +1,9 @@
-from google.cloud import monitoring_v3
+from google.cloud.monitoring_v3 import AlertPolicyServiceClient, \
+    NotificationChannelServiceClient, MetricServiceClient
 from google.auth.credentials import Credentials
 from datetime import datetime
+# noinspection PyUnresolvedReferences
+from google.cloud.monitoring_v3.types import NotificationChannel, TimeSeries
 
 DEFAULT_MONITORING_PROJECT = 'gb-me-services'
 BILLING_ALERT_PERIODS = [
@@ -10,18 +13,33 @@ BILLING_ALERT_PERIODS = [
     "extrapolated_7d",
     "current_period"
 ]
+_DEFAULT_BILLING_POLICY = {
+    "billing_project": "",
+    "budget_amount": 10.00,
+    "notifications": [
+        {
+            "notify": "support@mesoform.com",
+            "by": "email"
+        }
+    ]
+}
 
 
 class InvalidMonitoringClientType(Exception):
     pass
 
 
-class AlertPolicy(monitoring_v3.AlertPolicyServiceClient):
+class TooManyMatchingResultsError(Exception):
+    pass
+
+
+class AlertPolicy(AlertPolicyServiceClient):
     def __init__(self, monitoring_project: str, credentials: Credentials,
                  policy: dict):
-        super(AlertPolicy, self).__init__(credentials=credentials)
         self._monitoring_project: str = monitoring_project
         self._policy: dict = policy
+        self.credentials = credentials
+        super(AlertPolicy, self).__init__(credentials=self.credentials)
 
     @property
     def monitoring_project(self):
@@ -42,6 +60,41 @@ class AlertPolicy(monitoring_v3.AlertPolicyServiceClient):
     @policy.setter
     def policy(self, value):
         self._policy = value
+
+    def get_notification_channel(self, notification: dict):
+        notification_channels = NotificationChannelServiceClient(
+            credentials=self.credentials
+        )
+        notification_channels_list = \
+            notification_channels.list_notification_channels(
+                self.monitoring_project_path,
+                "display_name='" + notification['notify'] +
+                "' AND type='" + notification['by'] +
+                "' AND labels.email_address='" + notification['notify'],
+            )
+
+        assert len(notification_channels_list) <= 1
+        if len(notification_channels_list) == 1:
+            notification_channel = notification_channels_list[0]
+            return notification_channel.name
+        elif len(notification_channels_list) == 0:
+            notification_channel = NotificationChannel()
+            notification_channel.type = notification['by']
+            notification_channel.display_name = notification['notify']
+            notification_channel.description = 'Send alert notification by ' + \
+                                               notification['by'] + ' to ' + \
+                                               notification['notify']
+            if notification['by'] == 'email':
+                notification_channel.labels[
+                    'email_address'] = notification['notify']
+            new_channel = notification_channels.create_notification_channel(
+                self.monitoring_project_path, notification_channel)
+            return new_channel.name
+        else:
+            raise TooManyMatchingResultsError(
+                str(len(notification_channels_list)) +
+                'notification channels found matching:\n' +
+                notification['notify'] + ' by ' + notification['by'])
 
 
 class BillingAlerts(AlertPolicy):
@@ -71,10 +124,11 @@ class BillingAlerts(AlertPolicy):
     def get_conditions_list(self):
         conditions_list = list()
         for billing_period in BILLING_ALERT_PERIODS:
-            filter = "resource.type=global AND metric.label.time_window = '" + \
-                     billing_period + \
-                     "' AND metric.type = 'custom.googleapis.com/billing/" + \
-                     self.billing_alert_policy.project_id + "'"
+            metric_filter = "resource.type=global AND " \
+                            "metric.label.time_window = '" + billing_period + \
+                            "' AND metric.type = " \
+                            "'custom.googleapis.com/billing/" + \
+                            self.billing_alert_policy.project_id + "'"
             spend_threshold = self.billing_alert_policy.budget_amount
             condition_name = "Period: " + billing_period + ", $" + \
                              self.billing_alert_policy.budget_amount + \
@@ -82,7 +136,7 @@ class BillingAlerts(AlertPolicy):
             condition = {
                 "conditionThreshold": {
                     "thresholdValue": spend_threshold,
-                    "filter": filter,
+                    "filter": metric_filter,
                     "duration": "60s",
                     "comparison": "COMPARISON_GT"
                 },
@@ -96,7 +150,7 @@ class BillingAlerts(AlertPolicy):
                       " project spend thresholds"
 
 
-class Metrics(monitoring_v3.MetricServiceClient):
+class Metrics(MetricServiceClient):
     def __init__(self, monitoring_project: str, credentials: Credentials,
                  metrics: list):
         super(Metrics, self).__init__(credentials=credentials)
@@ -124,7 +178,7 @@ class Metrics(monitoring_v3.MetricServiceClient):
         self._metrics = value
 
     def __series_for(self, billable_project_id: str, time_window: str):
-        series = monitoring_v3.types.TimeSeries()
+        series = TimeSeries()
         series.metric.type = 'custom.googleapis.com/billing/project_spend'
         series.resource.type = 'global'
         series.metric.labels['project_id'] = billable_project_id
