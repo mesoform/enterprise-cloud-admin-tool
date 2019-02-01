@@ -3,6 +3,13 @@ from google.auth.credentials import Credentials
 from datetime import datetime
 
 DEFAULT_MONITORING_PROJECT = 'gb-me-services'
+BILLING_ALERT_PERIODS = [
+    "extrapolated_2h",
+    "extrapolated_4h",
+    "extrapolated_1d",
+    "extrapolated_7d",
+    "current_period"
+]
 
 
 class InvalidMonitoringClientType(Exception):
@@ -35,6 +42,58 @@ class AlertPolicy(monitoring_v3.AlertPolicyServiceClient):
     @policy.setter
     def policy(self, value):
         self._policy = value
+
+
+class BillingAlerts(AlertPolicy):
+    def __init__(self, billing_alert_policy: dict):
+        self._billing_alert_policy: dict = billing_alert_policy
+        self._alert_policy_template: dict = {
+            "display_name": None,
+            "conditions": [],
+            "notifications": [],
+            "documentation": {
+                "content": "Link to Confluence page on billing alerts"
+                           "AlertAPI Key: 12345-6789-0",
+                "mimeType": "text/markdown"
+            },
+            "combiner": "OR"
+        }
+        super(BillingAlerts, self).__init__()
+
+    @property
+    def billing_alert_policy(self):
+        return self._billing_alert_policy
+
+    @billing_alert_policy.setter
+    def billing_alert_policy(self, value):
+        self._billing_alert_policy = value
+
+    def get_conditions_list(self):
+        conditions_list = list()
+        for billing_period in BILLING_ALERT_PERIODS:
+            filter = "resource.type=global AND metric.label.time_window = '" + \
+                     billing_period + \
+                     "' AND metric.type = 'custom.googleapis.com/billing/" + \
+                     self.billing_alert_policy.project_id + "'"
+            spend_threshold = self.billing_alert_policy.budget_amount
+            condition_name = "Period: " + billing_period + ", $" + \
+                             self.billing_alert_policy.budget_amount + \
+                             " threshold breach"
+            condition = {
+                "conditionThreshold": {
+                    "thresholdValue": spend_threshold,
+                    "filter": filter,
+                    "duration": "60s",
+                    "comparison": "COMPARISON_GT"
+                },
+                "display_name": condition_name
+            }
+            conditions_list.append(condition)
+        return conditions_list
+
+    def define_alert_policy(self):
+        policy_name = self.billing_alert_policy.project_id + \
+                      " project spend thresholds"
 
 
 class Metrics(monitoring_v3.MetricServiceClient):

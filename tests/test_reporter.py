@@ -11,6 +11,7 @@ from google.cloud.monitoring_v3 import MetricServiceClient, \
 from google.cloud.monitoring_v3.types import AlertPolicy as GoogleAlertPolicy
 from google.cloud.monitoring_v3.types import NotificationChannel
 from google.api_core.exceptions import InvalidArgument
+from google.protobuf import message_factory
 
 _TEST_CREDENTIALS_FILE_PATH = 'resources/gcp_token.json'
 _TEST_ALERT_POLICY_ID = \
@@ -49,21 +50,26 @@ class TestReporterAlertPolicy(TestCase):
             cls.gcp_auth.credentials,
             {}
         )
-
+        cls.notification_channel = NotificationChannel()
         cls.policy = GoogleAlertPolicy()
+
+        cls.notification_channel.type = 'email'
+        cls.notification_channel.display_name = 'support@mesoform.com'
+        cls.notification_channel.description = 'Main Mesoform support team'
+        cls.notification_channel.labels[
+            'email_address'] = 'support@mesoform.com'
+        new_channel = NotificationChannelServiceClient(
+            credentials=cls.gcp_auth.credentials)
+        created_channel = new_channel.create_notification_channel(
+            cls.client.monitoring_project_path, cls.notification_channel)
+
+
         cls.policy.display_name = "magic alert policy"
         assert not cls.policy.HasField('documentation')
         cls.policy.documentation.content = 'link to my documentation'
         cls.policy.documentation.mime_type = 'text/markdown'
         cls.policy.combiner = cls.policy.AND
-        notification_channel1 = NotificationChannel()
-        notification_channel1.type = 'email'
-        notification_channel1.display_name = 'email_support'
-        notification_channel1.labels['key'] = 'email_address'
-        new_channel = NotificationChannelServiceClient(
-            "gb-me-services",
-            cls.gcp_auth.credentials)
-        new_channel.create_notification_channel(cls.client.monitoring_project_path, notification_channel1)
+
         # print(created_channel.ListFields())
         cls.policy.notification_channels.append(created_channel.name)
         condition1 = cls.policy.conditions.add()
