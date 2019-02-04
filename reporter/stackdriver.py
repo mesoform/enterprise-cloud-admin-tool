@@ -4,6 +4,10 @@ from google.auth.credentials import Credentials
 from datetime import datetime
 # noinspection PyUnresolvedReferences
 from google.cloud.monitoring_v3.types import NotificationChannel, TimeSeries
+import json
+from decimal import *
+
+getcontext().prec = 2  # Set decimal places to two
 
 DEFAULT_MONITORING_PROJECT = 'gb-me-services'
 BILLING_ALERT_PERIODS = [
@@ -30,6 +34,10 @@ class InvalidMonitoringClientType(Exception):
 
 
 class TooManyMatchingResultsError(Exception):
+    pass
+
+
+class MediaTypeNotSupported(Exception):
     pass
 
 
@@ -61,16 +69,21 @@ class AlertPolicy(AlertPolicyServiceClient):
     def policy(self, value):
         self._policy = value
 
-    def get_notification_channel(self, notification: dict):
+    def get_notification_channel(self, contact: str, media: str):
         notification_channels = NotificationChannelServiceClient(
             credentials=self.credentials
         )
+        if media == 'email':
+            label = "labels.email_address='" + contact + "'"
+        else:
+            raise MediaTypeNotSupported(media + "is not currently supported")
+
         notification_channels_list = \
             notification_channels.list_notification_channels(
                 self.monitoring_project_path,
-                "display_name='" + notification['notify'] +
-                "' AND type='" + notification['by'] +
-                "' AND labels.email_address='" + notification['notify'],
+                "display_name='" + contact +
+                "' AND type='" + media +
+                "' AND " + label,
             )
 
         assert len(notification_channels_list) <= 1
@@ -79,14 +92,14 @@ class AlertPolicy(AlertPolicyServiceClient):
             return notification_channel.name
         elif len(notification_channels_list) == 0:
             notification_channel = NotificationChannel()
-            notification_channel.type = notification['by']
-            notification_channel.display_name = notification['notify']
+            notification_channel.type = media
+            notification_channel.display_name = contact
             notification_channel.description = 'Send alert notification by ' + \
-                                               notification['by'] + ' to ' + \
-                                               notification['notify']
-            if notification['by'] == 'email':
+                                               media + ' to ' + \
+                                               contact
+            if media == 'email':
                 notification_channel.labels[
-                    'email_address'] = notification['notify']
+                    'email_address'] = contact
             new_channel = notification_channels.create_notification_channel(
                 self.monitoring_project_path, notification_channel)
             return new_channel.name
@@ -94,12 +107,26 @@ class AlertPolicy(AlertPolicyServiceClient):
             raise TooManyMatchingResultsError(
                 str(len(notification_channels_list)) +
                 'notification channels found matching:\n' +
-                notification['notify'] + ' by ' + notification['by'])
+                contact + ' by ' + media)
 
 
-class BillingAlerts(AlertPolicy):
-    def __init__(self, billing_alert_policy: dict):
-        self._billing_alert_policy: dict = billing_alert_policy
+class BillingAlert(AlertPolicy):
+    def __init__(self,
+                 monitoring_project: str = None,
+                 monitoring_credentials: Credentials = None,
+                 billing_threshold: float = None,
+                 billing_contact_address: str = None,
+                 notify_contact_by: str = None,
+                 billing_project_id: str = None):
+        self._monitoring_project: str = monitoring_project
+        self._billing_threshold: float = billing_threshold
+        self._billing_contact_address: str = billing_contact_address
+        self._notify_contact_by: str = notify_contact_by
+        self._billing_project_id: str = billing_project_id
+        self.notification_channel = self.get_notification_channel(
+            self.billing_contact_address,
+            self.notify_contact_by
+        )
         self._alert_policy_template: dict = {
             "display_name": None,
             "conditions": [],
@@ -111,15 +138,72 @@ class BillingAlerts(AlertPolicy):
             },
             "combiner": "OR"
         }
-        super(BillingAlerts, self).__init__()
+        super().__init__(monitoring_project,
+                         monitoring_credentials,
+                         )
 
     @property
-    def billing_alert_policy(self):
-        return self._billing_alert_policy
+    def billing_threshold(self):
+        return self._billing_threshold
 
-    @billing_alert_policy.setter
-    def billing_alert_policy(self, value):
-        self._billing_alert_policy = value
+    @billing_threshold.setter
+    def billing_threshold(self, value):
+        self._billing_threshold = value
+
+    @property
+    def billing_contact_address(self):
+        return self._billing_contact_address
+
+    @billing_contact_address.setter
+    def billing_contact_address(self, value):
+        self._billing_contact_address = value
+
+    @property
+    def notify_contact_by(self):
+        return self._notify_contact_by
+
+    @notify_contact_by.setter
+    def notify_contact_by(self, value):
+        self._notify_contact_by = value
+
+    @property
+    def billing_project_id(self):
+        return self._billing_project_id
+
+    @billing_project_id.setter
+    def billing_project_id(self, value):
+        self._billing_project_id = value
+
+    @classmethod
+    def alert_details_from_json(cls, json_data):
+        """
+        Sets object attributes from a JSON serialised instance.
+        String should be in the format:
+        {
+            "project_id": project_id,
+            "monthly_spend": amount_in_dollars,
+            "contact": who_to_notify,
+            "contact_by": how_to_contact
+        }
+        :param json_data: dict or str: containing JSON format above
+        :return: BillingAlert from the serialised data
+        """
+        if not isinstance(json_data, dict):
+            json_data = json.loads(json_data)
+
+        if 'project_id' and \
+                'monthly_spend' and \
+                'contact' in json_data.keys():
+            billing_alert = cls(
+                billing_contact_address=json_data['contact'],
+                notify_contact_by=json_data['contact_by'],
+                billing_threshold=json_data['monthly_spend'],
+                billing_project_id=json_data['project_id']
+            )
+        else:
+            raise KeyError
+
+        return billing_alert
 
     def get_conditions_list(self):
         conditions_list = list()
@@ -128,10 +212,10 @@ class BillingAlerts(AlertPolicy):
                             "metric.label.time_window = '" + billing_period + \
                             "' AND metric.type = " \
                             "'custom.googleapis.com/billing/" + \
-                            self.billing_alert_policy.project_id + "'"
-            spend_threshold = self.billing_alert_policy.budget_amount
+                            self.billing_project_id + "'"
+            spend_threshold = str(self.billing_threshold)
             condition_name = "Period: " + billing_period + ", $" + \
-                             self.billing_alert_policy.budget_amount + \
+                             spend_threshold + \
                              " threshold breach"
             condition = {
                 "conditionThreshold": {
