@@ -8,11 +8,10 @@ from builder import GcpAuth
 from reporter.stackdriver import Metrics, AlertPolicy, BillingAlert, \
     TooManyMatchingResultsError
 from google.cloud.monitoring_v3 import MetricServiceClient, \
-    AlertPolicyServiceClient, NotificationChannelServiceClient
+    AlertPolicyServiceClient  # NotificationChannelServiceClient
 from google.cloud.monitoring_v3.types import AlertPolicy as GoogleAlertPolicy
-from google.cloud.monitoring_v3.types import NotificationChannel
+# from google.cloud.monitoring_v3.types import NotificationChannel
 from google.api_core.exceptions import InvalidArgument
-from google.protobuf import message_factory
 
 _TEST_CREDENTIALS_FILE_PATH = 'resources/gcp_token.json'
 _TEST_ALERT_POLICY_ID = \
@@ -52,27 +51,17 @@ class TestReporterAlertPolicy(TestCase):
             cls.gcp_auth.credentials,
             {}
         )
-        # cls.notification_channel = NotificationChannel()
-        # cls.policy = GoogleAlertPolicy()
+
+        cls.policy = GoogleAlertPolicy()
         #
-        # cls.notification_channel.type = 'email'
-        # cls.notification_channel.display_name = 'support@mesoform.com'
-        # cls.notification_channel.description = 'Main Mesoform support team'
-        # cls.notification_channel.labels[
-        #     'email_address'] = 'support@mesoform.com'
-        # new_channel = NotificationChannelServiceClient(
-        #     credentials=cls.gcp_auth.credentials)
-        # created_channel = new_channel.create_notification_channel(
-        #     cls.client.monitoring_project_path, cls.notification_channel)
         #
-        # cls.policy.display_name = "magic alert policy"
-        # assert not cls.policy.HasField('documentation')
-        # cls.policy.documentation.content = 'link to my documentation'
-        # cls.policy.documentation.mime_type = 'text/markdown'
-        # cls.policy.combiner = cls.policy.AND
-        #
-        # # print(created_channel.ListFields())
-        # cls.policy.notification_channels.append(created_channel.name)
+        cls.policy.display_name = "magic alert policy"
+        assert not cls.policy.HasField('documentation')
+        cls.policy.documentation.content = 'link to my documentation'
+        cls.policy.documentation.mime_type = 'text/markdown'
+        cls.policy.combiner = cls.policy.AND
+
+        # print(created_channel.ListFields())
         # condition1 = cls.policy.conditions.add()
         # condition1.display_name = 'my magic alert policy condition 1'
         # condition1.condition_threshold.threshold_value = 22.00
@@ -99,7 +88,9 @@ class TestReporterAlertPolicy(TestCase):
         print(channel_path)
         self.assertRegex(
             channel_path,
-            'projects/' + _TEST_MONITORING_PROJECT + '/notificationChannels/[0-9]+')
+            'projects/' +
+            _TEST_MONITORING_PROJECT +
+            '/notificationChannels/[0-9]+')
 
     def test_get_notification_channel_fail(self):
         self.assertRaises(TooManyMatchingResultsError,
