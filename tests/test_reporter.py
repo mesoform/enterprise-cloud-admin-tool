@@ -5,7 +5,8 @@
 """
 from unittest import TestCase, TextTestRunner, TestSuite, skip
 from builder import GcpAuth
-from reporter.stackdriver import Metrics, AlertPolicy
+from reporter.stackdriver import Metrics, AlertPolicy, BillingAlert, \
+    TooManyMatchingResultsError
 from google.cloud.monitoring_v3 import MetricServiceClient, \
     AlertPolicyServiceClient, NotificationChannelServiceClient
 from google.cloud.monitoring_v3.types import AlertPolicy as GoogleAlertPolicy
@@ -16,6 +17,7 @@ from google.protobuf import message_factory
 _TEST_CREDENTIALS_FILE_PATH = 'resources/gcp_token.json'
 _TEST_ALERT_POLICY_ID = \
     'projects/gb-me-services/alertPolicies/7522594986680907020'
+_TEST_MONITORING_PROJECT = 'gb-me-services'
 
 
 class TestReporterMetrics(TestCase):
@@ -46,38 +48,38 @@ class TestReporterAlertPolicy(TestCase):
         with open(_TEST_CREDENTIALS_FILE_PATH) as f:
             cls.gcp_auth = GcpAuth(f)
         cls.client = AlertPolicy(
-            "gb-me-services",
+            _TEST_MONITORING_PROJECT,
             cls.gcp_auth.credentials,
             {}
         )
-        cls.notification_channel = NotificationChannel()
-        cls.policy = GoogleAlertPolicy()
-
-        cls.notification_channel.type = 'email'
-        cls.notification_channel.display_name = 'support@mesoform.com'
-        cls.notification_channel.description = 'Main Mesoform support team'
-        cls.notification_channel.labels[
-            'email_address'] = 'support@mesoform.com'
-        new_channel = NotificationChannelServiceClient(
-            credentials=cls.gcp_auth.credentials)
-        created_channel = new_channel.create_notification_channel(
-            cls.client.monitoring_project_path, cls.notification_channel)
-
-        cls.policy.display_name = "magic alert policy"
-        assert not cls.policy.HasField('documentation')
-        cls.policy.documentation.content = 'link to my documentation'
-        cls.policy.documentation.mime_type = 'text/markdown'
-        cls.policy.combiner = cls.policy.AND
-
-        # print(created_channel.ListFields())
-        cls.policy.notification_channels.append(created_channel.name)
-        condition1 = cls.policy.conditions.add()
-        condition1.display_name = 'my magic alert policy condition 1'
-        condition1.condition_threshold.threshold_value = 22.00
-        condition1.condition_threshold.filter = 'resource.type=global AND metric.label.time_window = "2hr" AND metric.type = "custom.googleapis.com/billing/my-project"'
-        condition1.condition_threshold.duration.seconds = 60
-        condition1.condition_threshold.comparison = 1
-        condition1.condition_threshold.trigger.count = 3
+        # cls.notification_channel = NotificationChannel()
+        # cls.policy = GoogleAlertPolicy()
+        #
+        # cls.notification_channel.type = 'email'
+        # cls.notification_channel.display_name = 'support@mesoform.com'
+        # cls.notification_channel.description = 'Main Mesoform support team'
+        # cls.notification_channel.labels[
+        #     'email_address'] = 'support@mesoform.com'
+        # new_channel = NotificationChannelServiceClient(
+        #     credentials=cls.gcp_auth.credentials)
+        # created_channel = new_channel.create_notification_channel(
+        #     cls.client.monitoring_project_path, cls.notification_channel)
+        #
+        # cls.policy.display_name = "magic alert policy"
+        # assert not cls.policy.HasField('documentation')
+        # cls.policy.documentation.content = 'link to my documentation'
+        # cls.policy.documentation.mime_type = 'text/markdown'
+        # cls.policy.combiner = cls.policy.AND
+        #
+        # # print(created_channel.ListFields())
+        # cls.policy.notification_channels.append(created_channel.name)
+        # condition1 = cls.policy.conditions.add()
+        # condition1.display_name = 'my magic alert policy condition 1'
+        # condition1.condition_threshold.threshold_value = 22.00
+        # condition1.condition_threshold.filter = 'resource.type=global AND metric.label.time_window = "2hr" AND metric.type = "custom.googleapis.com/billing/my-project"'
+        # condition1.condition_threshold.duration.seconds = 60
+        # condition1.condition_threshold.comparison = 1
+        # condition1.condition_threshold.trigger.count = 3
 
     def test_client_setup(self):
         self.assertIsInstance(self.client, AlertPolicyServiceClient)
@@ -90,6 +92,19 @@ class TestReporterAlertPolicy(TestCase):
             policy_ids.append(policy.name)
 
         self.assertIn(_TEST_ALERT_POLICY_ID, policy_ids)
+
+    def test_get_notification_channel_success(self):
+        channel_path = self.client.get_notification_channel(
+            'gareth@mesoform.com', 'email')
+        print(channel_path)
+        self.assertRegex(
+            channel_path,
+            'projects/' + _TEST_MONITORING_PROJECT + '/notificationChannels/[0-9]+')
+
+    def test_get_notification_channel_fail(self):
+        self.assertRaises(TooManyMatchingResultsError,
+                          self.client.get_notification_channel,
+                          'support@mesoform.com', 'email')
 
     def test_get_policy(self):
         print(self.client.get_alert_policy(_TEST_ALERT_POLICY_ID))
@@ -109,6 +124,16 @@ class TestReporterAlertPolicy(TestCase):
                 self.client.monitoring_project_path,
                 self.policy),
             GoogleAlertPolicy)
+
+
+class TestReporterBillingAlert(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        with open(_TEST_CREDENTIALS_FILE_PATH) as f:
+            cls.gcp_auth = GcpAuth(f)
+        cls.billing_alert = BillingAlert(
+            _TEST_MONITORING_PROJECT,
+            monitoring_credentials=cls.gcp_auth.credentials)
 
 
 def suite():

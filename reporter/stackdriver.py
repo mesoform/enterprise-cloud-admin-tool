@@ -41,9 +41,13 @@ class MediaTypeNotSupported(Exception):
     pass
 
 
+def _notification_channel_client_fn(credentials):
+    return NotificationChannelServiceClient(credentials=credentials)
+
+
 class AlertPolicy(AlertPolicyServiceClient):
     def __init__(self, monitoring_project: str, credentials: Credentials,
-                 policy: dict):
+                 policy: dict = None):
         self._monitoring_project: str = monitoring_project
         self._policy: dict = policy
         self.credentials = credentials
@@ -69,25 +73,33 @@ class AlertPolicy(AlertPolicyServiceClient):
     def policy(self, value):
         self._policy = value
 
-    def get_notification_channel(self, contact: str, media: str):
-        notification_channels = NotificationChannelServiceClient(
-            credentials=self.credentials
-        )
+    def get_notification_channel(
+            self,
+            contact: str,
+            media: str,
+            notification_channel_client=_notification_channel_client_fn):
+
+        notification_channels = notification_channel_client(self.credentials)
+
         if media == 'email':
             label = "labels.email_address='" + contact + "'"
         else:
             raise MediaTypeNotSupported(media + "is not currently supported")
 
         notification_channels_list = \
-            notification_channels.list_notification_channels(
+            list(notification_channels.list_notification_channels(
                 self.monitoring_project_path,
                 "display_name='" + contact +
                 "' AND type='" + media +
                 "' AND " + label,
-            )
+            ))
 
-        assert len(notification_channels_list) <= 1
-        if len(notification_channels_list) == 1:
+        if len(notification_channels_list) > 1:
+            raise TooManyMatchingResultsError(
+                str(len(notification_channels_list)) +
+                ' notification channels found matching:\n notify ' +
+                contact + ' by ' + media)
+        elif len(notification_channels_list) == 1:
             notification_channel = notification_channels_list[0]
             return notification_channel.name
         elif len(notification_channels_list) == 0:
@@ -103,11 +115,6 @@ class AlertPolicy(AlertPolicyServiceClient):
             new_channel = notification_channels.create_notification_channel(
                 self.monitoring_project_path, notification_channel)
             return new_channel.name
-        else:
-            raise TooManyMatchingResultsError(
-                str(len(notification_channels_list)) +
-                'notification channels found matching:\n' +
-                contact + ' by ' + media)
 
 
 class BillingAlert(AlertPolicy):
@@ -138,9 +145,9 @@ class BillingAlert(AlertPolicy):
             },
             "combiner": "OR"
         }
-        super().__init__(monitoring_project,
-                         monitoring_credentials,
-                         )
+        self.complete_alert_policy = self.get_alert_policy()
+        super().__init__(monitoring_project, monitoring_credentials,
+                         self.complete_alert_policy)
 
     @property
     def billing_threshold(self):
@@ -205,7 +212,7 @@ class BillingAlert(AlertPolicy):
 
         return billing_alert
 
-    def get_conditions_list(self):
+    def get_conditions(self):
         conditions_list = list()
         for billing_period in BILLING_ALERT_PERIODS:
             metric_filter = "resource.type=global AND " \
@@ -229,9 +236,12 @@ class BillingAlert(AlertPolicy):
             conditions_list.append(condition)
         return conditions_list
 
-    def define_alert_policy(self):
-        policy_name = self.billing_alert_policy.project_id + \
-                      " project spend thresholds"
+    def get_alert_policy(self):
+        policy = self._alert_policy_template
+        policy['display_name'] = self.billing_project_id + " billing alerts"
+        policy['conditions'] = self.get_conditions()
+        policy['notifications'] = [self.notification_channel]
+        return policy
 
 
 class Metrics(MetricServiceClient):
