@@ -145,7 +145,7 @@ class BillingAlert(AlertPolicy):
             },
             "combiner": "OR"
         }
-        self.complete_alert_policy = self.get_alert_policy()
+        self.complete_alert_policy = self.get_billing_alert_policy_dict()
         super().__init__(monitoring_project, monitoring_credentials,
                          self.complete_alert_policy)
 
@@ -236,7 +236,7 @@ class BillingAlert(AlertPolicy):
             conditions_list.append(condition)
         return conditions_list
 
-    def get_alert_policy(self):
+    def get_billing_alert_policy_dict(self):
         policy = self._alert_policy_template
         policy['display_name'] = self.billing_project_id + " billing alerts"
         policy['conditions'] = self.get_conditions()
