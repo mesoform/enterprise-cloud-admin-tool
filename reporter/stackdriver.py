@@ -41,10 +41,6 @@ class MediaTypeNotSupported(Exception):
     pass
 
 
-def _notification_channel_client_fn(credentials):
-    return NotificationChannelServiceClient(credentials=credentials)
-
-
 class AlertPolicy(AlertPolicyServiceClient):
     def __init__(self, monitoring_project: str, credentials: Credentials,
                  policy: dict = None):
@@ -77,9 +73,10 @@ class AlertPolicy(AlertPolicyServiceClient):
             self,
             contact: str,
             media: str,
-            notification_channel_client=_notification_channel_client_fn):
+            notification_channel_client=NotificationChannelServiceClient):
 
-        notification_channels = notification_channel_client(self.credentials)
+        notification_channels = notification_channel_client(
+            credentials=self.credentials)
 
         if media == 'email':
             label = "labels.email_address='" + contact + "'"
