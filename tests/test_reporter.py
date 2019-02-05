@@ -16,7 +16,21 @@ from google.api_core.exceptions import InvalidArgument
 _TEST_CREDENTIALS_FILE_PATH = 'resources/gcp_token.json'
 _TEST_ALERT_POLICY_ID = \
     'projects/gb-me-services/alertPolicies/7522594986680907020'
+_TEST_NOTIFICATION_CHANNEL_ID = \
+    'projects/gb-me-services/notificationChannels/17383378584079300126'
 _TEST_MONITORING_PROJECT = 'gb-me-services'
+_TEST_MONITORED_PROJECT = 'gb-me-services-230515'
+_TEST_BILLING_THRESHOLD = 10.20
+_EXPECTED_COMPLETE_ALERT_POLICY = {
+    "display_name": _TEST_MONITORED_PROJECT,
+    "conditions": [],
+    "notifications": [_TEST_NOTIFICATION_CHANNEL_ID],
+    "documentation": {
+        "content": "Link to wiki page on billing alerts",
+        "mimeType": "text/markdown"
+    },
+    "combiner": "OR"
+}
 
 
 class TestReporterMetrics(TestCase):
@@ -124,7 +138,20 @@ class TestReporterBillingAlert(TestCase):
             cls.gcp_auth = GcpAuth(f)
         cls.billing_alert = BillingAlert(
             _TEST_MONITORING_PROJECT,
-            monitoring_credentials=cls.gcp_auth.credentials)
+            monitoring_credentials=cls.gcp_auth.credentials,
+            notification_channel=_TEST_NOTIFICATION_CHANNEL_ID,
+            complete_alert_policy=_EXPECTED_COMPLETE_ALERT_POLICY
+        )
+
+    def test_get_billing_alert_policy_dict(self):
+        self.assertDictEqual(
+            self.billing_alert.get_complete_alert_policy(
+                _TEST_MONITORED_PROJECT,
+                [],
+                _TEST_NOTIFICATION_CHANNEL_ID
+            ),
+            _EXPECTED_COMPLETE_ALERT_POLICY
+        )
 
 
 def suite():

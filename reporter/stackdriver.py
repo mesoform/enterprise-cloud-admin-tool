@@ -42,7 +42,9 @@ class MediaTypeNotSupported(Exception):
 
 
 class AlertPolicy(AlertPolicyServiceClient):
-    def __init__(self, monitoring_project: str, credentials: Credentials,
+    def __init__(self,
+                 monitoring_project: str,
+                 credentials: Credentials = None,
                  policy: dict = None):
         self._monitoring_project: str = monitoring_project
         self._policy: dict = policy
@@ -121,30 +123,41 @@ class BillingAlert(AlertPolicy):
                  billing_threshold: float = None,
                  billing_contact_address: str = None,
                  notify_contact_by: str = None,
-                 billing_project_id: str = None):
+                 billing_project_id: str = None,
+                 notification_channel: str = None,
+                 complete_alert_policy: dict = None):
+
+        self.credentials = monitoring_credentials
         self._monitoring_project: str = monitoring_project
         self._billing_threshold: float = billing_threshold
         self._billing_contact_address: str = billing_contact_address
         self._notify_contact_by: str = notify_contact_by
         self._billing_project_id: str = billing_project_id
-        self.notification_channel = self.get_notification_channel(
-            self.billing_contact_address,
-            self.notify_contact_by
-        )
         self._alert_policy_template: dict = {
             "display_name": None,
             "conditions": [],
             "notifications": [],
             "documentation": {
-                "content": "Link to Confluence page on billing alerts"
-                           "AlertAPI Key: 12345-6789-0",
+                "content": "Link to wiki page on billing alerts",
                 "mimeType": "text/markdown"
             },
             "combiner": "OR"
         }
-        self.complete_alert_policy = self.get_billing_alert_policy_dict()
-        super().__init__(monitoring_project, monitoring_credentials,
-                         self.complete_alert_policy)
+
+        if not notification_channel:
+            self.notification_channel = self.get_notification_channel(
+                self.billing_contact_address,
+                self.notify_contact_by)
+        else:
+            self.notification_channel = notification_channel
+        if not complete_alert_policy:
+            self.complete_alert_policy = self.get_complete_alert_policy()
+        else:
+            self.complete_alert_policy = complete_alert_policy
+
+        super().__init__(monitoring_project=monitoring_project,
+                         credentials=self.credentials,
+                         policy=self.complete_alert_policy)
 
     @property
     def billing_threshold(self):
@@ -233,11 +246,22 @@ class BillingAlert(AlertPolicy):
             conditions_list.append(condition)
         return conditions_list
 
-    def get_billing_alert_policy_dict(self):
+    def get_complete_alert_policy(
+            self,
+            policy_display_name: str = None,
+            policy_conditions: list = None,
+            policy_notification_channel: str = None):
+        if not policy_display_name:
+            policy_display_name = self.billing_project_id + " billing alerts"
+        if not isinstance(policy_conditions, list):
+            policy_conditions = self.get_conditions()
+        if not policy_notification_channel:
+            policy_notification_channel = self.notification_channel
+
         policy = self._alert_policy_template
-        policy['display_name'] = self.billing_project_id + " billing alerts"
-        policy['conditions'] = self.get_conditions()
-        policy['notifications'] = [self.notification_channel]
+        policy['display_name'] = policy_display_name
+        policy['conditions'] = policy_conditions
+        policy['notifications'] = [policy_notification_channel]
         return policy
 
 
