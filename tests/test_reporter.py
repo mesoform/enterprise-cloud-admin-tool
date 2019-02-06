@@ -99,7 +99,6 @@ class TestReporterAlertPolicy(TestCase):
     def test_get_notification_channel_success(self):
         channel_path = self.client.get_notification_channel(
             'gareth@mesoform.com', 'email')
-        print(channel_path)
         self.assertRegex(
             channel_path,
             'projects/' +
@@ -117,11 +116,14 @@ class TestReporterAlertPolicy(TestCase):
             self.client.get_alert_policy(_TEST_ALERT_POLICY_ID),
             GoogleAlertPolicy)
 
-    @skip
+    def test_get_conditions_list(self):
+        pass
+
     def test_create_policy_fails(self):
-        self.assertRaises(
-            self.client.create_alert_policy(self.client.monitoring_project_path,
-                                            {}), InvalidArgument)
+        self.assertRaises(InvalidArgument,
+                          self.client.create_alert_policy,
+                          self.client.monitoring_project_path,
+                          {})
 
     def test_create_policy_succeeds(self):
         self.assertIsInstance(

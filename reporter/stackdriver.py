@@ -4,6 +4,8 @@ from google.auth.credentials import Credentials
 from datetime import datetime
 # noinspection PyUnresolvedReferences
 from google.cloud.monitoring_v3.types import NotificationChannel, TimeSeries
+from google.cloud.monitoring_v3.types import AlertPolicy as \
+    StackdriverAlertPolicy
 import json
 from decimal import *
 
@@ -70,6 +72,13 @@ class AlertPolicy(AlertPolicyServiceClient):
     @policy.setter
     def policy(self, value):
         self._policy = value
+
+    @staticmethod
+    def __condition_exists(alert_policy, condition_name):
+        for condition in alert_policy.conditions:
+            if condition.display_name == condition_name:
+                return True
+        return False
 
     def get_notification_channel(
             self,
@@ -222,15 +231,24 @@ class BillingAlert(AlertPolicy):
 
         return billing_alert
 
-    def get_conditions(self):
+    def get_conditions(
+            self,
+            billing_project_id: str = None,
+            billing_threshold: float = None
+    ):
+        if not billing_project_id:
+            billing_project_id = self.billing_project_id
+        if not billing_threshold:
+            billing_threshold = self.billing_threshold
         conditions_list = list()
+
         for billing_period in BILLING_ALERT_PERIODS:
             metric_filter = "resource.type=global AND " \
                             "metric.label.time_window = '" + billing_period + \
                             "' AND metric.type = " \
                             "'custom.googleapis.com/billing/" + \
-                            self.billing_project_id + "'"
-            spend_threshold = str(self.billing_threshold)
+                            billing_project_id + "'"
+            spend_threshold = str(billing_threshold)
             condition_name = "Period: " + billing_period + ", $" + \
                              spend_threshold + \
                              " threshold breach"
