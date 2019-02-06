@@ -27,7 +27,7 @@ _TEST_BILLING_ALERT_PERIODS = [
 _EXPECTED_COMPLETE_ALERT_POLICY = {
     "display_name": _TEST_MONITORED_PROJECT,
     "conditions": [
-        {'conditionThreshold': {'thresholdValue': '10.2',
+        {'conditionThreshold': {'thresholdValue': 10.2,
                                 'filter': "resource.type=global AND metric.label.time_window = 'extrapolated_1d' AND metric.type = 'custom.googleapis.com/billing/gb-me-services-230515'",
                                 'duration': '60s',
                                 'comparison': 'COMPARISON_GT'},
@@ -83,7 +83,6 @@ class TestReporterAlertPolicy(TestCase):
         cls.policy.documentation.content = 'link to my documentation'
         cls.policy.documentation.mime_type = 'text/markdown'
         cls.policy.combiner = cls.policy.AND
-
 
         # condition1.condition_threshold.trigger.count = 3
 

@@ -260,9 +260,9 @@ class BillingAlert(AlertPolicy):
                             "' AND metric.type = " \
                             "'custom.googleapis.com/billing/" + \
                             billing_project_id + "'"
-            spend_threshold = str(billing_threshold)
+            spend_threshold = billing_threshold
             condition_name = "Period: " + billing_period + ", $" + \
-                             spend_threshold + \
+                             str(spend_threshold) + \
                              " threshold breach"
             condition = {
                 "conditionThreshold": {
