@@ -21,9 +21,18 @@ _TEST_NOTIFICATION_CHANNEL_ID = \
 _TEST_MONITORING_PROJECT = 'gb-me-services'
 _TEST_MONITORED_PROJECT = 'gb-me-services-230515'
 _TEST_BILLING_THRESHOLD = 10.20
+_TEST_BILLING_ALERT_PERIODS = [
+    "extrapolated_1d"
+]
 _EXPECTED_COMPLETE_ALERT_POLICY = {
     "display_name": _TEST_MONITORED_PROJECT,
-    "conditions": [],
+    "conditions": [
+        {'conditionThreshold': {'thresholdValue': '10.2',
+                                'filter': "resource.type=global AND metric.label.time_window = 'extrapolated_1d' AND metric.type = 'custom.googleapis.com/billing/gb-me-services-230515'",
+                                'duration': '60s',
+                                'comparison': 'COMPARISON_GT'},
+         'display_name': 'Period: extrapolated_1d, $10.2 threshold breach'}
+    ],
     "notifications": [_TEST_NOTIFICATION_CHANNEL_ID],
     "documentation": {
         "content": "Link to wiki page on billing alerts",
@@ -75,13 +84,7 @@ class TestReporterAlertPolicy(TestCase):
         cls.policy.documentation.mime_type = 'text/markdown'
         cls.policy.combiner = cls.policy.AND
 
-        # print(created_channel.ListFields())
-        # condition1 = cls.policy.conditions.add()
-        # condition1.display_name = 'my magic alert policy condition 1'
-        # condition1.condition_threshold.threshold_value = 22.00
-        # condition1.condition_threshold.filter = 'resource.type=global AND metric.label.time_window = "2hr" AND metric.type = "custom.googleapis.com/billing/my-project"'
-        # condition1.condition_threshold.duration.seconds = 60
-        # condition1.condition_threshold.comparison = 1
+
         # condition1.condition_threshold.trigger.count = 3
 
     def test_client_setup(self):
@@ -116,9 +119,6 @@ class TestReporterAlertPolicy(TestCase):
             self.client.get_alert_policy(_TEST_ALERT_POLICY_ID),
             GoogleAlertPolicy)
 
-    def test_get_conditions_list(self):
-        pass
-
     def test_create_policy_fails(self):
         self.assertRaises(InvalidArgument,
                           self.client.create_alert_policy,
@@ -145,15 +145,26 @@ class TestReporterBillingAlert(TestCase):
             complete_alert_policy=_EXPECTED_COMPLETE_ALERT_POLICY
         )
 
-    def test_get_billing_alert_policy_dict(self):
-        self.assertDictEqual(
-            self.billing_alert.get_complete_alert_policy(
-                _TEST_MONITORED_PROJECT,
-                [],
-                _TEST_NOTIFICATION_CHANNEL_ID
-            ),
-            _EXPECTED_COMPLETE_ALERT_POLICY
+    def test_get_conditions_list(self):
+        condition_list = self.billing_alert.get_conditions(
+            _TEST_MONITORED_PROJECT,
+            _TEST_BILLING_THRESHOLD,
+            _TEST_BILLING_ALERT_PERIODS)
+        self.assertListEqual(
+            _EXPECTED_COMPLETE_ALERT_POLICY['conditions'],
+            condition_list
         )
+
+
+def test_get_billing_alert_policy_dict(self):
+    self.assertDictEqual(
+        self.billing_alert.get_complete_alert_policy(
+            _TEST_MONITORED_PROJECT,
+            [],
+            _TEST_NOTIFICATION_CHANNEL_ID
+        ),
+        _EXPECTED_COMPLETE_ALERT_POLICY
+    )
 
 
 def suite():

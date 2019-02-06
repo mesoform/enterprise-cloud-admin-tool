@@ -19,7 +19,7 @@ BILLING_ALERT_PERIODS = [
     "extrapolated_7d",
     "current_period"
 ]
-_DEFAULT_BILLING_POLICY = {
+DEFAULT_BILLING_POLICY = {
     "billing_project": "",
     "budget_amount": 10.00,
     "notifications": [
@@ -75,6 +75,7 @@ class AlertPolicy(AlertPolicyServiceClient):
 
     @staticmethod
     def __condition_exists(alert_policy, condition_name):
+        """ to be used when updating AlertPolicy conditions"""
         for condition in alert_policy.conditions:
             if condition.display_name == condition_name:
                 return True
@@ -234,15 +235,26 @@ class BillingAlert(AlertPolicy):
     def get_conditions(
             self,
             billing_project_id: str = None,
-            billing_threshold: float = None
+            billing_threshold: float = None,
+            billing_alerting_periods: list = BILLING_ALERT_PERIODS
     ):
+        """
+
+        :param billing_project_id: str: name of the project we're monitoring
+            billing on
+        :param billing_threshold: float: of amount of spend we want set as our
+            threshold - to 2 decimal places
+        :param billing_alerting_periods: list: of strings to use as label names
+            for periods where spend is calculated
+        :return: list: of dictionaries defining alert conditions
+        """
         if not billing_project_id:
             billing_project_id = self.billing_project_id
         if not billing_threshold:
             billing_threshold = self.billing_threshold
         conditions_list = list()
 
-        for billing_period in BILLING_ALERT_PERIODS:
+        for billing_period in billing_alerting_periods:
             metric_filter = "resource.type=global AND " \
                             "metric.label.time_window = '" + billing_period + \
                             "' AND metric.type = " \
