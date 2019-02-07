@@ -130,10 +130,10 @@ class BillingAlert(AlertPolicy):
     def __init__(self,
                  monitoring_project: str = None,
                  monitoring_credentials: Credentials = None,
+                 billing_project_id: str = None,
                  billing_threshold: float = None,
                  billing_contact_address: str = None,
                  notify_contact_by: str = None,
-                 billing_project_id: str = None,
                  notification_channel: str = None,
                  complete_alert_policy: dict = None):
 
@@ -234,8 +234,6 @@ class BillingAlert(AlertPolicy):
 
     def get_conditions(
             self,
-            billing_project_id: str = None,
-            billing_threshold: float = None,
             billing_alerting_periods: list = BILLING_ALERT_PERIODS
     ):
         """
@@ -248,10 +246,6 @@ class BillingAlert(AlertPolicy):
             for periods where spend is calculated
         :return: list: of dictionaries defining alert conditions
         """
-        if not billing_project_id:
-            billing_project_id = self.billing_project_id
-        if not billing_threshold:
-            billing_threshold = self.billing_threshold
         conditions_list = list()
 
         for billing_period in billing_alerting_periods:
@@ -259,14 +253,13 @@ class BillingAlert(AlertPolicy):
                             "metric.label.time_window = '" + billing_period + \
                             "' AND metric.type = " \
                             "'custom.googleapis.com/billing/" + \
-                            billing_project_id + "'"
-            spend_threshold = billing_threshold
+                            self.billing_project_id + "'"
             condition_name = "Period: " + billing_period + ", $" + \
-                             str(spend_threshold) + \
+                             str(self.billing_threshold) + \
                              " threshold breach"
             condition = {
                 "conditionThreshold": {
-                    "thresholdValue": spend_threshold,
+                    "thresholdValue": self.billing_threshold,
                     "filter": metric_filter,
                     "duration": "60s",
                     "comparison": "COMPARISON_GT"

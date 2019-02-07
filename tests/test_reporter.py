@@ -3,7 +3,7 @@
 @contact: gareth@mesoform.com
 @date: 2017
 """
-from unittest import TestCase, TextTestRunner, TestSuite, skip
+from unittest import TestCase, TextTestRunner, TestSuite, skipIf
 from builder import GcpAuth
 from reporter.stackdriver import Metrics, AlertPolicy, BillingAlert, \
     TooManyMatchingResultsError
@@ -21,6 +21,8 @@ _TEST_NOTIFICATION_CHANNEL_ID = \
 _TEST_MONITORING_PROJECT = 'gb-me-services'
 _TEST_MONITORED_PROJECT = 'gb-me-services-230515'
 _TEST_BILLING_THRESHOLD = 10.20
+_TEST_ALERT_NOTIFY_ADDRESS = 'support@mesoform.com'
+_TEST_ALERT_NOTIFY_MEDIA = 'email'
 _TEST_BILLING_ALERT_PERIODS = [
     "extrapolated_1d"
 ]
@@ -83,8 +85,13 @@ class TestReporterAlertPolicy(TestCase):
         cls.policy.documentation.content = 'link to my documentation'
         cls.policy.documentation.mime_type = 'text/markdown'
         cls.policy.combiner = cls.policy.AND
-
-        # condition1.condition_threshold.trigger.count = 3
+        condition1 = cls.policy.conditions.add()
+        condition1.display_name = 'my magic alert policy condition 1'
+        condition1.condition_threshold.threshold_value = 22.00
+        condition1.condition_threshold.filter = 'resource.type=global AND metric.label.time_window = "2hr" AND metric.type = "custom.googleapis.com/billing/my-project"'
+        condition1.condition_threshold.duration.seconds = 60
+        condition1.condition_threshold.comparison = 1
+        condition1.condition_threshold.trigger.count = 3
 
     def test_client_setup(self):
         self.assertIsInstance(self.client, AlertPolicyServiceClient)
@@ -113,7 +120,6 @@ class TestReporterAlertPolicy(TestCase):
                           'support@mesoform.com', 'email')
 
     def test_get_policy(self):
-        print(self.client.get_alert_policy(_TEST_ALERT_POLICY_ID))
         self.assertIsInstance(
             self.client.get_alert_policy(_TEST_ALERT_POLICY_ID),
             GoogleAlertPolicy)
@@ -139,15 +145,15 @@ class TestReporterBillingAlert(TestCase):
             cls.gcp_auth = GcpAuth(f)
         cls.billing_alert = BillingAlert(
             _TEST_MONITORING_PROJECT,
-            monitoring_credentials=cls.gcp_auth.credentials,
-            notification_channel=_TEST_NOTIFICATION_CHANNEL_ID,
-            complete_alert_policy=_EXPECTED_COMPLETE_ALERT_POLICY
+            cls.gcp_auth.credentials,
+            _TEST_MONITORED_PROJECT,
+            _TEST_BILLING_THRESHOLD,
+            _TEST_ALERT_NOTIFY_ADDRESS,
+            _TEST_ALERT_NOTIFY_MEDIA
         )
 
     def test_get_conditions_list(self):
         condition_list = self.billing_alert.get_conditions(
-            _TEST_MONITORED_PROJECT,
-            _TEST_BILLING_THRESHOLD,
             _TEST_BILLING_ALERT_PERIODS)
         self.assertListEqual(
             _EXPECTED_COMPLETE_ALERT_POLICY['conditions'],
