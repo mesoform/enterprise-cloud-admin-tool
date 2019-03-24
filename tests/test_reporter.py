@@ -5,7 +5,7 @@
 """
 from unittest import TestCase, TextTestRunner, TestSuite, skipIf
 from builder import GcpAuth
-from reporter.stackdriver import Metrics, AlertPolicy, BillingAlert, \
+from reporter.stackdriver import Metrics, Alert, BillingAlert, \
     TooManyMatchingResultsError
 from google.cloud.monitoring_v3 import MetricServiceClient, \
     AlertPolicyServiceClient  # NotificationChannelServiceClient
@@ -71,7 +71,7 @@ class TestReporterAlertPolicy(TestCase):
     def setUpClass(cls):
         with open(_TEST_CREDENTIALS_FILE_PATH) as f:
             cls.gcp_auth = GcpAuth(f)
-        cls.client = AlertPolicy(
+        cls.client = Alert(
             _TEST_MONITORING_PROJECT,
             cls.gcp_auth.credentials,
             {}
@@ -106,7 +106,7 @@ class TestReporterAlertPolicy(TestCase):
         self.assertIn(_TEST_ALERT_POLICY_ID, policy_ids)
 
     def test_get_notification_channel_success(self):
-        channel_path = self.client.get_notification_channel(
+        channel_path = self.client.notification_name_for(
             'gareth@mesoform.com', 'email')
         self.assertRegex(
             channel_path,
@@ -116,7 +116,7 @@ class TestReporterAlertPolicy(TestCase):
 
     def test_get_notification_channel_fail(self):
         self.assertRaises(TooManyMatchingResultsError,
-                          self.client.get_notification_channel,
+                          self.client.notification_name_for,
                           'support@mesoform.com', 'email')
 
     def test_get_policy(self):
