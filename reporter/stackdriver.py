@@ -425,12 +425,57 @@ class BillingAlert(Alert):
         return policy
 
 
-class Metrics(MetricServiceClient):
-    def __init__(self, monitoring_project: str, credentials: Credentials,
-                 metrics: list):
-        super(Metrics, self).__init__(credentials=credentials)
+class Metrics(object):
+    def __init__(self, monitoring_project: str,
+                 monitoring_credentials: Credentials,
+                 metrics_set_list: list,
+                 metrics_client=MetricServiceClient,
+                 metrics_type=TimeSeries,
+                 complete_message=None):
         self._monitoring_project: str = monitoring_project
-        self._metrics: list = metrics
+        self._monitoring_credentials: Credentials = monitoring_credentials
+        self._metrics_set_list: list = metrics_set_list
+        self._metrics_client = metrics_client
+        self._metrics_type = metrics_type
+        self._complete_message = complete_message
+
+    class MissingMetricSetValue(Exception):
+        pass
+
+    @property
+    def complete_message(self):
+        """
+        Completely constructed and initialized Protobuf message for given metrics_type
+        """
+        return self._complete_message
+
+    @complete_message.setter
+    def complete_message(self, value):
+        self._complete_message = value
+
+    @property
+    def metrics_type(self):
+        return self._metrics_type
+
+    @metrics_type.setter
+    def metrics_type(self, class_):
+        self._metrics_type = class_
+
+    @property
+    def metrics_client(self):
+        return self._metrics_client(credentials=self.monitoring_credentials)
+
+    @metrics_client.setter
+    def metrics_client(self, class_):
+        self._metrics_client = class_
+
+    @property
+    def monitoring_credentials(self):
+        return self._monitoring_credentials
+
+    @monitoring_credentials.setter
+    def monitoring_credentials(self, value: str):
+        self._monitoring_credentials = value
 
     @property
     def monitoring_project(self):
@@ -442,55 +487,71 @@ class Metrics(MetricServiceClient):
 
     @property
     def monitoring_project_path(self):
-        return self.project_path(self.monitoring_project)
+        return self.metrics_client.project_path(self.monitoring_project)
 
     @property
-    def metrics(self):
-        return self._metrics
+    def metrics_set_list(self):
+        return self._metrics_set_list
 
-    @metrics.setter
-    def metrics(self, value: list):
-        self._metrics = value
+    @metrics_set_list.setter
+    def metrics_set_list(self, value: list):
+        self._metrics_set_list = value
 
-    def __series_for(self, billable_project_id: str, time_window: str):
-        series = TimeSeries()
-        series.metric.type = 'custom.googleapis.com/billing/project_spend'
-        series.resource.type = 'global'
-        series.metric.labels['project_id'] = billable_project_id
-        series.metric.labels['time_window'] = time_window
-        return series
+    def initialize_base_metrics_message(self, metric_name, labels):
+        pass
 
-    def __data_point(self, billable_project_id: str, cost: float,
-                     time_window: str):
-        series = self.__series_for(billable_project_id, time_window)
-        data_point = series.points.add()
-        data_point.value.double_value = cost
-        data_point.interval.end_time.FromDatetime(datetime.utcnow())
-        return series
+    def add_data_points_to_metric_message(self, message, data_points):
+        pass
 
     def send_metrics(self):
-        data_series_set: list = []
-        for metric in self.metrics:
-            project_id = metric['project_id']
-            cost = metric['cost']
-            time_window = metric['time_window']
-            data_series = self.__data_point(project_id, cost, time_window)
-            data_series_set.append(data_series)
-
-        return self.create_time_series(self.monitoring_project_path,
-                                       data_series_set)
+        pass
 
 
-def create_alert():
-    pass
+class TimeSeriesMetrics(Metrics):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
+    def initialize_base_metrics_message(self, metric_name: str, labels: dict) -> TimeSeries:
+        """
+        creates an TimeSeries metrics object called metric_name and with labels
+        :param metric_name: name to call custom metric. As in custom.googleapis.com/ + metric_name
+        :param labels: metric labels to add
+        :return: ::google.cloud.monitoring_v3.types.TimeSeries::
+        """
+        series = self.metrics_type()
+        series.resource.type = 'global'
+        series.metric.type = 'custom.googleapis.com/' + metric_name
+        for k, v in labels.items():
+            series.metric.labels[k] = v
+        return series
 
-def delete_alert():
-    pass
+    def add_data_points_to_metric_message(self, message: TimeSeries, data_point_value: float):
+        """
+        takes an initialized TimeSeries Protobuf message object and adds data_point_value with the
+            end_time as now()
+        :param message: TimeSeries object
+        :param data_point_value: value to add
+        :return: ::google.cloud.monitoring_v3.types.TimeSeries::
+        """
+        data_point = message.points.add()
+        data_point.value.double_value = data_point_value
+        data_point.interval.end_time.FromDatetime(datetime.utcnow())
+        return message
 
+    def send_metrics(self):
+        time_series_list = list()
+        try:
+            for metrics_set in self.metrics_set_list:
+                base_metrics = self.initialize_base_metrics_message(metrics_set[0], metrics_set[1])
+                time_series_list.append(self.add_data_points_to_metric_message(
+                    base_metrics, metrics_set[3]
+                ))
+        except IndexError:
+            raise self.MissingMetricSetValue(
+                'missing element from metric set. Needs to be tuple:'
+                '(metric_name, {label_name: label_value}, metric_value)')
 
-def delete_metric():
-    pass
+        self.metrics_client.create_time_series(self.monitoring_project_path, time_series_list)
 
 
 def main():
