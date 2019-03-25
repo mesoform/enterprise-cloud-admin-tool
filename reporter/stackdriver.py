@@ -554,6 +554,21 @@ class TimeSeriesMetrics(Metrics):
         self.metrics_client.create_time_series(self.monitoring_project_path, time_series_list)
 
 
+class AppMetrics(TimeSeriesMetrics):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._start_time = datetime.utcnow()
+        self._end_time = None
+
+    @property
+    def end_time(self):
+        return self._end_time
+
+    @end_time.setter
+    def end_time(self, value):
+        self._end_time = value
+
+
 def main():
     pass
 
