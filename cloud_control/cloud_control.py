@@ -73,10 +73,10 @@ def main():
     __log = reporter.local.get_logger(__name__, settings.log_file, settings.debug)
 
     try:
-        if settings.command == "deploy":
-            __log.info("Starting deployment")
-            if settings.cloud == "all":
-                settings.cloud = "all_"
+        if settings.command == 'deploy':
+            __log.info('Starting deployment')
+            if settings.cloud == 'all':
+                settings.cloud = 'all_'
             from deployer import deploy
             from checker import check
             config_org = builder.get_org(settings, settings.config_org)
@@ -90,11 +90,15 @@ def main():
                                            settings.cloud, settings.version)
             check(settings.cloud, config_files)
             deploy(settings, code_files, config_files)
-        elif settings.command == "config":
+        elif settings.command == 'config':
             # import code_control
+            
+            # set up monitoring
+            
+            # deploy standard monitoring configuration
             pass
     finally:
-        __log.info('finished ' + settings.command + " run")
+        __log.info('finished ' + settings.command + ' run')
         __app_metrics.end_time = datetime.utcnow()
         __app_metrics.send_metrics()
 
