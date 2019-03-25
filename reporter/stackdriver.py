@@ -13,10 +13,6 @@ getcontext().prec = 2  # Set decimal places to two
 
 DEFAULT_MONITORING_PROJECT = 'gb-me-services'
 BILLING_ALERT_PERIODS = [
-    "extrapolated_2h",
-    "extrapolated_4h",
-    "extrapolated_1d",
-    "extrapolated_7d",
     "current_period"
 ]
 DEFAULT_BILLING_POLICY = {
@@ -96,7 +92,7 @@ class Alert(object):
 
     @property
     def alert_client(self):
-        return self._alert_client
+        return self._alert_client(credentials=self.credentials)
 
     @alert_client.setter
     def alert_client(self, class_):
@@ -104,7 +100,7 @@ class Alert(object):
 
     @property
     def notification_channel_client(self):
-        return self._notification_channel_client
+        return self._notification_channel_client(credentials=self.credentials)
 
     @notification_channel_client.setter
     def notification_channel_client(self, class_):
@@ -141,11 +137,7 @@ class Alert(object):
     def notification_name_for(
             self,
             contact: str,
-            media: str,
-    ):
-
-        notification_channels = self.notification_channel_client(
-            credentials=self.credentials)
+            media: str):
 
         if media == 'email':
             label = "labels.email_address='" + contact + "'"
@@ -153,7 +145,7 @@ class Alert(object):
             raise MediaTypeNotSupported(media + "is not currently supported")
 
         notification_channels_list = \
-            list(notification_channels.list_notification_channels(
+            list(self.notification_channel_client.list_notification_channels(
                 self.monitoring_project_path,
                 "display_name='" + contact +
                 "' AND type='" + media +
@@ -178,7 +170,7 @@ class Alert(object):
             if media == 'email':
                 notification_channel.labels[
                     'email_address'] = contact
-            new_channel = notification_channels.create_notification_channel(
+            new_channel = self.notification_channel_client.create_notification_channel(
                 self.monitoring_project_path, notification_channel)
             return new_channel.name
 
@@ -317,9 +309,10 @@ class AppAlert(Alert):
         for profile in alerts_list:
             if not self.alert_policy_exists(profile['NAME'],
                                             self.monitoring_project_path,
-                                            self.alert_client()):
-                self.alert_client.create_alert_policy(self.monitoring_project_path,
-                                                      self.create_alert_from_dict(profile))
+                                            self.alert_client):
+                self.alert_client.create_alert_policy(
+                    self.monitoring_project_path,
+                    self.create_alert_from_dict(profile))
 
 
 class BillingAlert(Alert):
@@ -374,6 +367,7 @@ class BillingAlert(Alert):
             billing_project_id=json_data['project_id']
         )
 
+    # noinspection PyDefaultArgument
     def get_conditions(
             self,
             billing_alerting_periods: list = BILLING_ALERT_PERIODS
@@ -386,6 +380,7 @@ class BillingAlert(Alert):
             threshold - to 2 decimal places
         :param billing_alerting_periods: list: of strings to use as label names
             for periods where spend is calculated
+        :type billing_alerting_periods: list
         :return: list: of dictionaries defining alert conditions
         """
         conditions_list = list()
