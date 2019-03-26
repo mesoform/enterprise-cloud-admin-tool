@@ -3,7 +3,9 @@
 @contact: gareth@mesoform.com
 @date: 2017
 """
-from unittest import TestCase, TextTestRunner, TestSuite, skipIf
+from unittest import TestCase, TextTestRunner, TestSuite, main
+from teamcity import is_running_under_teamcity
+from teamcity.unittestpy import TeamcityTestRunner
 from builder import GcpAuth
 from reporter.stackdriver import Metrics, Alert, BillingAlert, \
     TooManyMatchingResultsError
@@ -184,6 +186,8 @@ def suite():
 
 
 if __name__ == '__main__':
-    runner = TextTestRunner(verbosity=2)
-    # noinspection PyCallByClass
-    runner.run(suite())
+    if is_running_under_teamcity():
+        runner = TeamcityTestRunner
+    else:
+        runner = TextTestRunner(verbosity=2).run(suite())
+    main(testRunner=runner)

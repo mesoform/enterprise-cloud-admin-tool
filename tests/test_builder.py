@@ -3,10 +3,12 @@
 @contact: gareth@mesoform.com
 @date: 2017
 """
-from unittest import TestCase, TextTestRunner, TestSuite
+from unittest import TestCase, TextTestRunner, TestSuite, main
 from builder import GcpAuth
 from google.auth import credentials
 from os import environ
+from teamcity import is_running_under_teamcity
+from teamcity.unittestpy import TeamcityTestRunner
 
 _TEST_CREDENTIALS_FILE_PATH = 'resources/gcp_token.json'
 
@@ -33,7 +35,8 @@ def suite():
 
 
 if __name__ == '__main__':
-    runner = TextTestRunner(verbosity=2)
-    # noinspection PyCallByClass
-    runner.run(suite())
-
+    if is_running_under_teamcity():
+        runner = TeamcityTestRunner
+    else:
+        runner = TextTestRunner(verbosity=2).run(suite())
+    main(testRunner=runner)
