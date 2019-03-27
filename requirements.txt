@@ -8,5 +8,5 @@ PyJWT==1.7.1
 wrapt==1.10.11
 google 
 google-auth
-google-auth
+google-oauth
 google-cloud-monitoring
