@@ -1,5 +1,4 @@
 httplib2
-terraform_validate
 python_terraform
 requests
 Deprecated==1.2.4
