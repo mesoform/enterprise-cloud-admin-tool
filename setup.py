@@ -37,8 +37,11 @@ setup(
     long_description=open(__path('README.md')).read(),
     author='Gareth Brown',
     author_email='gareth@mesoform.com',
-    scripts=['__init__.py'],
+    scripts=['enterprise_cloud_admin.py', 'cloudctl'],
     url='https://bitbucket.org/mesoform/enterprise-cloud-admin.git',
+    product_urls=[
+        "https://bitbucket.org/mesoform/enterprise-cloud-admin"
+    ],
     dependency_links=[],
     classifiers=[
         'BusinessUnit :: Cloud Services',
