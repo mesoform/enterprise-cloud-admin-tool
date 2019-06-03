@@ -27,17 +27,21 @@ if os.path.exists(__path('build.info')):
 version = '{}.{}.{}'.format(MODULE_VERSION_MAJOR, MODULE_VERSION_MINOR, build)
 
 setup(
-    name='gcp_builder',
+    name='enterprise_cloud_admin',
     version=version,
     packages=find_packages(dir_path, exclude=["test"]),
     package_dir={'enterprise_cloud_admin': dir_path},
+    package_data={'enterprise_cloud_admin': ['resources/*']},
     license='GPLv3',
     description='Package for managing enterprise cloud environments',
     long_description=open(__path('README.md')).read(),
     author='Gareth Brown',
     author_email='gareth@mesoform.com',
-    scripts=['__init__.py'],
+    scripts=['enterprise_cloud_admin.py', 'cloudctl'],
     url='https://bitbucket.org/mesoform/enterprise-cloud-admin.git',
+    product_urls=[
+        "https://bitbucket.org/mesoform/enterprise-cloud-admin"
+    ],
     dependency_links=[],
     classifiers=[
         'BusinessUnit :: Cloud Services',
