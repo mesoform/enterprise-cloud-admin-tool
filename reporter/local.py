@@ -16,3 +16,5 @@ def get_logger(module_name: str, log_file: str, debug: bool = False):
         debug_stream.setFormatter(fmt)
         logger.addHandler(debug_stream)
         logger.setLevel(logging.DEBUG)
+
+    return logger
