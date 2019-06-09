@@ -319,7 +319,7 @@ def main():
         org = get_org(settings, settings.config_org)
     except BadCredentialsException as e:
         print(e.data)
-        print("check token and pass using the --token (-t) argument or setting"
+        print("check token and pass using the --vcs-token (-t) argument or setting"
               "the token in " + DEFAULT_TOKEN_FILE)
         raise BadCredentialsException(e.status, e.data)
     existing_repo = get_repo(org, settings.project_id)
@@ -360,9 +360,9 @@ def main():
     priv_team = create_team(org, PRIV_TEAM_ATTRIBUTES["name"],
                             PRIV_TEAM_ATTRIBUTES["permission"])
     admin_team = get_team(org, ADMIN_TEAM)
-    configure_remote_object(std_team.url, settings.token,
+    configure_remote_object(std_team.url, settings.vcs_token,
                             description=STANDARD_TEAM_ATTRIBUTES["description"])
-    configure_remote_object(priv_team.url, settings.token,
+    configure_remote_object(priv_team.url, settings.vcs_token,
                             parent_team_id=std_team.id,
                             description=PRIV_TEAM_ATTRIBUTES["description"])
 

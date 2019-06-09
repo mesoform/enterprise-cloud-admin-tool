@@ -22,11 +22,11 @@ def get_settings():
                                      help='deploy configuration to the cloud')
         d_parser.formatter_class = argparse.RawTextHelpFormatter
         d_parser.add_argument(
-            'cloud', choices=('all', builder.SUPPORTED_CLOUDS))
+            '--cloud', choices=['all'] + builder.SUPPORTED_CLOUDS)
         d_parser.add_argument('--key-file',
                               help='path to the file containing the private '
                                    'key used for authentication on CSP',
-                              type=argparse.FileType)
+                              type=argparse.FileType('r'))
         d_parser.add_argument('--log-file',
                               help='path to file, if different from default',
                               default=DEFAULT_LOG_FILE)
@@ -92,16 +92,12 @@ def main():
             deploy(settings, code_files, config_files)
         elif settings.command == 'config':
             # import code_control
-            
+
             # set up monitoring
-            
+
             # deploy standard monitoring configuration
             pass
     finally:
         __log.info('finished ' + settings.command + ' run')
         __app_metrics.end_time = datetime.utcnow()
         __app_metrics.send_metrics()
-
-
-if __name__ == '__main__':
-    main()
