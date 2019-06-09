@@ -184,7 +184,7 @@ class Alert(object):
         :param display_name: display name of the policy
         :param monitoring_project_path: project where the monitoring data is
         :param alert_policy_client: client for communicating with Stackdriver API
-        :return: True if policy exists 
+        :return: True if policy exists
         """
 
         alert_policy_list = list(alert_policy_client.list_alert_policies(
@@ -428,13 +428,13 @@ class BillingAlert(Alert):
 class Metrics(object):
     def __init__(self, monitoring_project: str,
                  monitoring_credentials: Credentials,
-                 metrics_set_list: list,
+                 metrics_set_list: list = None,
                  metrics_client=MetricServiceClient,
                  metrics_type=TimeSeries,
                  complete_message=None):
         self._monitoring_project: str = monitoring_project
         self._monitoring_credentials: Credentials = monitoring_credentials
-        self._metrics_set_list: list = metrics_set_list
+        self._metrics_set_list: list = metrics_set_list or []
         self._metrics_client = metrics_client
         self._metrics_type = metrics_type
         self._complete_message = complete_message

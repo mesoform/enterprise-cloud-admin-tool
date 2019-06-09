@@ -45,14 +45,6 @@ def arg_parser():
     parser.add_argument('-a', '--api_url',
                         help='URL to GitHub API',
                         default=DEFAULT_GITHUB_API_URL)
-    parser.add_argument('--code-version',
-                        help='version (branch or tag) of the deployment code '
-                             'to use',
-                        default='master')
-    parser.add_argument('--config-version',
-                        help='version (branch or tag) of the cloud '
-                             'configuration to use',
-                        default='master')
     parser.add_argument('-f', '--force',
                         help='Force actions on preexisting repo',
                         default=False,
@@ -160,7 +152,7 @@ class QueuedProjectsArgAction(argparse.Action):
 
 def get_org(settings, org):
     github = Github(
-        base_url=settings.api_url, login_or_token=settings.token)
+        base_url=settings.api_url, login_or_token=settings.vcs_token)
     return github.get_organization(org)
 
 
