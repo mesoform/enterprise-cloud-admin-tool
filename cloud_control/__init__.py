@@ -82,12 +82,12 @@ def main():
             config_org = builder.get_org(settings, settings.config_org)
             code_org = builder.get_org(settings, settings.code_org)
             config_files = builder.get_files(config_org, settings.project_id,
-                                             settings.cloud, settings.version)
+                                             settings.cloud, settings.config_version)
             # code repo should contain any lists or maps that define
             # security policies
             # and operating requirements. The code repo should be public.
             code_files = builder.get_files(code_org, settings.project_id,
-                                           settings.cloud, settings.version)
+                                           settings.cloud, settings.config_version)
             check(settings.cloud, config_files)
             deploy(settings, code_files, config_files)
         elif settings.command == 'config':
