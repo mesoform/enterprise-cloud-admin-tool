@@ -5,7 +5,8 @@ Deprecated==1.2.4
 PyGithub==1.43.3
 PyJWT==1.7.1
 wrapt==1.10.11
-google 
+google
 google-auth
 google-oauth
 google-cloud-monitoring
+terraform-validate==2.8.0
