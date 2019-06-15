@@ -241,7 +241,11 @@ def setup(settings):
         print("check token and pass using the --vcs-token (-t) argument or setting"
               "the token in " + settings.DEFAULT_TOKEN_FILE)
         raise BadCredentialsException(e.status, e.data)
-    existing_repo = get_repo(org, settings.project_id)
+
+    try:
+        existing_repo = get_repo(org, settings.project_id)
+    except GithubException:
+        existing_repo = None
 
     if existing_repo and not settings.force:
         print("Repository " + settings.project_id
