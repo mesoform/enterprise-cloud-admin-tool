@@ -1,4 +1,4 @@
-from cloud_control import main
+from cloud_control import perform_commands
 
 if __name__ == '__main__':
-    main()
+    perform_commands()

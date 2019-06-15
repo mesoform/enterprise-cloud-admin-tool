@@ -9,91 +9,11 @@ import os
 # github package is PyGithub
 # noinspection PyPackageRequirements
 from github import GithubException, BadCredentialsException
-from builder import get_team, get_repo, get_org, arg_parser, \
-    DEFAULT_PROJECT_ID, DEFAULT_TOKEN_FILE
+from builder import get_team, get_repo, get_org
 
-MODULE_ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
-DEFAULT_GITHUB_API_URL = "https://api.github.com"
-ADMIN_TEAM = 'gcp-admin-team'
-STANDARD_TEAM_ATTRIBUTES = {
-    "name": DEFAULT_PROJECT_ID,
-    "permission": "push",
-    "description": 'Standard team for ' + DEFAULT_PROJECT_ID + ' project',
-    "privacy": "closed"
-}
-PRIV_TEAM_ATTRIBUTES = {
-    "name": DEFAULT_PROJECT_ID + '-priv',
-    "permission": "push",
-    "description": 'Privileged team for ' + DEFAULT_PROJECT_ID + ' project',
-    "privacy": "secret"
-}
-PROJECT_DATA_DIR = \
-    MODULE_ROOT_DIR + 'resources/project_data/' + DEFAULT_PROJECT_ID
-PROTECTED_BRANCH = {
-    "enforce_admins": True,
-    "dismiss_stale_reviews": True,
-    "require_code_owner_reviews": False,
-    "required_approving_review_count": 1
-}
-HIGHLY_PROTECTED_BRANCH = {
-    "enforce_admins": True,
-    "dismiss_stale_reviews": True,
-    "require_code_owner_reviews": True,
-    "required_approving_review_count": 2
-}
-LOCAL_FILES = {
-    'readme_file':
-        MODULE_ROOT_DIR + 'resources/templates/README.md',
-    'apis_file':
-        MODULE_ROOT_DIR + 'resources/templates/gcp_enabled_apis.json',
-    'project_settings_file':
-        MODULE_ROOT_DIR + 'resources/templates/gcp_project_settings.json',
-    'role_bindings_file':
-        MODULE_ROOT_DIR + 'resources/templates/gcp_role_bindings.json',
-    'service_accounts_file':
-        MODULE_ROOT_DIR + 'resources/templates/gcp_service_accounts.json'
-}
-REMOTE_FILES = {
-    'readme_file': 'README.md',
-    'apis_file': 'sot/gcp_enabled_apis.json',
-    'project_settings_file': 'sot/gcp_project_settings.json',
-    'role_bindings_file': 'sot/gcp_role_bindings.json',
-    'service_accounts_file': 'sot/gcp_service_accounts.json'
-}
+from settings import Settings
 
-
-def add_args():
-    """
-    parses arguments passed on command line when running program
-    :return: Object
-    """
-    parser = argparse.ArgumentParser(
-        description='Maintain Github repositories and teams',
-        formatter_class=argparse.RawTextHelpFormatter)
-    parser.set_defaults(change_files=LOCAL_FILES,
-                        branch_permissions=PROTECTED_BRANCH)
-    parser.add_argument('-b', '--branch-protection',
-                        choices=('standard', 'high'),
-                        help='\nThe level to which the branch will be '
-                             'protected\n'
-                             'standard: adds review requirements, stale reviews'
-                             ' and admin enforcement\n'
-                             'high: also code owner reviews and review count',
-                        default='standard',
-                        action=BranchProtectArgAction)
-    parser.add_argument('--bypass-branch-protection',
-                        help='Bypasses branch protection when updating files'
-                             ' which already exist in the repository',
-                        default=False,
-                        action='store_true')
-    parser.add_argument('-O', '--output-data',
-                        help='Output repo data to files in ' + PROJECT_DATA_DIR,
-                        action='store_true')
-    parser.add_argument('--templates-repo',
-                        help='Repository where default templates are stored',
-                        action=TemplatesArgAction)
-
-    return parser
+settings = Settings()
 
 
 class TemplatesArgAction(argparse.Action):
@@ -104,7 +24,7 @@ class TemplatesArgAction(argparse.Action):
 
     def __call__(self, parser, namespace, values, option_string=None):
         setattr(namespace, self.dest, values)
-        setattr(namespace, 'change_files', REMOTE_FILES)
+        setattr(namespace, 'change_files', settings.REMOTE_FILES)
 
 
 class BranchProtectArgAction(argparse.Action):
@@ -117,9 +37,9 @@ class BranchProtectArgAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         branch_permissions = None
         if values == 'standard':
-            branch_permissions = PROTECTED_BRANCH
+            branch_permissions = settings.PROTECTED_BRANCH
         if values == 'high':
-            branch_permissions = HIGHLY_PROTECTED_BRANCH
+            branch_permissions = settings.HIGHLY_PROTECTED_BRANCH
         setattr(namespace, 'branch_permissions', branch_permissions)
 
 
@@ -127,7 +47,7 @@ def __get_default_config_file(repo, remote_file):
     return repo.get_contents(remote_file, ref="master")
 
 
-def create_repo(org, name=DEFAULT_PROJECT_ID):
+def create_repo(org, name=settings.DEFAULT_PROJECT_ID):
     """
     creates the GitHub repository
     :param org: obj: organisation where the repo will sit
@@ -189,9 +109,9 @@ def update_repo_file(repo, file_to_change, new_content, commit_msg,
 
 
 def create_team(org,
-                team_name=STANDARD_TEAM_ATTRIBUTES["name"],
-                permission=STANDARD_TEAM_ATTRIBUTES["permission"],
-                privacy=STANDARD_TEAM_ATTRIBUTES["privacy"]):
+                team_name=settings.STANDARD_TEAM_ATTRIBUTES["name"],
+                permission=settings.STANDARD_TEAM_ATTRIBUTES["permission"],
+                privacy=settings.STANDARD_TEAM_ATTRIBUTES["privacy"]):
     """
     creates the organisation team
     :param org: obj: organisation where the team will be part of
@@ -248,7 +168,7 @@ def configure_project_data(config_file, **kwargs):
     return json.dumps(data_dict, indent=2)
 
 
-def write_project_data(repo, teams, data_dir=PROJECT_DATA_DIR):
+def write_project_data(repo, teams, data_dir=settings.PROJECT_DATA_DIR):
     if not os.path.isdir(data_dir):
         os.mkdir(data_dir, 0o0700)
 
@@ -311,8 +231,7 @@ def __file_content(file_with_content):
         return content.read()
 
 
-def main():
-    settings = arg_parser().parse_args()
+def setup(settings):
     # grab the last field from delimited project name
     environment = settings.project_id.upper().split('-').pop()
     try:
@@ -320,7 +239,7 @@ def main():
     except BadCredentialsException as e:
         print(e.data)
         print("check token and pass using the --vcs-token (-t) argument or setting"
-              "the token in " + DEFAULT_TOKEN_FILE)
+              "the token in " + settings.DEFAULT_TOKEN_FILE)
         raise BadCredentialsException(e.status, e.data)
     existing_repo = get_repo(org, settings.project_id)
 
@@ -349,7 +268,7 @@ def main():
         #  set
         try:
             # noinspection PyUnboundLocalVariable
-            update_repo_file(repo, REMOTE_FILES[config_file], config,
+            update_repo_file(repo, settings.REMOTE_FILES[config_file], config,
                              commit_msg, settings.force,
                              settings.bypass_branch_protection)
         except GithubException as e:
@@ -357,14 +276,14 @@ def main():
 
     # Create teams
     std_team = create_team(org)
-    priv_team = create_team(org, PRIV_TEAM_ATTRIBUTES["name"],
-                            PRIV_TEAM_ATTRIBUTES["permission"])
-    admin_team = get_team(org, ADMIN_TEAM)
+    priv_team = create_team(org, settings.PRIV_TEAM_ATTRIBUTES["name"],
+                            settings.PRIV_TEAM_ATTRIBUTES["permission"])
+    admin_team = get_team(org, settings.ADMIN_TEAM)
     configure_remote_object(std_team.url, settings.vcs_token,
-                            description=STANDARD_TEAM_ATTRIBUTES["description"])
+                            description=settings.STANDARD_TEAM_ATTRIBUTES["description"])
     configure_remote_object(priv_team.url, settings.vcs_token,
                             parent_team_id=std_team.id,
-                            description=PRIV_TEAM_ATTRIBUTES["description"])
+                            description=settings.PRIV_TEAM_ATTRIBUTES["description"])
 
     # Set repository permission
     if admin_team:
@@ -380,6 +299,3 @@ def main():
     if settings.output_data:
         write_project_data(repo, [std_team, priv_team])
 
-
-if __name__ == '__main__':
-    main()

@@ -1,13 +1,16 @@
-import builder
 import argparse
-import reporter.stackdriver
-import reporter.local
 from datetime import datetime
 
-DEFAULT_LOG_FILE = '/var/log/enterprise_cloud_admin.log'
+import builder
+import reporter.stackdriver
+import reporter.local
+
+from settings import Settings
+
+settings = Settings()
 
 
-def get_settings():
+def get_parsed_args():
     root_parser = builder.arg_parser()
     root_parser.description = \
         'cloud_control is an application for managing cloud infrastructure in' \
@@ -22,20 +25,7 @@ def get_settings():
                                      help='deploy configuration to the cloud')
         d_parser.formatter_class = argparse.RawTextHelpFormatter
         d_parser.add_argument(
-            '--cloud', choices=['all'] + builder.SUPPORTED_CLOUDS)
-        d_parser.add_argument('--key-file',
-                              help='path to the file containing the private '
-                                   'key used for authentication on CSP',
-                              type=argparse.FileType('r'))
-        d_parser.add_argument('--log-file',
-                              help='path to file, if different from default',
-                              default=DEFAULT_LOG_FILE)
-        d_parser.add_argument('--debug',
-                              help='output debug information to help troubleshoot issues',
-                              default=False)
-        d_parser.add_argument('--monitoring-namespace',
-                              help='CSP specific location where monitoring data is aggregated. For'
-                                   'example, a GCP project')
+            '--cloud', choices=['all'] + settings.SUPPORTED_CLOUDS)
         return d_parser
 
     def add_config_parser(parser):
@@ -59,45 +49,42 @@ def get_settings():
     return root_parser.parse_args()
 
 
-def main():
-    settings = get_settings()
-    if settings.key_file:
-        auth = builder.GcpAuth(settings.key_file)
+def perform_commands():
+    parsed_args = get_parsed_args()
+    if getattr(parsed_args, "key_file", None):
+        auth = builder.GcpAuth(parsed_args.key_file)
     else:
         auth = builder.GcpAuth()
 
     __app_metrics = reporter.stackdriver.AppMetrics(
         monitoring_credentials=auth.credentials,
-        monitoring_project=settings.monitoring_namespace
+        monitoring_project=parsed_args.monitoring_namespace
     )
-    __log = reporter.local.get_logger(__name__, settings.log_file, settings.debug)
+    __log = reporter.local.get_logger(__name__, parsed_args.log_file, parsed_args.debug)
 
     try:
-        if settings.command == 'deploy':
+        if parsed_args.command == 'deploy':
             __log.info('Starting deployment')
-            if settings.cloud == 'all':
-                settings.cloud = 'all_'
+            if parsed_args.cloud == 'all':
+                parsed_args.cloud = 'all_'
             from deployer import deploy
             from checker import check
-            config_org = builder.get_org(settings, settings.config_org)
-            code_org = builder.get_org(settings, settings.code_org)
-            config_files = builder.get_files(config_org, settings.project_id,
-                                             settings.cloud, settings.config_version)
+            config_org = builder.get_org(parsed_args, parsed_args.config_org)
+            code_org = builder.get_org(parsed_args, parsed_args.code_org)
+            config_files = builder.get_files(config_org, parsed_args.project_id,
+                                             parsed_args.cloud, parsed_args.config_version)
             # code repo should contain any lists or maps that define
             # security policies
             # and operating requirements. The code repo should be public.
-            code_files = builder.get_files(code_org, settings.project_id,
-                                           settings.cloud, settings.config_version)
-            check(settings.cloud, config_files)
-            deploy(settings, code_files, config_files)
-        elif settings.command == 'config':
-            # import code_control
+            code_files = builder.get_files(code_org, parsed_args.project_id,
+                                           parsed_args.cloud, parsed_args.config_version)
+            check(parsed_args.cloud, config_files)
+            deploy(parsed_args, code_files, config_files)
+        elif parsed_args.command == 'config':
+            from code_control import setup
+            setup(parsed_args)
 
-            # set up monitoring
-
-            # deploy standard monitoring configuration
-            pass
     finally:
-        __log.info('finished ' + settings.command + ' run')
+        __log.info('finished ' + parsed_args.command + ' run')
         __app_metrics.end_time = datetime.utcnow()
         __app_metrics.send_metrics()

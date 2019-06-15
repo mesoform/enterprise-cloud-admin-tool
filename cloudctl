@@ -15,4 +15,4 @@ Short-hand wrapper for enterprise_cloud_admin.py
 import enterprise_cloud_admin
 
 if __name__ == '__main__':
-    enterprise_cloud_admin.main()
+    enterprise_cloud_admin.perform_commands()

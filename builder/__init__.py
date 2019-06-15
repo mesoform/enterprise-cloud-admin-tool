@@ -1,29 +1,14 @@
+import re
 import argparse
 import os
 import json
-# noinspection PyPackageRequirements
-from github import Github, GithubException
-import re
+
+from github import Github
 from httplib2 import Http
 
-MODULE_ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
-DEFAULT_GITHUB_API_URL = "https://api.github.com"
-DEFAULT_PROJECT_NAME = "my-gcp-project"
-DEFAULT_PROJECT_ID = "my-gcp-project"
-DEFAULT_CODE_ORG = 'my-code-org'
-DEFAULT_CONFIG_ORG = 'my-config-org'
-PROJECT_DATA_DIR = MODULE_ROOT_DIR + 'resources/project_data/' + \
-                   DEFAULT_PROJECT_ID
-DEFAULT_TOKEN_FILE = MODULE_ROOT_DIR + '/resources/token.json'
-DEFAULT_GIT_REF = 'master'
-if os.path.exists(DEFAULT_TOKEN_FILE):
-    DEFAULT_TOKEN = json.load(open(DEFAULT_TOKEN_FILE))['token']
-else:
-    DEFAULT_TOKEN = ""
-SUPPORTED_CLOUDS = ['aws', 'gcp', 'triton']
-SUPPORTED_VCS_PLATFORMS = ['github']
-SUPPORTED_ORCHESTRATORS = ['terraform']
-VALID_PROJECT_ID_FORMAT = "^[a-z]{4}-[a-z0-9]{4,31}-(?:dev|prod|test)$"
+from settings import Settings
+
+settings = Settings()
 
 
 class ProjectIdFormatError(Exception):
@@ -44,26 +29,26 @@ def arg_parser():
     parser.set_defaults(force=False)
     parser.add_argument('-a', '--api_url',
                         help='URL to GitHub API',
-                        default=DEFAULT_GITHUB_API_URL)
+                        default=settings.DEFAULT_GITHUB_API_URL)
     parser.add_argument('-f', '--force',
                         help='Force actions on preexisting repo',
                         default=False,
                         action='store_true')
     parser.add_argument('--output-data',
-                        help='Output repo data to files in ' + PROJECT_DATA_DIR,
+                        help='Output repo data to files in ' + settings.PROJECT_DATA_DIR,
                         action='store_true')
     parser.add_argument('-o', '--code-org',
                         help="ID of the organisation where the Terraform code"
                              "repository is",
-                        default=DEFAULT_CODE_ORG)
+                        default=settings.DEFAULT_CODE_ORG)
     parser.add_argument('-O', '--config-org',
                         help="ID of the organisation where the configuration"
                              "repository is",
-                        default=DEFAULT_CONFIG_ORG)
+                        default=settings.DEFAULT_CONFIG_ORG)
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('-p', '--project-id',
                        help="ID of project we're creating a repository for",
-                       default=DEFAULT_PROJECT_NAME)
+                       default=settings.DEFAULT_PROJECT_NAME)
     group.add_argument('-q', '--queued-projects',
                        help="fetch a list of projects from requests queue",
                        action=QueuedProjectsArgAction)
@@ -71,11 +56,23 @@ def arg_parser():
                         help='Authentication for VCS platform')
     parser.add_argument('-c', '--config-version',
                         help="git branch for the configuration",
-                        default=DEFAULT_GIT_REF)
+                        default=settings.DEFAULT_GIT_REF)
     parser.add_argument('-T', '--code-version',
                         help="git branch for the code",
-                        default=DEFAULT_GIT_REF)
-
+                        default=settings.DEFAULT_GIT_REF)
+    parser.add_argument('--key-file',
+                        help='path to the file containing the private '
+                        'key used for authentication on CSP',
+                        type=argparse.FileType('r'))
+    parser.add_argument('--monitoring-namespace',
+                        help='CSP specific location where monitoring data is aggregated. For'
+                        'example, a GCP project')
+    parser.add_argument('--log-file',
+                        help='path to file, if different from default',
+                        default=settings.DEFAULT_LOG_FILE)
+    parser.add_argument('--debug',
+                        help='output debug information to help troubleshoot issues',
+                        default=False)
     return parser
 
 
@@ -150,19 +147,14 @@ class QueuedProjectsArgAction(argparse.Action):
         setattr(namespace, 'projects_list', [])
 
 
-def get_org(settings, org):
+def get_org(parsed_args, org):
     github = Github(
-        base_url=settings.api_url, login_or_token=settings.vcs_token)
+        base_url=parsed_args.api_url, login_or_token=parsed_args.vcs_token)
     return github.get_organization(org)
 
 
-def get_repo(org, name=DEFAULT_PROJECT_ID):
-    repo = None
-    try:
-        repo = org.get_repo(name)
-    except GithubException as e:
-        print(e.data)
-    return repo
+def get_repo(org, name=settings.DEFAULT_PROJECT_ID):
+    return org.get_repo(name)
 
 
 def get_team(org, team_name):
@@ -193,7 +185,7 @@ def get_files(org, repo_name, directory, version):
 
 
 def valid_project_id_format(project_id):
-    if not re.match(VALID_PROJECT_ID_FORMAT, project_id):
+    if not re.match(settings.VALID_PROJECT_ID_FORMAT, project_id):
         raise ProjectIdFormatError(project_id + ' does not match the ' +
-                                   VALID_PROJECT_ID_FORMAT + 'format')
+                                   settings.VALID_PROJECT_ID_FORMAT + 'format')
     return True

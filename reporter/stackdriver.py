@@ -1,3 +1,5 @@
+import json
+
 from google.cloud.monitoring_v3 import AlertPolicyServiceClient, \
     NotificationChannelServiceClient, MetricServiceClient
 from google.auth.credentials import Credentials
@@ -6,25 +8,14 @@ from datetime import datetime
 from google.cloud.monitoring_v3.types import NotificationChannel, TimeSeries
 from google.cloud.monitoring_v3.types import AlertPolicy as \
     StackdriverAlertPolicy
-import json
+
 from decimal import *
 
-getcontext().prec = 2  # Set decimal places to two
+from settings import Settings
 
-DEFAULT_MONITORING_PROJECT = 'gb-me-services'
-BILLING_ALERT_PERIODS = [
-    "current_period"
-]
-DEFAULT_BILLING_POLICY = {
-    "billing_project": "",
-    "budget_amount": 10.00,
-    "notifications": [
-        {
-            "notify": "support@mesoform.com",
-            "by": "email"
-        }
-    ]
-}
+settings = Settings()
+
+getcontext().prec = 2  # Set decimal places to two
 
 
 class InvalidMonitoringClientType(Exception):
@@ -370,7 +361,7 @@ class BillingAlert(Alert):
     # noinspection PyDefaultArgument
     def get_conditions(
             self,
-            billing_alerting_periods: list = BILLING_ALERT_PERIODS
+            billing_alerting_periods: list = settings.BILLING_ALERT_PERIODS
     ):
         """
 
