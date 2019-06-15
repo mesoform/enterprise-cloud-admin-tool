@@ -1,7 +1,7 @@
 import argparse
 from datetime import datetime
 
-import builder
+import common
 import reporter.stackdriver
 import reporter.local
 
@@ -11,7 +11,7 @@ settings = Settings()
 
 
 def get_parsed_args():
-    root_parser = builder.arg_parser()
+    root_parser = common.arg_parser()
     root_parser.description = \
         'cloud_control is an application for managing cloud infrastructure in' \
         ' the enterprise. It interfaces with other known tooling like' \
@@ -52,9 +52,9 @@ def get_parsed_args():
 def perform_commands():
     parsed_args = get_parsed_args()
     if getattr(parsed_args, "key_file", None):
-        auth = builder.GcpAuth(parsed_args.key_file)
+        auth = common.GcpAuth(parsed_args.key_file)
     else:
-        auth = builder.GcpAuth()
+        auth = common.GcpAuth()
 
     __app_metrics = reporter.stackdriver.AppMetrics(
         monitoring_credentials=auth.credentials,
@@ -69,15 +69,15 @@ def perform_commands():
                 parsed_args.cloud = 'all_'
             from deployer import deploy
             from checker import check
-            config_org = builder.get_org(parsed_args, parsed_args.config_org)
-            code_org = builder.get_org(parsed_args, parsed_args.code_org)
-            config_files = builder.get_files(config_org, parsed_args.project_id,
-                                             parsed_args.cloud, parsed_args.config_version)
+            config_org = common.get_org(parsed_args, parsed_args.config_org)
+            code_org = common.get_org(parsed_args, parsed_args.code_org)
+            config_files = common.get_files(config_org, parsed_args.project_id,
+                                            parsed_args.cloud, parsed_args.config_version)
             # code repo should contain any lists or maps that define
             # security policies
             # and operating requirements. The code repo should be public.
-            code_files = builder.get_files(code_org, parsed_args.project_id,
-                                           parsed_args.cloud, parsed_args.config_version)
+            code_files = common.get_files(code_org, parsed_args.project_id,
+                                          parsed_args.cloud, parsed_args.config_version)
             check(parsed_args.cloud, config_files)
             deploy(parsed_args, code_files, config_files)
         elif parsed_args.command == 'config':

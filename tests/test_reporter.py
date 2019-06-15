@@ -6,7 +6,7 @@
 from unittest import TestCase, TextTestRunner, TestSuite, main
 from teamcity import is_running_under_teamcity
 from teamcity.unittestpy import TeamcityTestRunner
-from builder import GcpAuth
+from common import GcpAuth
 from reporter.stackdriver import Metrics, Alert, BillingAlert, \
     TooManyMatchingResultsError
 from google.cloud.monitoring_v3 import MetricServiceClient, \

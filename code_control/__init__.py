@@ -9,7 +9,7 @@ import os
 # github package is PyGithub
 # noinspection PyPackageRequirements
 from github import GithubException, BadCredentialsException
-from builder import get_team, get_repo, get_org
+from common import get_team, get_repo, get_org
 
 from settings import Settings
 
