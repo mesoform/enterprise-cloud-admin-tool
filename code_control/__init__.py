@@ -248,60 +248,60 @@ def __file_content(file_with_content):
         return content.read()
 
 
-def setup(settings):
+def setup(parsed_args):
     # grab the last field from delimited project name
-    environment = settings.project_id.upper().split("-").pop()
+    environment = parsed_args.project_id.upper().split("-").pop()
     try:
-        org = get_org(settings, settings.config_org)
+        org = get_org(parsed_args, parsed_args.config_org)
     except BadCredentialsException as e:
         print(e.data)
         print(
             "check token and pass using the --vcs-token (-t) argument or setting"
-            "the token in " + settings.DEFAULT_TOKEN_FILE
+            "the token in " + SETTINGS.DEFAULT_TOKEN_FILE
         )
         raise BadCredentialsException(e.status, e.data)
 
     try:
-        existing_repo = get_repo(org, settings.project_id)
+        existing_repo = get_repo(org, parsed_args.project_id)
     except GithubException:
         existing_repo = None
 
-    if existing_repo and not settings.force:
+    if existing_repo and not parsed_args.force:
         print(
             "Repository "
-            + settings.project_id
+            + parsed_args.project_id
             + " already exists. Use --force to reconfigure"
         )
         exit(1)
-    elif existing_repo and settings.force:
+    elif existing_repo and parsed_args.force:
         repo = existing_repo
         commit_msg = "Update "
     else:
-        repo = create_repo(org, name=settings.project_id)
+        repo = create_repo(org, name=parsed_args.project_id)
         commit_msg = "Initial commit"
 
     # Configure project
-    for config_file in settings.change_files.keys():
+    for config_file in parsed_args.change_files.keys():
         if config_file == "project_settings_file":
             config = configure_project_data(
-                settings.change_files[config_file],
-                project_id=settings.project_id,
-                project_name=settings.project_id,
+                parsed_args.change_files[config_file],
+                project_id=parsed_args.project_id,
+                project_name=parsed_args.project_id,
                 folder_id=environment + "-Environment",
             )
         else:
-            config = __file_content(settings.change_files[config_file])
+            config = __file_content(parsed_args.change_files[config_file])
         # Todo: capture update_repo_content exception and exclude if --force is
         #  set
         try:
             # noinspection PyUnboundLocalVariable
             update_repo_file(
                 repo,
-                settings.REMOTE_FILES[config_file],
+                SETTINGS.REMOTE_FILES[config_file],
                 config,
                 commit_msg,
-                settings.force,
-                settings.bypass_branch_protection,
+                parsed_args.force,
+                parsed_args.bypass_branch_protection,
             )
         except GithubException as e:
             print(e.data)
@@ -310,20 +310,20 @@ def setup(settings):
     std_team = create_team(org)
     priv_team = create_team(
         org,
-        settings.PRIV_TEAM_ATTRIBUTES["name"],
-        settings.PRIV_TEAM_ATTRIBUTES["permission"],
+        SETTINGS.PRIV_TEAM_ATTRIBUTES["name"],
+        SETTINGS.PRIV_TEAM_ATTRIBUTES["permission"],
     )
-    admin_team = get_team(org, settings.ADMIN_TEAM)
+    admin_team = get_team(org, parsed_args.ADMIN_TEAM)
     configure_remote_object(
         std_team.url,
-        settings.vcs_token,
-        description=settings.STANDARD_TEAM_ATTRIBUTES["description"],
+        parsed_args.vcs_token,
+        description=SETTINGS.STANDARD_TEAM_ATTRIBUTES["description"],
     )
     configure_remote_object(
         priv_team.url,
-        settings.vcs_token,
+        parsed_args.vcs_token,
         parent_team_id=std_team.id,
-        description=settings.PRIV_TEAM_ATTRIBUTES["description"],
+        description=SETTINGS.PRIV_TEAM_ATTRIBUTES["description"],
     )
 
     # Set repository permission
@@ -336,6 +336,6 @@ def setup(settings):
     except GithubException as e:
         print(e.data)
 
-    set_master_branch_permissions(repo, settings.branch_permissions)
-    if settings.output_data:
+    set_master_branch_permissions(repo, parsed_args.branch_permissions)
+    if parsed_args.output_data:
         write_project_data(repo, [std_team, priv_team])

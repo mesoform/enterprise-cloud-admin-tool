@@ -2,5 +2,10 @@
 
 from cloud_control import CloudControl
 
-if __name__ == "__main__":
+
+def main():
     CloudControl()
+
+
+if __name__ == "__main__":
+    main()
