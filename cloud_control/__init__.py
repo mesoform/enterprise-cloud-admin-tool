@@ -6,7 +6,7 @@ import reporter.local
 
 from deployer import deploy
 from checker import check
-from code_control import setup
+from code_control import setup, TemplatesArgAction
 
 from settings import Settings
 
@@ -56,10 +56,20 @@ class CloudControl:
             "config",
             help="Administer cloud configuration on respective repository",
         )
+        config_parser.set_defaults(
+            change_files=SETTINGS.LOCAL_FILES,
+            branch_permissions=SETTINGS.PROTECTED_BRANCH,
+            force=False,
+        )
         config_parser.formatter_class = argparse.RawTextHelpFormatter
         config_parser.add_argument("--github")
         config_parser.add_argument(
             "c_action", choices=("create", "delete", "update")
+        )
+        config_parser.add_argument(
+            "--templates-repo",
+            help="Repository where default templates are stored",
+            action=TemplatesArgAction,
         )
 
     def _setup_logger(self):

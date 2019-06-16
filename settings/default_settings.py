@@ -1,21 +1,23 @@
 import os
 import json
 
+from pathlib import Path
+
 # ############## Common settings #############
 DEFAULT_LOG_FILE = "/var/log/enterprise_cloud_admin.log"
 
 
 # ############## Builder settings ##############
-MODULE_ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+MODULE_ROOT_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_GITHUB_API_URL = "https://api.github.com"
 DEFAULT_PROJECT_NAME = "my-gcp-project"
 DEFAULT_PROJECT_ID = "my-gcp-project"
 DEFAULT_CODE_ORG = "my-code-org"
 DEFAULT_CONFIG_ORG = "my-config-org"
 PROJECT_DATA_DIR = (
-    MODULE_ROOT_DIR + "resources/project_data/" + DEFAULT_PROJECT_ID
+    MODULE_ROOT_DIR / "resources/project_data/" / DEFAULT_PROJECT_ID
 )
-DEFAULT_TOKEN_FILE = MODULE_ROOT_DIR + "/resources/token.json"
+DEFAULT_TOKEN_FILE = MODULE_ROOT_DIR / "/resources/token.json"
 DEFAULT_GIT_REF = "master"
 DEFAULT_TOKEN = (
     json.load(open(DEFAULT_TOKEN_FILE))["token"]
@@ -29,7 +31,6 @@ VALID_PROJECT_ID_FORMAT = "^[a-z]{4}-[a-z0-9]{4,31}-(?:dev|prod|test)$"
 
 
 # ############## Code control settings ##############
-MODULE_ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_GITHUB_API_URL = "https://api.github.com"
 ADMIN_TEAM = "gcp-admin-team"
 STANDARD_TEAM_ATTRIBUTES = {
@@ -45,7 +46,7 @@ PRIV_TEAM_ATTRIBUTES = {
     "privacy": "secret",
 }
 PROJECT_DATA_DIR = (
-    MODULE_ROOT_DIR + "resources/project_data/" + DEFAULT_PROJECT_ID
+    MODULE_ROOT_DIR / "resources/project_data/" / DEFAULT_PROJECT_ID
 )
 PROTECTED_BRANCH = {
     "enforce_admins": True,
@@ -60,14 +61,14 @@ HIGHLY_PROTECTED_BRANCH = {
     "required_approving_review_count": 2,
 }
 LOCAL_FILES = {
-    "readme_file": MODULE_ROOT_DIR + "resources/templates/README.md",
-    "apis_file": MODULE_ROOT_DIR + "resources/templates/gcp_enabled_apis.json",
+    "readme_file": MODULE_ROOT_DIR / "resources/templates/README.md",
+    "apis_file": MODULE_ROOT_DIR / "resources/templates/gcp_enabled_apis.json",
     "project_settings_file": MODULE_ROOT_DIR
-    + "resources/templates/gcp_project_settings.json",
+    / "resources/templates/gcp_project_settings.json",
     "role_bindings_file": MODULE_ROOT_DIR
-    + "resources/templates/gcp_role_bindings.json",
+    / "resources/templates/gcp_role_bindings.json",
     "service_accounts_file": MODULE_ROOT_DIR
-    + "resources/templates/gcp_service_accounts.json",
+    / "resources/templates/gcp_service_accounts.json",
 }
 REMOTE_FILES = {
     "readme_file": "README.md",
@@ -79,7 +80,6 @@ REMOTE_FILES = {
 
 
 # ############## Deployer settings ##############
-MODULE_ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 WORKING_DIR_BASE = "/tmp"
 
 

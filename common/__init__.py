@@ -43,7 +43,7 @@ def root_parser():
     )
     parser.add_argument(
         "--output-data",
-        help="Output repo data to files in " + SETTINGS.PROJECT_DATA_DIR,
+        help="Output repo data to files in " + str(SETTINGS.PROJECT_DATA_DIR),
         action="store_true",
     )
     parser.add_argument(
