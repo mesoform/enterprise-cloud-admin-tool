@@ -313,7 +313,7 @@ def setup(parsed_args):
         SETTINGS.PRIV_TEAM_ATTRIBUTES["name"],
         SETTINGS.PRIV_TEAM_ATTRIBUTES["permission"],
     )
-    admin_team = get_team(org, parsed_args.ADMIN_TEAM)
+    admin_team = get_team(org, SETTINGS.ADMIN_TEAM)
     configure_remote_object(
         std_team.url,
         parsed_args.vcs_token,

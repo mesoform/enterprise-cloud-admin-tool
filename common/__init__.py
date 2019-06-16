@@ -35,13 +35,6 @@ def root_parser():
         default=SETTINGS.DEFAULT_GITHUB_API_URL,
     )
     parser.add_argument(
-        "-f",
-        "--force",
-        help="Force actions on preexisting repo",
-        default=False,
-        action="store_true",
-    )
-    parser.add_argument(
         "--output-data",
         help="Output repo data to files in " + str(SETTINGS.PROJECT_DATA_DIR),
         action="store_true",

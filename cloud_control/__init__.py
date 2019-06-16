@@ -71,6 +71,20 @@ class CloudControl:
             help="Repository where default templates are stored",
             action=TemplatesArgAction,
         )
+        config_parser.add_argument(
+            "--bypass-branch-protection",
+            help="Bypasses branch protection when updating files"
+            " which already exist in the repository",
+            default=False,
+            action="store_true",
+        )
+        config_parser.add_argument(
+            "-f",
+            "--force",
+            help="Force actions on preexisting repo",
+            default=False,
+            action="store_true",
+        )
 
     def _setup_logger(self):
         self.__log = reporter.local.get_logger(
