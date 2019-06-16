@@ -1,4 +1,6 @@
-from cloud_control import perform_commands
+#!/usr/bin/env python3
 
-if __name__ == '__main__':
-    perform_commands()
+from cloud_control import CloudControl
+
+if __name__ == "__main__":
+    CloudControl()

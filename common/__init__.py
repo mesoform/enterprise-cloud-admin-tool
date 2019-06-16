@@ -8,7 +8,7 @@ from httplib2 import Http
 
 from settings import Settings
 
-settings = Settings()
+SETTINGS = Settings()
 
 
 class ProjectIdFormatError(Exception):
@@ -19,60 +19,94 @@ class RepositoryNotFoundError(Exception):
     pass
 
 
-def arg_parser():
+def root_parser():
     """
     parses arguments passed on command line when running program
     :return: list of arguments
     """
     parser = argparse.ArgumentParser(
-        formatter_class=argparse.RawTextHelpFormatter)
+        formatter_class=argparse.RawTextHelpFormatter
+    )
     parser.set_defaults(force=False)
-    parser.add_argument('-a', '--api_url',
-                        help='URL to GitHub API',
-                        default=settings.DEFAULT_GITHUB_API_URL)
-    parser.add_argument('-f', '--force',
-                        help='Force actions on preexisting repo',
-                        default=False,
-                        action='store_true')
-    parser.add_argument('--output-data',
-                        help='Output repo data to files in ' + settings.PROJECT_DATA_DIR,
-                        action='store_true')
-    parser.add_argument('-o', '--code-org',
-                        help="ID of the organisation where the Terraform code"
-                             "repository is",
-                        default=settings.DEFAULT_CODE_ORG)
-    parser.add_argument('-O', '--config-org',
-                        help="ID of the organisation where the configuration"
-                             "repository is",
-                        default=settings.DEFAULT_CONFIG_ORG)
+    parser.add_argument(
+        "-a",
+        "--api_url",
+        help="URL to GitHub API",
+        default=SETTINGS.DEFAULT_GITHUB_API_URL,
+    )
+    parser.add_argument(
+        "-f",
+        "--force",
+        help="Force actions on preexisting repo",
+        default=False,
+        action="store_true",
+    )
+    parser.add_argument(
+        "--output-data",
+        help="Output repo data to files in " + SETTINGS.PROJECT_DATA_DIR,
+        action="store_true",
+    )
+    parser.add_argument(
+        "-o",
+        "--code-org",
+        help="ID of the organisation where the Terraform code" "repository is",
+        default=SETTINGS.DEFAULT_CODE_ORG,
+    )
+    parser.add_argument(
+        "-O",
+        "--config-org",
+        help="ID of the organisation where the configuration" "repository is",
+        default=SETTINGS.DEFAULT_CONFIG_ORG,
+    )
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('-p', '--project-id',
-                       help="ID of project we're creating a repository for",
-                       default=settings.DEFAULT_PROJECT_NAME)
-    group.add_argument('-q', '--queued-projects',
-                       help="fetch a list of projects from requests queue",
-                       action=QueuedProjectsArgAction)
-    parser.add_argument('-t', '--vcs-token',
-                        help='Authentication for VCS platform')
-    parser.add_argument('-c', '--config-version',
-                        help="git branch for the configuration",
-                        default=settings.DEFAULT_GIT_REF)
-    parser.add_argument('-T', '--code-version',
-                        help="git branch for the code",
-                        default=settings.DEFAULT_GIT_REF)
-    parser.add_argument('--key-file',
-                        help='path to the file containing the private '
-                        'key used for authentication on CSP',
-                        type=argparse.FileType('r'))
-    parser.add_argument('--monitoring-namespace',
-                        help='CSP specific location where monitoring data is aggregated. For'
-                        'example, a GCP project')
-    parser.add_argument('--log-file',
-                        help='path to file, if different from default',
-                        default=settings.DEFAULT_LOG_FILE)
-    parser.add_argument('--debug',
-                        help='output debug information to help troubleshoot issues',
-                        default=False)
+    group.add_argument(
+        "-p",
+        "--project-id",
+        help="ID of project we're creating a repository for",
+        default=SETTINGS.DEFAULT_PROJECT_NAME,
+    )
+    group.add_argument(
+        "-q",
+        "--queued-projects",
+        help="fetch a list of projects from requests queue",
+        action=QueuedProjectsArgAction,
+    )
+    parser.add_argument(
+        "-t", "--vcs-token", help="Authentication for VCS platform"
+    )
+    parser.add_argument(
+        "-c",
+        "--config-version",
+        help="git branch for the configuration",
+        default=SETTINGS.DEFAULT_GIT_REF,
+    )
+    parser.add_argument(
+        "-T",
+        "--code-version",
+        help="git branch for the code",
+        default=SETTINGS.DEFAULT_GIT_REF,
+    )
+    parser.add_argument(
+        "--key-file",
+        help="path to the file containing the private "
+        "key used for authentication on CSP",
+        type=argparse.FileType("r"),
+    )
+    parser.add_argument(
+        "--monitoring-namespace",
+        help="CSP specific location where monitoring data is aggregated. For"
+        "example, a GCP project",
+    )
+    parser.add_argument(
+        "--log-file",
+        help="path to file, if different from default",
+        default=SETTINGS.DEFAULT_LOG_FILE,
+    )
+    parser.add_argument(
+        "--debug",
+        help="output debug information to help troubleshoot issues",
+        default=False,
+    )
     return parser
 
 
@@ -90,10 +124,13 @@ class GcpAuth:
         """
         if self.key_file:
             from google.oauth2 import service_account
+
             return service_account.Credentials.from_service_account_info(
-                self.service_account_info)
+                self.service_account_info
+            )
         else:
             import google.auth
+
             credentials, project_id = google.auth.default()
             return credentials
 
@@ -107,9 +144,9 @@ class GcpAuth:
 
     @staticmethod
     def _get_service_account_info(creds_file):
-        with open(creds_file.name, 'r') as f:
+        with open(creds_file.name, "r") as f:
             ext = os.path.splitext(f.name)[-1].lower()
-            if ext == '.json':
+            if ext == ".json":
                 return json.loads(f.read())
 
     # def _get_project_id():
@@ -139,21 +176,23 @@ class QueuedProjectsArgAction(argparse.Action):
     def __init__(self, option_strings, dest, nargs=None, **kwargs):
         if nargs is not None:
             raise ValueError("nargs not allowed")
-        super(QueuedProjectsArgAction, self).__init__(option_strings, dest,
-                                                      nargs=0, **kwargs)
+        super(QueuedProjectsArgAction, self).__init__(
+            option_strings, dest, nargs=0, **kwargs
+        )
 
     def __call__(self, parser, namespace, values, option_string=None):
         # ToDo: add function call to get projects list from JIRA
-        setattr(namespace, 'projects_list', [])
+        setattr(namespace, "projects_list", [])
 
 
 def get_org(parsed_args, org):
     github = Github(
-        base_url=parsed_args.api_url, login_or_token=parsed_args.vcs_token)
+        base_url=parsed_args.api_url, login_or_token=parsed_args.vcs_token
+    )
     return github.get_organization(org)
 
 
-def get_repo(org, name=settings.DEFAULT_PROJECT_ID):
+def get_repo(org, name=SETTINGS.DEFAULT_PROJECT_ID):
     return org.get_repo(name)
 
 
@@ -185,7 +224,11 @@ def get_files(org, repo_name, directory, version):
 
 
 def valid_project_id_format(project_id):
-    if not re.match(settings.VALID_PROJECT_ID_FORMAT, project_id):
-        raise ProjectIdFormatError(project_id + ' does not match the ' +
-                                   settings.VALID_PROJECT_ID_FORMAT + 'format')
+    if not re.match(SETTINGS.VALID_PROJECT_ID_FORMAT, project_id):
+        raise ProjectIdFormatError(
+            project_id
+            + " does not match the "
+            + SETTINGS.VALID_PROJECT_ID_FORMAT
+            + "format"
+        )
     return True

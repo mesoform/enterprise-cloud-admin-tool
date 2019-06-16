@@ -11,9 +11,11 @@ class BaseSettings(object):
     This also defines the base interface for all classes that are to be used
     as settings.
     """
+
     def __init__(self, module=None, attributes=None):
         """
-        :param object/string module: A :class:`Settings <settings.Settings>` object or a path string.
+        :param object/string module: A :class:`Settings <settings.Settings>`
+        object or a path string.
         :param dict attributes: A dict object containing the settings values.
         """
         self.attributes = {}

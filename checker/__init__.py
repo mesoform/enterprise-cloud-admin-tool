@@ -1,6 +1,6 @@
 from settings import Settings
 
-settings = Settings()
+SETTINGS = Settings()
 
 
 def check(cloud_checker_fn, config_file_list):
@@ -20,5 +20,5 @@ def triton(config_file_list):
 
 
 def all_(config_file_list):
-    for cloud in settings.SUPPORTED_CLOUDS:
+    for cloud in SETTINGS.SUPPORTED_CLOUDS:
         cloud(config_file_list)

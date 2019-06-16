@@ -2,89 +2,122 @@ import argparse
 from datetime import datetime
 
 import common
-import reporter.stackdriver
 import reporter.local
+
+from deployer import deploy
+from checker import check
+from code_control import setup
 
 from settings import Settings
 
-settings = Settings()
+SETTINGS = Settings()
 
 
-def get_parsed_args():
-    root_parser = common.arg_parser()
-    root_parser.description = \
-        'cloud_control is an application for managing cloud infrastructure in' \
-        ' the enterprise. It interfaces with other known tooling like' \
-        ' Terraform, GitHub and Jira. It does this rather than try to create' \
-        ' something new so as to maintain clear delegation of duties but also' \
-        ' allowing cross-functional working by keeping different functions' \
-        ' separated in reusable modules'
+class CloudControl:
+    """
+    Entry point, here we parse all passed cli arguments and
+    call specific command (i.e. deploy or config).
+    """
 
-    def add_deploy_parser(parser):
-        d_parser = parser.add_parser('deploy',
-                                     help='deploy configuration to the cloud')
-        d_parser.formatter_class = argparse.RawTextHelpFormatter
-        d_parser.add_argument(
-            '--cloud', choices=['all'] + settings.SUPPORTED_CLOUDS)
-        return d_parser
+    def __init__(self):
+        self.root_parser = common.root_parser()
+        self.management_parser = self.root_parser.add_subparsers(
+            help="manage infrastructure deployment or infrastructure"
+            " configuration",
+            dest="command",
+        )
+        self._setup_deploy_parser()
+        self._setup_config_parser()
 
-    def add_config_parser(parser):
-        c_parser = parser.add_parser(
-            'config',
-            help='Administer cloud configuration on respective repository')
-        c_parser.formatter_class = argparse.RawTextHelpFormatter
-        c_parser.add_argument('--github')
-        c_parser.add_argument(
-            'c_action', choices=('create', 'delete', 'update'))
-        return c_parser
+        self.args = self.root_parser.parse_args()
 
-    mgmt_parser = root_parser.add_subparsers(
-        help='manage infrastructure deployment or infrastructure'
-             ' configuration',
-        dest='command')
+        self._setup_app_metrics()
+        self._setup_logger()
 
-    add_deploy_parser(mgmt_parser)
-    add_config_parser(mgmt_parser)
+        self._perform_command()
 
-    return root_parser.parse_args()
+    def _setup_deploy_parser(self):
+        """
+        Setup specific to deploy command arguments
+        """
+        deploy_parser = self.management_parser.add_parser(
+            "deploy", help="deploy configuration to the cloud"
+        )
+        deploy_parser.formatter_class = argparse.RawTextHelpFormatter
+        deploy_parser.add_argument(
+            "--cloud", choices=["all"] + SETTINGS.SUPPORTED_CLOUDS
+        )
 
+    def _setup_config_parser(self):
+        """
+        Setup specific to config command arguments
+        """
+        config_parser = self.management_parser.add_parser(
+            "config",
+            help="Administer cloud configuration on respective repository",
+        )
+        config_parser.formatter_class = argparse.RawTextHelpFormatter
+        config_parser.add_argument("--github")
+        config_parser.add_argument(
+            "c_action", choices=("create", "delete", "update")
+        )
 
-def perform_commands():
-    parsed_args = get_parsed_args()
-    if getattr(parsed_args, "key_file", None):
-        auth = common.GcpAuth(parsed_args.key_file)
-    else:
-        auth = common.GcpAuth()
+    def _setup_logger(self):
+        self.__log = reporter.local.get_logger(
+            __name__, self.args.log_file, self.args.debug
+        )
 
-    __app_metrics = reporter.stackdriver.AppMetrics(
-        monitoring_credentials=auth.credentials,
-        monitoring_project=parsed_args.monitoring_namespace
-    )
-    __log = reporter.local.get_logger(__name__, parsed_args.log_file, parsed_args.debug)
+    def _setup_app_metrics(self):
+        if getattr(self.args, "key_file", None):
+            auth = common.GcpAuth(self.args.key_file)
+        else:
+            auth = common.GcpAuth()
 
-    try:
-        if parsed_args.command == 'deploy':
-            __log.info('Starting deployment')
-            if parsed_args.cloud == 'all':
-                parsed_args.cloud = 'all_'
-            from deployer import deploy
-            from checker import check
-            config_org = common.get_org(parsed_args, parsed_args.config_org)
-            code_org = common.get_org(parsed_args, parsed_args.code_org)
-            config_files = common.get_files(config_org, parsed_args.project_id,
-                                            parsed_args.cloud, parsed_args.config_version)
-            # code repo should contain any lists or maps that define
-            # security policies
-            # and operating requirements. The code repo should be public.
-            code_files = common.get_files(code_org, parsed_args.project_id,
-                                          parsed_args.cloud, parsed_args.config_version)
-            check(parsed_args.cloud, config_files)
-            deploy(parsed_args, code_files, config_files)
-        elif parsed_args.command == 'config':
-            from code_control import setup
-            setup(parsed_args)
+        self.__app_metrics = reporter.stackdriver.AppMetrics(
+            monitoring_credentials=auth.credentials,
+            monitoring_project=self.args.monitoring_namespace,
+        )
 
-    finally:
-        __log.info('finished ' + parsed_args.command + ' run')
-        __app_metrics.end_time = datetime.utcnow()
-        __app_metrics.send_metrics()
+    def _perform_command(self):
+        """
+        Checks that passed command implemented in entry point class,
+        runs it, logs that command was runned and sends metrics.
+        """
+        if not hasattr(self, self.args.command):
+            print("Unrecognized command")
+            self.root_parser.print_help()
+            exit(1)
+
+        try:
+            getattr(self, self.args.command)()
+        finally:
+            self.__log.info("finished " + self.args.command + " run")
+            self.__app_metrics.end_time = datetime.utcnow()
+            self.__app_metrics.send_metrics()
+
+    def deploy(self):
+        self.__log.info("Starting deployment")
+        if self.args.cloud == "all":
+            self.args.cloud = "all_"
+        config_org = common.get_org(self.args, self.args.config_org)
+        code_org = common.get_org(self.args, self.args.code_org)
+        config_files = common.get_files(
+            config_org,
+            self.args.project_id,
+            self.args.cloud,
+            self.args.config_version,
+        )
+        # code repo should contain any lists or maps that define
+        # security policies
+        # and operating requirements. The code repo should be public.
+        code_files = common.get_files(
+            code_org,
+            self.args.project_id,
+            self.args.cloud,
+            self.args.config_version,
+        )
+        check(self.args.cloud, config_files)
+        deploy(self.args, code_files, config_files)
+
+    def config(self):
+        setup(self.args)
