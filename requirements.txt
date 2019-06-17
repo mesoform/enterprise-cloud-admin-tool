@@ -9,4 +9,3 @@ google
 google-auth
 google-oauth
 google-cloud-monitoring
-terraform-validate==2.8.0
