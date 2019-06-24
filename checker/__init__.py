@@ -1,6 +1,4 @@
-from settings import Settings
-
-SETTINGS = Settings()
+from settings import SETTINGS
 
 
 def check(cloud_checker_fn, config_file_list):

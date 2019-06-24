@@ -8,9 +8,7 @@ from deployer import deploy
 from checker import check
 from code_control import setup, TemplatesArgAction
 
-from settings import Settings
-
-SETTINGS = Settings()
+from settings import SETTINGS
 
 
 class CloudControl:

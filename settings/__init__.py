@@ -75,14 +75,12 @@ class BaseSettings(object):
             self.set(name, value)
 
 
-class DefaultSettings(BaseSettings):
-    def __init__(self):
-        super(DefaultSettings, self).__init__(default_settings)
-
-
 class Settings(BaseSettings):
     def __init__(self, module=None, attributes=None):
         super(Settings, self).__init__(default_settings, attributes)
 
         if module:
             self.add_module(module)
+
+
+SETTINGS = Settings()

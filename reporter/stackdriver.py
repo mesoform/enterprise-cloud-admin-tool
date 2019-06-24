@@ -16,9 +16,7 @@ from google.cloud.monitoring_v3.types import (
 
 from decimal import *
 
-from settings import Settings
-
-SETTINGS = Settings()
+from settings import SETTINGS
 
 getcontext().prec = 2  # Set decimal places to two
 

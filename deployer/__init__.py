@@ -5,9 +5,7 @@ from datetime import time
 
 from python_terraform import Terraform
 
-from settings import Settings
-
-SETTINGS = Settings()
+from settings import SETTINGS
 
 
 class TerraformDeployer(Terraform):

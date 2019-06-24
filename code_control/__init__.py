@@ -8,9 +8,7 @@ import requests
 from github import GithubException, BadCredentialsException
 from common import get_team, get_repo, get_org
 
-from settings import Settings
-
-SETTINGS = Settings()
+from settings import SETTINGS
 
 
 class TemplatesArgAction(argparse.Action):

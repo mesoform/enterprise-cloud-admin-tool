@@ -6,9 +6,7 @@ import json
 from github import Github
 from httplib2 import Http
 
-from settings import Settings
-
-SETTINGS = Settings()
+from settings import SETTINGS
 
 
 class ProjectIdFormatError(Exception):
