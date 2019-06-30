@@ -72,15 +72,15 @@ LOCAL_FILES = {
 }
 REMOTE_FILES = {
     "readme_file": "README.md",
-    "apis_file": "sot/gcp_enabled_apis.json",
-    "project_settings_file": "sot/gcp_project_settings.json",
-    "role_bindings_file": "sot/gcp_role_bindings.json",
-    "service_accounts_file": "sot/gcp_service_accounts.json",
+    "apis_file": "gcp/gcp_enabled_apis.json",
+    "project_settings_file": "gcp/gcp_project_settings.json",
+    "role_bindings_file": "gcp/gcp_role_bindings.json",
+    "service_accounts_file": "gcp/gcp_service_accounts.json",
 }
 
 
 # ############## Deployer settings ##############
-WORKING_DIR_BASE = "/tmp"
+WORKING_DIR_BASE = Path("/tmp")
 
 
 # ############## Reporter settings ##############
