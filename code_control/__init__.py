@@ -261,8 +261,11 @@ def setup(parsed_args):
 
     try:
         existing_repo = get_repo(org, parsed_args.project_id)
-    except GithubException:
-        existing_repo = None
+    except GithubException as e:
+        if e.status == 404:
+            existing_repo = None
+        else:
+            raise
 
     if existing_repo and not parsed_args.force:
         print(
