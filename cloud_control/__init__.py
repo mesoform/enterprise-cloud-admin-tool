@@ -11,10 +11,13 @@ from code_control import setup, TemplatesArgAction
 from settings import SETTINGS
 
 
-class CloudControl:
+class CloudControlException(Exception):
+    pass
+
+
+class ArgumentsParser:
     """
-    Entry point, here we parse all passed cli arguments and
-    call specific command (i.e. deploy or config).
+    That class used for subparsers setup, and storing all parsed arguments.
     """
 
     def __init__(self):
@@ -28,11 +31,6 @@ class CloudControl:
         self._setup_config_parser()
 
         self.args = self.root_parser.parse_args()
-
-        self._setup_app_metrics()
-        self._setup_logger()
-
-        self._perform_command()
 
     def _setup_deploy_parser(self):
         """
@@ -84,6 +82,17 @@ class CloudControl:
             action="store_true",
         )
 
+
+class CloudControl:
+    """
+    Entry point. Calls specific command passed to cli-app.
+    """
+    def __init__(self, args):
+        self.args = args
+
+        self._setup_logger()
+        self._setup_app_metrics()
+
     def _setup_logger(self):
         self.__log = reporter.local.get_logger(
             __name__, self.args.log_file, self.args.debug
@@ -100,18 +109,21 @@ class CloudControl:
             monitoring_project=self.args.monitoring_namespace,
         )
 
-    def _perform_command(self):
+    def perform_command(self):
         """
         Checks that passed command implemented in entry point class,
         runs it, logs that command was runned and sends metrics.
         """
-        if not hasattr(self, self.args.command):
-            print("Unrecognized command")
-            self.root_parser.print_help()
-            exit(1)
+
+        if self.args.command == "deploy":
+            command = self.deploy
+        elif self.args.command == "config":
+            command = self.config
+        else:
+            raise CloudControlException("Command {} does not implemented".format(self.args.command))
 
         try:
-            getattr(self, self.args.command)()
+            command()
         finally:
             self.__log.info("finished " + self.args.command + " run")
             self.__app_metrics.end_time = datetime.utcnow()

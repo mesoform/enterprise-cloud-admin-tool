@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 
-from cloud_control import CloudControl
+from cloud_control import ArgumentsParser, CloudControl
 
 
 def main():
-    CloudControl()
+    parser = ArgumentsParser()
+    cloud_control = CloudControl(parser.args)
+    cloud_control.perform_command()
 
 
 if __name__ == "__main__":
