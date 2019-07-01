@@ -116,9 +116,9 @@ class CloudControl:
         """
 
         if self.args.command == "deploy":
-            command = self.deploy
+            command = self._deploy
         elif self.args.command == "config":
-            command = self.config
+            command = self._config
         else:
             raise CloudControlException("Command {} does not implemented".format(self.args.command))
 
@@ -129,7 +129,7 @@ class CloudControl:
             self.__app_metrics.end_time = datetime.utcnow()
             self.__app_metrics.send_metrics()
 
-    def deploy(self):
+    def _deploy(self):
         self.__log.info("Starting deployment")
         if self.args.cloud == "all":
             self.args.cloud = "all_"
@@ -153,5 +153,5 @@ class CloudControl:
         check(self.args.cloud, config_files)
         deploy(self.args, code_files, config_files)
 
-    def config(self):
+    def _config(self):
         setup(self.args)
