@@ -28,7 +28,7 @@ def root_parser():
     parser.set_defaults(force=False)
     parser.add_argument(
         "-a",
-        "--api_url",
+        "--api-url",
         help="URL to GitHub API",
         default=SETTINGS.DEFAULT_GITHUB_API_URL,
     )
