@@ -4,7 +4,7 @@
 @date: 2017
 """
 from unittest import TestCase, TextTestRunner, TestSuite, main
-from builder import GcpAuth
+from common import GcpAuth
 from google.auth import credentials
 from os import environ
 from teamcity import is_running_under_teamcity

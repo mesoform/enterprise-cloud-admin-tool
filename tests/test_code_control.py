@@ -12,7 +12,7 @@ from code_control import create_repo, create_team, \
     configure_remote_object, update_repo_file, \
     configure_project_data, set_repo_team_perms, set_master_branch_permissions,\
     write_project_data, set_repo_visibility, DEFAULT_GITHUB_API_URL
-from builder import get_org, get_repo
+from common import get_org, get_repo
 
 
 TOKEN = json.load(open('resources/token.json'))['token']

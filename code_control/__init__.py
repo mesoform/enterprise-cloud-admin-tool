@@ -1,99 +1,14 @@
-#!/usr/bin/env python
-from __future__ import print_function
-
-
-import json
 import argparse
-import requests
+import json
 import os
+import requests
+
 # github package is PyGithub
 # noinspection PyPackageRequirements
 from github import GithubException, BadCredentialsException
-from builder import get_team, get_repo, get_org, arg_parser, \
-    DEFAULT_PROJECT_ID, DEFAULT_TOKEN_FILE
+from common import get_team, get_repo, get_org
 
-MODULE_ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
-DEFAULT_GITHUB_API_URL = "https://api.github.com"
-ADMIN_TEAM = 'gcp-admin-team'
-STANDARD_TEAM_ATTRIBUTES = {
-    "name": DEFAULT_PROJECT_ID,
-    "permission": "push",
-    "description": 'Standard team for ' + DEFAULT_PROJECT_ID + ' project',
-    "privacy": "closed"
-}
-PRIV_TEAM_ATTRIBUTES = {
-    "name": DEFAULT_PROJECT_ID + '-priv',
-    "permission": "push",
-    "description": 'Privileged team for ' + DEFAULT_PROJECT_ID + ' project',
-    "privacy": "secret"
-}
-PROJECT_DATA_DIR = \
-    MODULE_ROOT_DIR + 'resources/project_data/' + DEFAULT_PROJECT_ID
-PROTECTED_BRANCH = {
-    "enforce_admins": True,
-    "dismiss_stale_reviews": True,
-    "require_code_owner_reviews": False,
-    "required_approving_review_count": 1
-}
-HIGHLY_PROTECTED_BRANCH = {
-    "enforce_admins": True,
-    "dismiss_stale_reviews": True,
-    "require_code_owner_reviews": True,
-    "required_approving_review_count": 2
-}
-LOCAL_FILES = {
-    'readme_file':
-        MODULE_ROOT_DIR + 'resources/templates/README.md',
-    'apis_file':
-        MODULE_ROOT_DIR + 'resources/templates/gcp_enabled_apis.json',
-    'project_settings_file':
-        MODULE_ROOT_DIR + 'resources/templates/gcp_project_settings.json',
-    'role_bindings_file':
-        MODULE_ROOT_DIR + 'resources/templates/gcp_role_bindings.json',
-    'service_accounts_file':
-        MODULE_ROOT_DIR + 'resources/templates/gcp_service_accounts.json'
-}
-REMOTE_FILES = {
-    'readme_file': 'README.md',
-    'apis_file': 'sot/gcp_enabled_apis.json',
-    'project_settings_file': 'sot/gcp_project_settings.json',
-    'role_bindings_file': 'sot/gcp_role_bindings.json',
-    'service_accounts_file': 'sot/gcp_service_accounts.json'
-}
-
-
-def add_args():
-    """
-    parses arguments passed on command line when running program
-    :return: Object
-    """
-    parser = argparse.ArgumentParser(
-        description='Maintain Github repositories and teams',
-        formatter_class=argparse.RawTextHelpFormatter)
-    parser.set_defaults(change_files=LOCAL_FILES,
-                        branch_permissions=PROTECTED_BRANCH)
-    parser.add_argument('-b', '--branch-protection',
-                        choices=('standard', 'high'),
-                        help='\nThe level to which the branch will be '
-                             'protected\n'
-                             'standard: adds review requirements, stale reviews'
-                             ' and admin enforcement\n'
-                             'high: also code owner reviews and review count',
-                        default='standard',
-                        action=BranchProtectArgAction)
-    parser.add_argument('--bypass-branch-protection',
-                        help='Bypasses branch protection when updating files'
-                             ' which already exist in the repository',
-                        default=False,
-                        action='store_true')
-    parser.add_argument('-O', '--output-data',
-                        help='Output repo data to files in ' + PROJECT_DATA_DIR,
-                        action='store_true')
-    parser.add_argument('--templates-repo',
-                        help='Repository where default templates are stored',
-                        action=TemplatesArgAction)
-
-    return parser
+from settings import SETTINGS
 
 
 class TemplatesArgAction(argparse.Action):
@@ -104,46 +19,54 @@ class TemplatesArgAction(argparse.Action):
 
     def __call__(self, parser, namespace, values, option_string=None):
         setattr(namespace, self.dest, values)
-        setattr(namespace, 'change_files', REMOTE_FILES)
+        setattr(namespace, "change_files", SETTINGS.REMOTE_FILES)
 
 
 class BranchProtectArgAction(argparse.Action):
     def __init__(self, option_strings, dest, nargs=None, **kwargs):
         if nargs is not None:
             raise ValueError("nargs not allowed")
-        super(BranchProtectArgAction, self).__init__(option_strings, dest,
-                                                     **kwargs)
+        super(BranchProtectArgAction, self).__init__(
+            option_strings, dest, **kwargs
+        )
 
     def __call__(self, parser, namespace, values, option_string=None):
         branch_permissions = None
-        if values == 'standard':
-            branch_permissions = PROTECTED_BRANCH
-        if values == 'high':
-            branch_permissions = HIGHLY_PROTECTED_BRANCH
-        setattr(namespace, 'branch_permissions', branch_permissions)
+        if values == "standard":
+            branch_permissions = SETTINGS.PROTECTED_BRANCH
+        if values == "high":
+            branch_permissions = SETTINGS.HIGHLY_PROTECTED_BRANCH
+        setattr(namespace, "branch_permissions", branch_permissions)
 
 
 def __get_default_config_file(repo, remote_file):
     return repo.get_contents(remote_file, ref="master")
 
 
-def create_repo(org, name=DEFAULT_PROJECT_ID):
+def create_repo(org, name=SETTINGS.DEFAULT_PROJECT_ID):
     """
     creates the GitHub repository
     :param org: obj: organisation where the repo will sit
     :param name: string: name of the repo
     :return: obj: github.Repository.Repository
     """
-    return org.create_repo(name=name,
-                           description="GCP Project config for " + name)
+    return org.create_repo(
+        name=name, description="GCP Project config for " + name
+    )
 
 
 class GithubFileExists(Exception):
     pass
 
 
-def update_repo_file(repo, file_to_change, new_content, commit_msg,
-                     force=False, bypass_protection=False):
+def update_repo_file(
+    repo,
+    file_to_change,
+    new_content,
+    commit_msg,
+    force=False,
+    bypass_protection=False,
+):
     """
     Updates the files on the newly project repository
     :param bypass_protection: bool:  whether to bypass protection on branch
@@ -163,35 +86,45 @@ def update_repo_file(repo, file_to_change, new_content, commit_msg,
     if cur_file and force is True:
         print("Updating file " + file_to_change)
         try:
-            repo.update_file(cur_file.path,
-                             commit_msg + file_to_change,
-                             new_content,
-                             cur_file.sha,
-                             branch="master")
+            repo.update_file(
+                cur_file.path,
+                commit_msg + file_to_change,
+                new_content,
+                cur_file.sha,
+                branch="master",
+            )
         except GithubException as e:
             if e.status == 409 and bypass_protection:
                 set_master_branch_permissions(repo, {})
                 update_repo_file(
-                    repo, file_to_change, new_content, commit_msg, force,
-                    bypass_protection
+                    repo,
+                    file_to_change,
+                    new_content,
+                    commit_msg,
+                    force,
+                    bypass_protection,
                 )
             else:
                 print(e.data)
                 print("Try --bypass-branch-protection")
     elif cur_file and force is not True:
-        raise GithubFileExists("File " + file_to_change
-                               + " already exists. Use --force to reconfigure")
+        raise GithubFileExists(
+            "File "
+            + file_to_change
+            + " already exists. Use --force to reconfigure"
+        )
     else:
-        repo.create_file(file_to_change,
-                         commit_msg,
-                         new_content,
-                         branch="master")
+        repo.create_file(
+            file_to_change, commit_msg, new_content, branch="master"
+        )
 
 
-def create_team(org,
-                team_name=STANDARD_TEAM_ATTRIBUTES["name"],
-                permission=STANDARD_TEAM_ATTRIBUTES["permission"],
-                privacy=STANDARD_TEAM_ATTRIBUTES["privacy"]):
+def create_team(
+    org,
+    team_name=SETTINGS.STANDARD_TEAM_ATTRIBUTES["name"],
+    permission=SETTINGS.STANDARD_TEAM_ATTRIBUTES["permission"],
+    privacy=SETTINGS.STANDARD_TEAM_ATTRIBUTES["privacy"],
+):
     """
     creates the organisation team
     :param org: obj: organisation where the team will be part of
@@ -202,12 +135,14 @@ def create_team(org,
     """
     existing_team = get_team(org, team_name)
     if existing_team:
-        existing_team.edit(name=team_name,
-                           permission=permission, privacy=privacy)
+        existing_team.edit(
+            name=team_name, permission=permission, privacy=privacy
+        )
         return existing_team
 
-    return org.create_team(name=team_name,
-                           permission=permission, privacy=privacy)
+    return org.create_team(
+        name=team_name, permission=permission, privacy=privacy
+    )
 
 
 def configure_remote_object(url, token, **kwargs):
@@ -221,8 +156,8 @@ def configure_remote_object(url, token, **kwargs):
     data = {}
     data.update(**kwargs)
     headers = {
-        'Accept': 'application/vnd.github.hellcat-preview+json',
-        'Authorization': 'token ' + token
+        "Accept": "application/vnd.github.hellcat-preview+json",
+        "Authorization": "token " + token,
     }
 
     response = requests.patch(url=url, headers=headers, data=json.dumps(data))
@@ -242,22 +177,22 @@ def configure_project_data(config_file, **kwargs):
     :param kwargs: list: of key/value pairs to set in dict
     :return: string
     """
-    with open(config_file, 'r') as settings_file:
+    with open(config_file, "r") as settings_file:
         data_dict = json.loads(settings_file.read())
     data_dict.update(**kwargs)
     return json.dumps(data_dict, indent=2)
 
 
-def write_project_data(repo, teams, data_dir=PROJECT_DATA_DIR):
+def write_project_data(repo, teams, data_dir=SETTINGS.PROJECT_DATA_DIR):
     if not os.path.isdir(data_dir):
         os.mkdir(data_dir, 0o0700)
 
-    repo_file = data_dir + '/repo.json'
-    with open(repo_file, 'w') as rf:
+    repo_file = data_dir + "/repo.json"
+    with open(repo_file, "w") as rf:
         rf.write(json.dumps(repo.raw_data, indent=2))
     for team in teams:
-        team_file = data_dir + "/team_" + team.slug + '.json'
-        with open(team_file, 'w') as tf:
+        team_file = data_dir + "/team_" + team.slug + ".json"
+        with open(team_file, "w") as tf:
             tf.write(json.dumps(team.raw_data, indent=2))
 
 
@@ -267,9 +202,9 @@ def set_repo_visibility(repo, visibility):
     :param repo: obj: Github repository to configure
     :param visibility: str: public or private
     """
-    if visibility == 'private':
+    if visibility == "private":
         repo.edit(private=True)
-    elif visibility == 'public':
+    elif visibility == "public":
         repo.edit(private=False)
     else:
         raise ValueError
@@ -284,10 +219,10 @@ def set_repo_team_perms(org, repo, team_id, permission):
     :param permission: str: one of read (pull), write (push) or admin (admin)
     """
     team = org.get_team(team_id)
-    if permission == 'read':
-        team.set_repo_permission(repo, 'pull')
-    elif permission == 'write':
-        team.set_repo_permission(repo, 'push')
+    if permission == "read":
+        team.set_repo_permission(repo, "pull")
+    elif permission == "write":
+        team.set_repo_permission(repo, "push")
     else:
         team.set_repo_permission(repo, permission)
 
@@ -300,7 +235,7 @@ def set_master_branch_permissions(repo, branch_permissions):
     :param branch_permissions: dict: keys and values described in
                     github.BranchProtection.BranchProtection
     """
-    master = repo.get_branch('master')
+    master = repo.get_branch("master")
     if not branch_permissions:
         master.remove_protection()
     master.edit_protection(**branch_permissions)
@@ -311,75 +246,97 @@ def __file_content(file_with_content):
         return content.read()
 
 
-def main():
-    settings = arg_parser().parse_args()
+def setup(parsed_args):
     # grab the last field from delimited project name
-    environment = settings.project_id.upper().split('-').pop()
+    environment = parsed_args.project_id.upper().split("-").pop()
     try:
-        org = get_org(settings, settings.config_org)
+        org = get_org(parsed_args, parsed_args.config_org)
     except BadCredentialsException as e:
         print(e.data)
-        print("check token and pass using the --token (-t) argument or setting"
-              "the token in " + DEFAULT_TOKEN_FILE)
+        print(
+            "check token and pass using the --vcs-token (-t) argument or setting"
+            "the token in " + SETTINGS.DEFAULT_TOKEN_FILE
+        )
         raise BadCredentialsException(e.status, e.data)
-    existing_repo = get_repo(org, settings.project_id)
 
-    if existing_repo and not settings.force:
-        print("Repository " + settings.project_id
-              + " already exists. Use --force to reconfigure")
+    try:
+        existing_repo = get_repo(org, parsed_args.project_id)
+    except GithubException as e:
+        if e.status == 404:
+            existing_repo = None
+        else:
+            raise
+
+    if existing_repo and not parsed_args.force:
+        print(
+            "Repository "
+            + parsed_args.project_id
+            + " already exists. Use --force to reconfigure"
+        )
         exit(1)
-    elif existing_repo and settings.force:
+    elif existing_repo and parsed_args.force:
         repo = existing_repo
         commit_msg = "Update "
     else:
-        repo = create_repo(org, name=settings.project_id)
+        repo = create_repo(org, name=parsed_args.project_id)
         commit_msg = "Initial commit"
 
     # Configure project
-    for config_file in settings.change_files.keys():
-        if config_file == 'project_settings_file':
+    for config_file in parsed_args.change_files.keys():
+        if config_file == "project_settings_file":
             config = configure_project_data(
-                settings.change_files[config_file],
-                project_id=settings.project_id,
-                project_name=settings.project_id,
-                folder_id=environment + "-Environment")
+                parsed_args.change_files[config_file],
+                project_id=parsed_args.project_id,
+                project_name=parsed_args.project_id,
+                folder_id=environment + "-Environment",
+            )
         else:
-            config = __file_content(settings.change_files[config_file])
+            config = __file_content(parsed_args.change_files[config_file])
         # Todo: capture update_repo_content exception and exclude if --force is
         #  set
         try:
             # noinspection PyUnboundLocalVariable
-            update_repo_file(repo, REMOTE_FILES[config_file], config,
-                             commit_msg, settings.force,
-                             settings.bypass_branch_protection)
+            update_repo_file(
+                repo,
+                SETTINGS.REMOTE_FILES[config_file],
+                config,
+                commit_msg,
+                parsed_args.force,
+                parsed_args.bypass_branch_protection,
+            )
         except GithubException as e:
             print(e.data)
 
     # Create teams
     std_team = create_team(org)
-    priv_team = create_team(org, PRIV_TEAM_ATTRIBUTES["name"],
-                            PRIV_TEAM_ATTRIBUTES["permission"])
-    admin_team = get_team(org, ADMIN_TEAM)
-    configure_remote_object(std_team.url, settings.token,
-                            description=STANDARD_TEAM_ATTRIBUTES["description"])
-    configure_remote_object(priv_team.url, settings.token,
-                            parent_team_id=std_team.id,
-                            description=PRIV_TEAM_ATTRIBUTES["description"])
+    priv_team = create_team(
+        org,
+        SETTINGS.PRIV_TEAM_ATTRIBUTES["name"],
+        SETTINGS.PRIV_TEAM_ATTRIBUTES["permission"],
+    )
+    admin_team = get_team(org, SETTINGS.ADMIN_TEAM)
+    configure_remote_object(
+        std_team.url,
+        parsed_args.vcs_token,
+        description=SETTINGS.STANDARD_TEAM_ATTRIBUTES["description"],
+    )
+    configure_remote_object(
+        priv_team.url,
+        parsed_args.vcs_token,
+        parent_team_id=std_team.id,
+        description=SETTINGS.PRIV_TEAM_ATTRIBUTES["description"],
+    )
 
     # Set repository permission
     if admin_team:
-        set_repo_team_perms(org, repo, admin_team.id, 'admin')
-    set_repo_team_perms(org, repo, std_team.id, 'read')
-    set_repo_team_perms(org, repo, priv_team.id, 'write')
+        set_repo_team_perms(org, repo, admin_team.id, "admin")
+    set_repo_team_perms(org, repo, std_team.id, "read")
+    set_repo_team_perms(org, repo, priv_team.id, "write")
     try:
-        set_repo_visibility(repo, 'private')
+        set_repo_visibility(repo, "private")
     except GithubException as e:
         print(e.data)
 
-    set_master_branch_permissions(repo, settings.branch_permissions)
-    if settings.output_data:
+    set_master_branch_permissions(repo, parsed_args.branch_permissions)
+    if parsed_args.output_data:
         write_project_data(repo, [std_team, priv_team])
-
-
-if __name__ == '__main__':
-    main()

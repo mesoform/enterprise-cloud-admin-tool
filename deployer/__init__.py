@@ -1,21 +1,18 @@
-#!/usr/bin/env python
-from __future__ import print_function, absolute_import
-
-import json
-from python_terraform import Terraform
 import os
+import json
 import threading
 from datetime import time
 
-MODULE_ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
-WORKING_DIR_BASE = '/tmp'
+from python_terraform import Terraform
+
+from settings import SETTINGS
 
 
 class TerraformDeployer(Terraform):
-    def __init__(self, settings, code_files, config_files):
+    def __init__(self, parsed_args, code_files, config_files):
         # working directory should be unique for each deployment to prevent
         # overlapping workspaces
-        working_dir = WORKING_DIR_BASE + settings.project_id
+        working_dir = SETTINGS.WORKING_DIR_BASE + parsed_args.project_id
         os.mkdir(working_dir)
         # write code and config files to directory
         for file_ in code_files:
@@ -25,9 +22,9 @@ class TerraformDeployer(Terraform):
             with open(working_dir + file_) as f:
                 f.write(file_.content)
         super(TerraformDeployer, self).__init__(working_dir=working_dir)
-        self.cmd('get')  # get terraform modules
+        self.cmd("get")  # get terraform modules
         # copy plugins to directory or create link
-        self.cmd('workspace select' + settings.project_id)
+        self.cmd("workspace select" + parsed_args.project_id)
         self.current_state = self.get_state()
         self.previous_state = None
 
@@ -37,16 +34,19 @@ class TerraformDeployer(Terraform):
 
     def get_plan(self, tf_vars=None, testing=False):
         if testing:
-            git_commit = 'truncated_git_ref'
+            git_commit = "truncated_git_ref"
             tf_vars = {
-                'gcp_project': 'test-' + git_commit + '-' + str(time.hour) +
-                               str(time.minute),
-                'disable_project': True
+                "gcp_project": "test-"
+                + git_commit
+                + "-"
+                + str(time.hour)
+                + str(time.minute),
+                "disable_project": True,
             }
         return self.plan(tf_vars)
 
     def get_state(self):
-        return json.loads(self.cmd('state pull'))
+        return json.loads(self.cmd("state pull"))
 
     def run(self, testing=False, tf_vars=None):
         if testing:
@@ -76,23 +76,23 @@ class TerraformDeployer(Terraform):
             comparative_deployment
         :return: boolean
         """
-        result = \
-            set(self.current_state.items()) ^ \
-            set(comparative_deployment.items())
+        result = set(self.current_state.items()) ^ set(
+            comparative_deployment.items()
+        )
         if result is None:
             return True
         return self.UnexpectedResultError(result)
 
 
-def deploy(settings, code, config):
+def deploy(parsed_args, code, config):
     """
     deploy infrastructure using code and configuration supplied
-    :param settings: object: which contains arguments required to run code
+    :param parsed_args: object: which contains arguments required to run code
     :param code: list: of files containing deployment code
     :param config: list: of files containing deployment configuration
     :return: boolean
     """
-    real_deploy = TerraformDeployer(settings, code, config)
+    real_deploy = TerraformDeployer(parsed_args, code, config)
     # test deploy
     test_deploy = real_deploy.run(testing=True)
     # compare test project state file against actual state file
