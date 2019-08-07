@@ -20,7 +20,9 @@ class TerraformDeployer(Terraform):
         for file_ in chain(code_files, config_files, tf_code_files):
             with open(working_dir / file_.path, "wb") as f:
                 f.write(file_.decoded_content)
-        super(TerraformDeployer, self).__init__(working_dir=working_dir / parsed_args.cloud, terraform_bin_path=SETTINGS.TERRAFORM_BINARY_PATH)
+        super(TerraformDeployer, self).__init__(
+            working_dir=working_dir / parsed_args.cloud, terraform_bin_path=str(SETTINGS.TERRAFORM_BINARY_PATH)
+        )
         self.cmd("get")  # get terraform modules
         self.init()
         # copy plugins to directory or create link
@@ -39,11 +41,7 @@ class TerraformDeployer(Terraform):
         if testing:
             git_commit = "truncated_git_ref"
             tf_vars = {
-                "gcp_project": "test-"
-                + git_commit
-                + "-"
-                + str(time.hour)
-                + str(time.minute),
+                "gcp_project": "test-" + git_commit + "-" + str(time.hour) + str(time.minute),
                 "disable_project": True,
             }
         return self.plan(var=tf_vars)
@@ -84,7 +82,9 @@ class TerraformDeployer(Terraform):
         del comparative_deployment_state["tfstate_file"]
 
         if json.dumps(self.current_state, sort_keys=True) != json.dumps(comparative_deployment_state, sort_keys=True):
-            raise self.UnexpectedResultError('yay')
+            raise self.UnexpectedResultError(
+                f"Current state: {self.current_state}\nDeployment state: {comparative_deployment_state}"
+            )
 
 
 def deploy(parsed_args, code, config, tf_code):
