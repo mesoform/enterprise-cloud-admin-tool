@@ -71,6 +71,27 @@ class TerraformDeployer(Terraform):
     def __retry_tf_apply():
         pass
 
+    @staticmethod
+    def __prepare_state_for_compare(state):
+        """
+        Since TerraformDeployer.tfstate differs from output of state pull,
+        we need clean both to be able to compare.
+        """
+        final_state = state.copy()
+        if "tfstate_file" in final_state:
+            del final_state["tfstate_file"]
+
+        if "serial" in final_state:
+            del final_state["serial"]
+
+        for resource in final_state.get("resources", []):
+            for instance in resource.get("instances", []):
+                attributes = instance.get("attributes")
+                if attributes["labels"] is None:
+                    attributes["labels"] = {}
+
+        return final_state
+
     def assert_deployments_equal(self, comparative_deployment):
         """
         Compare the known state of the current environment to another
@@ -78,12 +99,12 @@ class TerraformDeployer(Terraform):
             comparative_deployment
         :return: boolean
         """
-        comparative_deployment_state = comparative_deployment.tfstate.__dict__
-        del comparative_deployment_state["tfstate_file"]
+        comparative_deployment_state = self.__prepare_state_for_compare(comparative_deployment.tfstate.__dict__)
+        current_state = self.__prepare_state_for_compare(self.current_state)
 
-        if json.dumps(self.current_state, sort_keys=True) != json.dumps(comparative_deployment_state, sort_keys=True):
+        if json.dumps(current_state, sort_keys=True) != json.dumps(comparative_deployment_state, sort_keys=True):
             raise self.UnexpectedResultError(
-                f"Current state: {self.current_state}\nDeployment state: {comparative_deployment_state}"
+                f"Current state: {current_state}\nDeployment state: {comparative_deployment_state}"
             )
 
 
