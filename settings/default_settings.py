@@ -85,9 +85,3 @@ WORKING_DIR_BASE = Path("/tmp")
 
 # ############## Reporter settings ##############
 DEFAULT_MONITORING_PROJECT = "gb-me-services"
-BILLING_ALERT_PERIODS = ["current_period"]
-DEFAULT_BILLING_POLICY = {
-    "billing_project": "",
-    "budget_amount": 10.00,
-    "notifications": [{"notify": "support@mesoform.com", "by": "email"}],
-}

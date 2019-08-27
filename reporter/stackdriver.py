@@ -1,5 +1,3 @@
-import json
-
 from google.cloud.monitoring_v3 import (
     AlertPolicyServiceClient,
     NotificationChannelServiceClient,
@@ -15,8 +13,6 @@ from google.cloud.monitoring_v3.types import (
 )
 
 from decimal import *
-
-from settings import SETTINGS
 
 getcontext().prec = 2  # Set decimal places to two
 
@@ -319,126 +315,6 @@ class AppAlert(Alert):
                     self.monitoring_project_path,
                     self.create_alert_from_dict(profile),
                 )
-
-
-class BillingAlert(Alert):
-    def __init__(
-        self,
-        billing_project_id: str = None,
-        billing_threshold: float = None,
-        **kwargs
-    ):
-        self._billing_threshold: float = billing_threshold
-        self._billing_project_id: str = billing_project_id
-        super().__init__(**kwargs)
-
-    @property
-    def billing_threshold(self):
-        return self._billing_threshold
-
-    @billing_threshold.setter
-    def billing_threshold(self, value):
-        self._billing_threshold = value
-
-    @property
-    def billing_project_id(self):
-        return self._billing_project_id
-
-    @billing_project_id.setter
-    def billing_project_id(self, value):
-        self._billing_project_id = value
-
-    @classmethod
-    def from_json(cls, json_data):
-        """
-        Sets object attributes from a JSON serialised instance.
-        String should be in the format:
-        {
-            "project_id": project_id,
-            "monthly_spend": amount_in_dollars,
-            "contact": who_to_notify,
-            "contact_by": how_to_contact
-        }
-        :param json_data: dict or str: containing JSON format above
-        :return: BillingAlert from the serialised data
-        """
-        if not isinstance(json_data, dict):
-            json_data = json.loads(json_data)
-
-        if "contact_by" not in json_data.keys():
-            json_data["contact_by"] = "email"
-
-        return cls(
-            notify_contact_address=json_data["contact"],
-            notify_contact_by=json_data["contact_by"],
-            billing_threshold=json_data["monthly_spend"],
-            billing_project_id=json_data["project_id"],
-        )
-
-    # noinspection PyDefaultArgument
-    def get_conditions(
-        self, billing_alerting_periods: list = SETTINGS.BILLING_ALERT_PERIODS
-    ):
-        """
-
-        :param billing_project_id: str: name of the project we're monitoring
-            billing on
-        :param billing_threshold: float: of amount of spend we want set as our
-            threshold - to 2 decimal places
-        :param billing_alerting_periods: list: of strings to use as label names
-            for periods where spend is calculated
-        :type billing_alerting_periods: list
-        :return: list: of dictionaries defining alert conditions
-        """
-        conditions_list = list()
-
-        for billing_period in billing_alerting_periods:
-            metric_filter = (
-                "resource.type=global AND "
-                "metric.label.time_window = '"
-                + billing_period
-                + "' AND metric.type = "
-                "'custom.googleapis.com/billing/"
-                + self.billing_project_id
-                + "'"
-            )
-            condition_name = (
-                "Period: "
-                + billing_period
-                + ", $"
-                + str(self.billing_threshold)
-                + " threshold breach"
-            )
-            condition = {
-                "conditionThreshold": {
-                    "thresholdValue": self.billing_threshold,
-                    "filter": metric_filter,
-                    "duration": "60s",
-                    "comparison": "COMPARISON_GT",
-                },
-                "display_name": condition_name,
-            }
-            conditions_list.append(condition)
-        return conditions_list
-
-    def get_complete_alert_policy(
-        self,
-        policy_display_name: str = None,
-        policy_conditions: list = None,
-        policy_notification_channel: str = None,
-    ):
-        if not policy_display_name:
-            policy_display_name = self.billing_project_id + " billing alerts"
-        if not isinstance(policy_conditions, list):
-            policy_conditions = self.get_conditions()
-        if not policy_notification_channel:
-            policy_notification_channel = self.notification_channel
-
-        policy = self._alert_policy_template
-        policy["display_name"] = policy_display_name
-        policy["conditions"] = policy_conditions
-        policy["notifications"] = [policy_notification_channel]
-        return policy
 
 
 class Metrics(object):
