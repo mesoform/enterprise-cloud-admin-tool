@@ -7,7 +7,7 @@ from unittest import TestCase, TextTestRunner, TestSuite, main
 from teamcity import is_running_under_teamcity
 from teamcity.unittestpy import TeamcityTestRunner
 from common import GcpAuth
-from reporter.stackdriver import Metrics, Alert, BillingAlert, \
+from reporter.stackdriver import Metrics, Alert, \
     TooManyMatchingResultsError
 from google.cloud.monitoring_v3 import MetricServiceClient, \
     AlertPolicyServiceClient  # NotificationChannelServiceClient
@@ -138,40 +138,6 @@ class TestReporterAlertPolicy(TestCase):
                 self.client.monitoring_project_path,
                 self.policy),
             GoogleAlertPolicy)
-
-
-class TestReporterBillingAlert(TestCase):
-    @classmethod
-    def setUpClass(cls):
-        with open(_TEST_CREDENTIALS_FILE_PATH) as f:
-            cls.gcp_auth = GcpAuth(f)
-        cls.billing_alert = BillingAlert(
-            _TEST_MONITORING_PROJECT,
-            cls.gcp_auth.credentials,
-            _TEST_MONITORED_PROJECT,
-            _TEST_BILLING_THRESHOLD,
-            _TEST_ALERT_NOTIFY_ADDRESS,
-            _TEST_ALERT_NOTIFY_MEDIA
-        )
-
-    def test_get_conditions_list(self):
-        condition_list = self.billing_alert.get_conditions(
-            _TEST_BILLING_ALERT_PERIODS)
-        self.assertListEqual(
-            _EXPECTED_COMPLETE_ALERT_POLICY['conditions'],
-            condition_list
-        )
-
-
-def test_get_billing_alert_policy_dict(self):
-    self.assertDictEqual(
-        self.billing_alert.get_complete_alert_policy(
-            _TEST_MONITORED_PROJECT,
-            [],
-            _TEST_NOTIFICATION_CHANNEL_ID
-        ),
-        _EXPECTED_COMPLETE_ALERT_POLICY
-    )
 
 
 def suite():
