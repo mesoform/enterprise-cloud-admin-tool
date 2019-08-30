@@ -77,12 +77,12 @@ class TerraformDeployer(Terraform):
         Since TerraformDeployer.tfstate differs from output of state pull,
         we need clean both to be able to compare.
         """
-        final_state = state.copy()
-        if "tfstate_file" in final_state:
-            del final_state["tfstate_file"]
+        keys_to_remove = ["tfstate_file", "serial"]
 
-        if "serial" in final_state:
-            del final_state["serial"]
+        final_state = state.copy()
+        for key in keys_to_remove:
+            if key in final_state:
+                del final_state[key]
 
         for resource in final_state.get("resources", []):
             for instance in resource.get("instances", []):
