@@ -102,7 +102,7 @@ class TerraformDeployer(Terraform):
         comparative_deployment_state = self.__prepare_state_for_compare(comparative_deployment.tfstate.__dict__)
         current_state = self.__prepare_state_for_compare(self.current_state)
 
-        if json.dumps(current_state, sort_keys=True) != json.dumps(comparative_deployment_state, sort_keys=True):
+        if current_state != comparative_deployment_state:
             raise self.UnexpectedResultError(
                 f"Current state: {current_state}\nDeployment state: {comparative_deployment_state}"
             )
