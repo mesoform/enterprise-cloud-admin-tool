@@ -10,14 +10,14 @@ from settings import SETTINGS
 
 
 class TerraformDeployer(Terraform):
-    def __init__(self, parsed_args, code_files, config_files, tf_code_files):
+    def __init__(self, parsed_args, code_files, config_files):
         # working directory should be unique for each deployment to prevent
         # overlapping workspaces
         working_dir = SETTINGS.WORKING_DIR_BASE / parsed_args.project_id
         self.test_dir = working_dir / parsed_args.cloud
         os.makedirs(working_dir / parsed_args.cloud, exist_ok=True)
         # write code and config files to directory
-        for file_ in chain(code_files, config_files, tf_code_files):
+        for file_ in chain(code_files, config_files):
             with open(working_dir / file_.path, "wb") as f:
                 f.write(file_.decoded_content)
         super(TerraformDeployer, self).__init__(
@@ -108,16 +108,15 @@ class TerraformDeployer(Terraform):
             )
 
 
-def deploy(parsed_args, code, config, tf_code):
+def deploy(parsed_args, code, config):
     """
     deploy infrastructure using code and configuration supplied
     :param parsed_args: object: which contains arguments required to run code
     :param code: list: of files containing deployment code
     :param config: list: of files containing deployment configuration
-    :param tf_code: list: of files containing terraform infrastructure code
     :return: boolean
     """
-    real_deploy = TerraformDeployer(parsed_args, code, config, tf_code)
+    real_deploy = TerraformDeployer(parsed_args, code, config)
     # test deploy
     test_deploy = real_deploy.run(testing=True)
     # compare test project state file against actual state file

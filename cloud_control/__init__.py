@@ -43,12 +43,6 @@ class ArgumentsParser:
         deploy_parser.add_argument(
             "--cloud", choices=["all"] + SETTINGS.SUPPORTED_CLOUDS
         )
-        deploy_parser.add_argument(
-            "-tf",
-            "--tf-code-repo",
-            required=True,
-            help="Repository in code organization account for terraform infrastructure code",
-        )
 
     def _setup_config_parser(self):
         """
@@ -159,14 +153,8 @@ class CloudControl:
             self.args.cloud,
             self.args.config_version,
         )
-        tf_code_files = common.get_files(
-            code_org,
-            self.args.tf_code_repo,
-            self.args.cloud,
-            self.args.config_version
-        )
         # check(self.args.cloud, config_files)
-        deploy(self.args, code_files, config_files, tf_code_files)
+        deploy(self.args, code_files, config_files)
 
     def _config(self):
         setup(self.args)
