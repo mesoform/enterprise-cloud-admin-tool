@@ -31,6 +31,7 @@ PyJWT==1.7.1
 pyOpenSSL==19.0.0
 pyparsing==2.4.2
 pytest==5.1.2
+pytest-mock==1.10.4
 python-terraform==0.10.1
 pytz==2019.2
 requests==2.22.0
