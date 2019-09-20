@@ -87,6 +87,7 @@ class CloudControl:
     """
     Entry point. Calls specific command passed to cli-app.
     """
+
     def __init__(self, args):
         self.args = args
 
@@ -120,7 +121,9 @@ class CloudControl:
         elif self.args.command == "config":
             command = self._config
         else:
-            raise CloudControlException("Command {} does not implemented".format(self.args.command))
+            raise CloudControlException(
+                "Command {} does not implemented".format(self.args.command)
+            )
 
         try:
             command()
@@ -150,7 +153,7 @@ class CloudControl:
             self.args.cloud,
             self.args.config_version,
         )
-        check(self.args.cloud, config_files)
+        # check(self.args.cloud, config_files)
         deploy(self.args, code_files, config_files)
 
     def _config(self):

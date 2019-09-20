@@ -446,7 +446,7 @@ class TimeSeriesMetrics(Metrics):
                 )
                 time_series_list.append(
                     self.add_data_points_to_metric_message(
-                        base_metrics, metrics_set[3]
+                        base_metrics, metrics_set[2]
                     )
                 )
         except IndexError:

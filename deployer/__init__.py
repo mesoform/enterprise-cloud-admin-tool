@@ -2,6 +2,7 @@ import os
 import json
 import threading
 from datetime import time
+from itertools import chain
 
 from python_terraform import Terraform
 
@@ -12,17 +13,18 @@ class TerraformDeployer(Terraform):
     def __init__(self, parsed_args, code_files, config_files):
         # working directory should be unique for each deployment to prevent
         # overlapping workspaces
-        working_dir = SETTINGS.WORKING_DIR_BASE + parsed_args.project_id
-        os.mkdir(working_dir)
+        working_dir = SETTINGS.WORKING_DIR_BASE / parsed_args.project_id
+        self.test_dir = working_dir / parsed_args.cloud
+        os.makedirs(working_dir / parsed_args.cloud, exist_ok=True)
         # write code and config files to directory
-        for file_ in code_files:
-            with open(working_dir + file_) as f:
-                f.write(file_.content)
-        for file_ in config_files:
-            with open(working_dir + file_) as f:
-                f.write(file_.content)
-        super(TerraformDeployer, self).__init__(working_dir=working_dir)
+        for file_ in chain(code_files, config_files):
+            with open(working_dir / file_.path, "wb") as f:
+                f.write(file_.decoded_content)
+        super(TerraformDeployer, self).__init__(
+            working_dir=working_dir / parsed_args.cloud, terraform_bin_path=str(SETTINGS.TERRAFORM_BINARY_PATH)
+        )
         self.cmd("get")  # get terraform modules
+        self.init()
         # copy plugins to directory or create link
         self.cmd("workspace select" + parsed_args.project_id)
         self.current_state = self.get_state()
@@ -33,27 +35,27 @@ class TerraformDeployer(Terraform):
             self.message = result
 
     def get_plan(self, tf_vars=None, testing=False):
+        if tf_vars is None:
+            tf_vars = {}
+
         if testing:
             git_commit = "truncated_git_ref"
             tf_vars = {
-                "gcp_project": "test-"
-                + git_commit
-                + "-"
-                + str(time.hour)
-                + str(time.minute),
+                "gcp_project": "test-" + git_commit + "-" + str(time.hour) + str(time.minute),
                 "disable_project": True,
             }
-        return self.plan(tf_vars)
+        return self.plan(var=tf_vars)
 
     def get_state(self):
-        return json.loads(self.cmd("state pull"))
+        stdout = self.cmd("state pull")[1]
+        return json.loads(stdout) if stdout else {}
 
-    def run(self, testing=False, tf_vars=None):
+    def run(self, testing=False, tf_vars={}):
         if testing:
             plan = self.get_plan(tf_vars, testing=True)
         else:
             plan = self.get_plan()
-        self.apply(dir_or_plan=plan)
+        self.apply(skip_plan=True, var=tf_vars)
         return self
 
     def __tidy_up(self):
@@ -69,6 +71,27 @@ class TerraformDeployer(Terraform):
     def __retry_tf_apply():
         pass
 
+    @staticmethod
+    def __prepare_state_for_compare(state):
+        """
+        Since TerraformDeployer.tfstate differs from output of state pull,
+        we need clean both to be able to compare.
+        """
+        keys_to_remove = ["tfstate_file", "serial"]
+
+        final_state = state.copy()
+        for key in keys_to_remove:
+            if key in final_state:
+                del final_state[key]
+
+        for resource in final_state.get("resources", []):
+            for instance in resource.get("instances", []):
+                attributes = instance.get("attributes")
+                if attributes["labels"] is None:
+                    attributes["labels"] = {}
+
+        return final_state
+
     def assert_deployments_equal(self, comparative_deployment):
         """
         Compare the known state of the current environment to another
@@ -76,12 +99,13 @@ class TerraformDeployer(Terraform):
             comparative_deployment
         :return: boolean
         """
-        result = set(self.current_state.items()) ^ set(
-            comparative_deployment.items()
-        )
-        if result is None:
-            return True
-        return self.UnexpectedResultError(result)
+        comparative_deployment_state = self.__prepare_state_for_compare(comparative_deployment.tfstate.__dict__)
+        current_state = self.__prepare_state_for_compare(self.current_state)
+
+        if current_state != comparative_deployment_state:
+            raise self.UnexpectedResultError(
+                f"Current state: {current_state}\nDeployment state: {comparative_deployment_state}"
+            )
 
 
 def deploy(parsed_args, code, config):
@@ -96,10 +120,11 @@ def deploy(parsed_args, code, config):
     # test deploy
     test_deploy = real_deploy.run(testing=True)
     # compare test project state file against actual state file
-    real_deploy.assert_deployments_equal(test_deploy.read_state_file())
+    test_deploy.read_state_file()
+    real_deploy.assert_deployments_equal(test_deploy)
     # full deploy & destroy test project
     full_deployment = threading.Thread(target=real_deploy.run)
-    test_deletion = threading.Thread(target=test_deploy.delete)
+    test_deletion = threading.Thread(target=test_deploy.delete, args=(parsed_args.project_id,))
     full_deployment.start()
     test_deletion.start()
     # validate
