@@ -1,6 +1,0 @@
-{
-  "enabled_apis": [
-    "compute.googleapis.com",
-    "oslogin.googleapis.com"
-  ]
-}
