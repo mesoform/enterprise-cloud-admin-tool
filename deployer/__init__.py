@@ -1,111 +1,109 @@
 import os
 import json
 import threading
-from datetime import time
 from itertools import chain
 
 from python_terraform import Terraform
 
 from settings import SETTINGS
 
+ERROR_EXIT_CODE = 1
+
+
+class DifferentStatedError(Exception):
+    def __init__(self, result):
+        self.message = result
+
+
+class BadExitCodeError(Exception):
+    def __init__(self, exit_code, stdout, stderr):
+        self.message = f"""
+        Command failed.
+        exit_code: {exit_code}
+        stdout: {stdout}
+        stderr: {stderr}
+        """
+
 
 class TerraformDeployer(Terraform):
     def __init__(self, parsed_args, code_files, config_files):
         # working directory should be unique for each deployment to prevent
         # overlapping workspaces
-        working_dir = SETTINGS.WORKING_DIR_BASE / parsed_args.project_id
-        self.test_dir = working_dir / parsed_args.cloud
-        os.makedirs(working_dir / parsed_args.cloud, exist_ok=True)
-        # write code and config files to directory
+        self.project_id = parsed_args.project_id
+        self.project_dir = SETTINGS.WORKING_DIR_BASE / parsed_args.project_id
+        os.makedirs(self.project_dir / parsed_args.cloud, exist_ok=True)
+
         for file_ in chain(code_files, config_files):
-            with open(working_dir / file_.path, "wb") as f:
+            with open(self.project_dir / file_.path, "wb") as f:
                 f.write(file_.decoded_content)
+
         super(TerraformDeployer, self).__init__(
-            working_dir=working_dir / parsed_args.cloud, terraform_bin_path=str(SETTINGS.TERRAFORM_BINARY_PATH)
+            working_dir=self.project_dir / parsed_args.cloud, terraform_bin_path=str(SETTINGS.TERRAFORM_BINARY_PATH)
         )
+
         self.cmd("get")  # get terraform modules
         self.init()
+
         # copy plugins to directory or create link
-        self.cmd("workspace select" + parsed_args.project_id)
+        self.cmd(f"workspace new {parsed_args.project_id}")
+        self.cmd(f"workspace select {parsed_args.project_id}")
         self.current_state = self.get_state()
         self.previous_state = None
 
-    class UnexpectedResultError(Exception):
-        def __init__(self, result):
-            self.message = result
-
-    def get_plan(self, tf_vars=None, testing=False):
-        if tf_vars is None:
-            tf_vars = {}
-
-        if testing:
-            git_commit = "truncated_git_ref"
-            tf_vars = {
-                "gcp_project": "test-" + git_commit + "-" + str(time.hour) + str(time.minute),
-                "disable_project": True,
-            }
-        return self.plan(var=tf_vars)
+    def get_plan(self):
+        """
+        Invokes `terraform plan` with `-out` argument. As a result, we have state
+        stored in a file.
+        """
+        plan_path = self.project_dir / "plan"
+        self._raise_if_bad_exit_code(*self.plan(f"-out={plan_path}"))
+        return plan_path
 
     def get_state(self):
-        stdout = self.cmd("state pull")[1]
+        """
+        Fetches the current state.
+        """
+        result = self.cmd("state pull")
+        self._raise_if_bad_exit_code(*result)
+        stdout = result[1]
         return json.loads(stdout) if stdout else {}
 
-    def run(self, testing=False, tf_vars={}):
-        if testing:
-            plan = self.get_plan(tf_vars, testing=True)
-        else:
-            plan = self.get_plan()
-        self.apply(skip_plan=True, var=tf_vars)
+    def run(self):
+        """
+        Creates plan and then runs `terraform apply` command.
+        Not using `Terraform.apply`, because it automatically passes `-var-file` argument,
+        while plan already contain all variables.
+        """
+        state_before_apply = self.get_state()
+
+        plan = self.get_plan()
+        apply_command = f"apply -no-color -input=false -auto-approve=false {plan}"
+        self.cmd(apply_command)
+
+        self.previous_state = state_before_apply
+        self.current_state = self.get_state()
+
         return self
 
-    def __tidy_up(self):
-        pass
-
-    def delete(self, project_id):
-        return_code, std_out, std_err = self.destroy(project_id)
-        if return_code is not 200:
-            return False, std_err
+    def delete(self):
+        result = self.destroy(self.project_id)
+        self._raise_if_bad_exit_code(*result)
         return True
 
     @staticmethod
-    def __retry_tf_apply():
-        pass
+    def _raise_if_bad_exit_code(exit_code, stdout, stderr):
+        if exit_code == ERROR_EXIT_CODE:
+            raise BadExitCodeError(exit_code, stdout, stderr)
 
-    @staticmethod
-    def __prepare_state_for_compare(state):
-        """
-        Since TerraformDeployer.tfstate differs from output of state pull,
-        we need clean both to be able to compare.
-        """
-        keys_to_remove = ["tfstate_file", "serial"]
 
-        final_state = state.copy()
-        for key in keys_to_remove:
-            if key in final_state:
-                del final_state[key]
-
-        for resource in final_state.get("resources", []):
-            for instance in resource.get("instances", []):
-                attributes = instance.get("attributes")
-                if attributes["labels"] is None:
-                    attributes["labels"] = {}
-
-        return final_state
-
-    def assert_deployments_equal(self, comparative_deployment):
-        """
-        Compare the known state of the current environment to another
-        :param comparative_deployment:  dict: of state file for first
-            comparative_deployment
-        :return: boolean
-        """
-        comparative_deployment_state = self.__prepare_state_for_compare(comparative_deployment.tfstate.__dict__)
-        current_state = self.__prepare_state_for_compare(self.current_state)
-
-        if current_state != comparative_deployment_state:
-            raise self.UnexpectedResultError(
-                f"Current state: {current_state}\nDeployment state: {comparative_deployment_state}"
-            )
+def assert_deployments_equal(test_state, real_state):
+    """
+    Compare state of test deployment against state of real deployment
+    """
+    if test_state != real_state:
+        raise DifferentStatedError(
+            f"Current state: {test_state}\nDeployment state: {real_state}"
+        )
 
 
 def deploy(parsed_args, code, config):
@@ -116,16 +114,12 @@ def deploy(parsed_args, code, config):
     :param config: list: of files containing deployment configuration
     :return: boolean
     """
+    test_deploy = TerraformDeployer(parsed_args, code, config)
     real_deploy = TerraformDeployer(parsed_args, code, config)
-    # test deploy
-    test_deploy = real_deploy.run(testing=True)
-    # compare test project state file against actual state file
-    test_deploy.read_state_file()
-    real_deploy.assert_deployments_equal(test_deploy)
-    # full deploy & destroy test project
-    full_deployment = threading.Thread(target=real_deploy.run)
-    test_deletion = threading.Thread(target=test_deploy.delete, args=(parsed_args.project_id,))
-    full_deployment.start()
-    test_deletion.start()
-    # validate
-    return real_deploy.assert_deployments_equal(real_deploy.previous_state)
+
+    threading.Thread(target=test_deploy.run)
+    threading.Thread(target=real_deploy.run)
+
+    threading.Thread(target=test_deploy.delete)
+
+    return assert_deployments_equal(test_deploy.current_state, real_deploy.current_state)
