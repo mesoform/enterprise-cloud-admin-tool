@@ -1,11 +1,9 @@
-from __future__ import absolute_import
-import six
 from importlib import import_module
 
 from . import default_settings
 
 
-class BaseSettings(object):
+class BaseSettings:
     """
     An object that holds settings values.
     This also defines the base interface for all classes that are to be used
@@ -55,7 +53,7 @@ class BaseSettings(object):
             self.__dict__[name] = value
 
     def add_module(self, module):
-        if isinstance(module, six.string_types):
+        if isinstance(module, str):
             module = import_module(module)
         for key in dir(module):
             if key.isupper():
