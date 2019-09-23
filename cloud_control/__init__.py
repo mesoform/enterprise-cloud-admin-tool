@@ -20,7 +20,7 @@ class ArgumentsParser:
     That class used for subparsers setup, and storing all parsed arguments.
     """
 
-    def __init__(self):
+    def __init__(self, args=None):
         self.root_parser = common.root_parser()
         self.management_parser = self.root_parser.add_subparsers(
             help="manage infrastructure deployment or infrastructure"
@@ -30,7 +30,7 @@ class ArgumentsParser:
         self._setup_deploy_parser()
         self._setup_config_parser()
 
-        self.args = self.root_parser.parse_args()
+        self.args = self.root_parser.parse_args(args)
 
     def _setup_deploy_parser(self):
         """
@@ -95,7 +95,7 @@ class CloudControl:
         self._setup_app_metrics()
 
     def _setup_logger(self):
-        self.__log = reporter.local.get_logger(
+        self._log = reporter.local.get_logger(
             __name__, self.args.log_file, self.args.debug
         )
 
@@ -105,9 +105,10 @@ class CloudControl:
         else:
             auth = common.GcpAuth()
 
-        self.__app_metrics = reporter.stackdriver.AppMetrics(
+        self._app_metrics = reporter.stackdriver.AppMetrics(
             monitoring_credentials=auth.credentials,
             monitoring_project=self.args.monitoring_namespace,
+            metrics_set_list=[("deploy", {"time": "time1"}, 5)],
         )
 
     def perform_command(self):
@@ -128,12 +129,12 @@ class CloudControl:
         try:
             command()
         finally:
-            self.__log.info("finished " + self.args.command + " run")
-            self.__app_metrics.end_time = datetime.utcnow()
-            self.__app_metrics.send_metrics()
+            self._log.info("finished " + self.args.command + " run")
+            self._app_metrics.end_time = datetime.utcnow()
+            self._app_metrics.send_metrics()
 
     def _deploy(self):
-        self.__log.info("Starting deployment")
+        self._log.info("Starting deployment")
         if self.args.cloud == "all":
             self.args.cloud = "all_"
         config_org = common.get_org(self.args, self.args.config_org)
