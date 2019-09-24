@@ -38,7 +38,8 @@ class TerraformDeployer(Terraform):
                 f.write(file_.decoded_content)
 
         super(TerraformDeployer, self).__init__(
-            working_dir=self.project_dir / parsed_args.cloud, terraform_bin_path=str(SETTINGS.TERRAFORM_BINARY_PATH)
+            working_dir=self.project_dir / parsed_args.cloud,
+            terraform_bin_path=str(SETTINGS.TERRAFORM_BINARY_PATH),
         )
 
         self.cmd("get")  # get terraform modules
@@ -77,7 +78,9 @@ class TerraformDeployer(Terraform):
         state_before_apply = self.get_state()
 
         plan = self.get_plan()
-        apply_command = f"apply -no-color -input=false -auto-approve=false {plan}"
+        apply_command = (
+            f"apply -no-color -input=false -auto-approve=false {plan}"
+        )
         self.cmd(apply_command)
 
         self.previous_state = state_before_apply
@@ -122,4 +125,6 @@ def deploy(parsed_args, code, config):
 
     threading.Thread(target=test_deploy.delete)
 
-    return assert_deployments_equal(test_deploy.current_state, real_deploy.current_state)
+    return assert_deployments_equal(
+        test_deploy.current_state, real_deploy.current_state
+    )

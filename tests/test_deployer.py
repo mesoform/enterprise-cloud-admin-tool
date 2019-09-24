@@ -15,17 +15,29 @@ def working_directory(tmpdir_factory):
 
 
 @pytest.fixture(scope="session")
-def terraform_deployer(working_directory, command_line_args, code_files, config_files):
-    with patch.dict("settings.SETTINGS.attributes", {"WORKING_DIR_BASE": Path(working_directory.strpath)}):
+def terraform_deployer(
+    working_directory, command_line_args, code_files, config_files
+):
+    with patch.dict(
+        "settings.SETTINGS.attributes",
+        {"WORKING_DIR_BASE": Path(working_directory.strpath)},
+    ):
         return TerraformDeployer(command_line_args, code_files, config_files)
 
 
-def test_terraform_deployer_init_creates_all_files(working_directory, command_line_args, code_files, config_files):
+def test_terraform_deployer_init_creates_all_files(
+    working_directory, command_line_args, code_files, config_files
+):
     """
     Deployer instantiation results in a set of created .tf and .json files in the working directory.
     """
-    with patch.dict("settings.SETTINGS.attributes", {"WORKING_DIR_BASE": Path(working_directory.strpath)}):
-        deployer = TerraformDeployer(command_line_args, code_files, config_files)
+    with patch.dict(
+        "settings.SETTINGS.attributes",
+        {"WORKING_DIR_BASE": Path(working_directory.strpath)},
+    ):
+        deployer = TerraformDeployer(
+            command_line_args, code_files, config_files
+        )
         for file in chain(code_files, config_files):
             assert os.path.exists(deployer.working_dir / file.name)
 

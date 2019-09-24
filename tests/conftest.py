@@ -53,8 +53,8 @@ def code_files(github_file_factory):
             output "project_id" {
              value = "${google_project.project.project_id}"
             }
-            """
-        ),
+            """,
+        )
     ]
 
 
@@ -71,7 +71,7 @@ def config_files(github_file_factory):
                 "oslogin.googleapis.com"
               ]
             }
-            """
+            """,
         ),
         github_file_factory(
             "gcp_project_settings.auto.tfvars.json",
@@ -85,7 +85,7 @@ def config_files(github_file_factory):
               "org_id": "MISSING",
               "region": "MISSING"
             }
-            """
+            """,
         ),
         github_file_factory(
             "gcp_role_bindings.auto.tfvars.json",
@@ -97,7 +97,7 @@ def config_files(github_file_factory):
                 "viewer": []
               }
             }
-            """
+            """,
         ),
         github_file_factory(
             "gcp_service_accounts.auto.tfvars.json",
@@ -108,6 +108,6 @@ def config_files(github_file_factory):
                 {"compute-image-builder": "Account with shared VPC and image access"}
               ]
             }
-            """
+            """,
         ),
     ]

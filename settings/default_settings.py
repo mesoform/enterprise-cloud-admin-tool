@@ -63,7 +63,8 @@ HIGHLY_PROTECTED_BRANCH = {
 }
 LOCAL_FILES = {
     "readme_file": MODULE_ROOT_DIR / "resources/templates/README.md",
-    "apis_file": MODULE_ROOT_DIR / "resources/templates/gcp_enabled_apis.auto.tfvars.json",
+    "apis_file": MODULE_ROOT_DIR
+    / "resources/templates/gcp_enabled_apis.auto.tfvars.json",
     "project_settings_file": MODULE_ROOT_DIR
     / "resources/templates/gcp_project_settings.auto.tfvars.json",
     "role_bindings_file": MODULE_ROOT_DIR

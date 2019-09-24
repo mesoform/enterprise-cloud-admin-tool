@@ -1,4 +1,1 @@
-__all__ = [
-    'deployer',
-    'code_control'
-]
+__all__ = ["deployer", "code_control"]
