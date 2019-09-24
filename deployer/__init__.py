@@ -3,11 +3,11 @@ import json
 import threading
 from itertools import chain
 
-from python_terraform import Terraform
+from python_terraform import Terraform, TerraformCommandError as TerraformError
 
 from settings import SETTINGS
 
-ERROR_EXIT_CODE = 1
+ERROR_RETURN_CODE = 1
 
 
 class DifferentStatedError(Exception):
@@ -15,30 +15,33 @@ class DifferentStatedError(Exception):
         self.message = result
 
 
-class BadExitCodeError(Exception):
-    def __init__(self, exit_code, stdout, stderr):
-        self.message = f"""
-        Command failed.
-        exit_code: {exit_code}
-        stdout: {stdout}
-        stderr: {stderr}
-        """
+class TerraformCommandError(TerraformError):
+    def __str__(self):
+        return f"{super().__str__()}\nSTDOUT:\n{self.out}\nSTDERR:\n{self.err}"
 
 
 class TerraformDeployer(Terraform):
-    def __init__(self, parsed_args, code_files, config_files):
+    def __init__(self, parsed_args, code_files, config_files, testing=False):
+        self.project_id = (
+            f"testing-{parsed_args.project_id}"
+            if testing
+            else parsed_args.project_id
+        )
+        self.project_dir = SETTINGS.WORKING_DIR_BASE / self.project_id
+
         # working directory should be unique for each deployment to prevent
         # overlapping workspaces
-        self.project_id = parsed_args.project_id
-        self.project_dir = SETTINGS.WORKING_DIR_BASE / parsed_args.project_id
-        os.makedirs(self.project_dir / parsed_args.cloud, exist_ok=True)
+        self.working_dir = self.project_dir / parsed_args.cloud
+        self.testing = testing
+
+        os.makedirs(self.working_dir, exist_ok=True)
 
         for file_ in chain(code_files, config_files):
             with open(self.project_dir / file_.path, "wb") as f:
                 f.write(file_.decoded_content)
 
         super(TerraformDeployer, self).__init__(
-            working_dir=self.project_dir / parsed_args.cloud,
+            working_dir=self.working_dir,
             terraform_bin_path=str(SETTINGS.TERRAFORM_BINARY_PATH),
         )
 
@@ -46,10 +49,15 @@ class TerraformDeployer(Terraform):
         self.init()
 
         # copy plugins to directory or create link
-        self.cmd(f"workspace new {parsed_args.project_id}")
-        self.cmd(f"workspace select {parsed_args.project_id}")
+        self.cmd(f"workspace new {self.project_id}")
+        self.cmd(f"workspace select {self.project_id}")
         self.current_state = self.get_state()
         self.previous_state = None
+
+    def cmd(self, command, *args, **kwargs):
+        result = super().cmd(command, *args, **kwargs)
+        self._raise_if_bad_return_code(command, *result)
+        return result
 
     def get_plan(self):
         """
@@ -57,7 +65,15 @@ class TerraformDeployer(Terraform):
         stored in a file.
         """
         plan_path = self.project_dir / "plan"
-        self._raise_if_bad_exit_code(*self.plan(f"-out={plan_path}"))
+
+        plan_options = [
+            f"-out={plan_path}",
+            f"-var=project_id={self.project_id}",
+            f"-var=project_name={self.project_id}",
+            f"-var=skip_delete={'true' if self.testing else 'false'}",
+        ]
+        arguments = " ".join(plan_options)
+        self.cmd("plan -input=false " + arguments)
         return plan_path
 
     def get_state(self):
@@ -65,19 +81,18 @@ class TerraformDeployer(Terraform):
         Fetches the current state.
         """
         result = self.cmd("state pull")
-        self._raise_if_bad_exit_code(*result)
         stdout = result[1]
         return json.loads(stdout) if stdout else {}
 
-    def run(self):
+    def run(self, plan=False):
         """
-        Creates plan and then runs `terraform apply` command.
+        Creates plan (or accepts existing) and then runs `terraform apply` command.
         Not using `Terraform.apply`, because it automatically passes `-var-file` argument,
         while plan already contain all variables.
         """
         state_before_apply = self.get_state()
 
-        plan = self.get_plan()
+        plan = self.get_plan() if not plan else plan
         apply_command = (
             f"apply -no-color -input=false -auto-approve=false {plan}"
         )
@@ -86,26 +101,40 @@ class TerraformDeployer(Terraform):
         self.previous_state = state_before_apply
         self.current_state = self.get_state()
 
-        return self
+    def get_destroy_plan(self):
+        plan_path = self.project_dir / "destroy_plan"
+        skip_delete = "true" if self.testing else "false"
+        plan_options = [
+            f"-out={plan_path}",
+            f"-var=project_id={self.project_id}",
+            f"-var=project_name={self.project_id}",
+            f"-var=skip_delete={skip_delete}",
+        ]
+        arguments = " ".join(plan_options)
+        self.cmd("plan -destroy -input=false " + arguments)
+        return plan_path
 
     def delete(self):
-        result = self.destroy(self.project_id)
-        self._raise_if_bad_exit_code(*result)
-        return True
+        self.run(self.get_destroy_plan())
 
     @staticmethod
-    def _raise_if_bad_exit_code(exit_code, stdout, stderr):
-        if exit_code == ERROR_EXIT_CODE:
-            raise BadExitCodeError(exit_code, stdout, stderr)
+    def _raise_if_bad_return_code(command, return_code, stdout, stderr):
+        if return_code == ERROR_RETURN_CODE:
+            raise TerraformCommandError(return_code, command, stdout, stderr)
 
 
 def assert_deployments_equal(test_state, real_state):
     """
     Compare state of test deployment against state of real deployment
     """
+    keys_to_remove = ["serial", "lineage"]
+    for key in keys_to_remove:
+        del test_state[key]
+        del real_state[key]
+
     if test_state != real_state:
         raise DifferentStatedError(
-            f"Current state: {test_state}\nDeployment state: {real_state}"
+            f"\nCurrent state:\n{test_state}\n\nDeployment state:\n{real_state}"
         )
 
 
@@ -117,14 +146,18 @@ def deploy(parsed_args, code, config):
     :param config: list: of files containing deployment configuration
     :return: boolean
     """
-    test_deploy = TerraformDeployer(parsed_args, code, config)
-    real_deploy = TerraformDeployer(parsed_args, code, config)
+    test_deployer = TerraformDeployer(parsed_args, code, config, testing=True)
+    real_deployer = TerraformDeployer(parsed_args, code, config)
 
-    threading.Thread(target=test_deploy.run)
-    threading.Thread(target=real_deploy.run)
+    test_deployment = threading.Thread(target=test_deployer.run)
+    real_deployment = threading.Thread(target=real_deployer.run)
+    test_deployment_deletion = threading.Thread(target=test_deployer.delete)
 
-    threading.Thread(target=test_deploy.delete)
+    test_deployment.run()
+    real_deployment.run()
+    test_deployment_deletion.run()
 
-    return assert_deployments_equal(
-        test_deploy.current_state, real_deploy.current_state
+    assert_deployments_equal(
+        test_deployer.current_state, real_deployer.current_state
     )
+    print("Success!")

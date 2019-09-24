@@ -4,6 +4,7 @@ variable "project_name" {}
 variable "org_id" {}
 variable "folder_id" {}
 variable "region" {}
+variable "skip_delete" {}
 
 provider "google" {
  region = "${var.region}"
