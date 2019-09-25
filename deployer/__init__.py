@@ -10,12 +10,17 @@ from settings import SETTINGS
 ERROR_RETURN_CODE = 1
 
 
-class DifferentStatedError(Exception):
-    def __init__(self, result):
-        self.message = result
+class DifferentStatesError(Exception):
+    """
+    This exception can be raised when states of some deployments does not the same.
+    """
 
 
 class TerraformCommandError(TerraformError):
+    """
+    Redefined existing terraform command error to add content of stdout and stderr.
+    """
+
     def __str__(self):
         return f"{super().__str__()}\nSTDOUT:\n{self.out}\nSTDERR:\n{self.err}"
 
@@ -45,44 +50,47 @@ class TerraformDeployer(Terraform):
             terraform_bin_path=str(SETTINGS.TERRAFORM_BINARY_PATH),
         )
 
-        self.cmd("get")  # get terraform modules
+        self.command("get")  # get terraform modules
         self.init()
 
-        # copy plugins to directory or create link
-        self.cmd(f"workspace new {self.project_id}")
-        self.cmd(f"workspace select {self.project_id}")
+        self._create_workspace()
+
         self.current_state = self.get_state()
         self.previous_state = None
 
-    def cmd(self, command, *args, **kwargs):
-        result = super().cmd(command, *args, **kwargs)
+    def command(self, command, *args, **kwargs):
+        result = self.cmd(command, *args, **kwargs)
         self._raise_if_bad_return_code(command, *result)
         return result
-
-    def get_plan(self):
-        """
-        Invokes `terraform plan` with `-out` argument. As a result, we have state
-        stored in a file.
-        """
-        plan_path = self.project_dir / "plan"
-
-        plan_options = [
-            f"-out={plan_path}",
-            f"-var=project_id={self.project_id}",
-            f"-var=project_name={self.project_id}",
-            f"-var=skip_delete={'true' if self.testing else 'false'}",
-        ]
-        arguments = " ".join(plan_options)
-        self.cmd("plan -input=false " + arguments)
-        return plan_path
 
     def get_state(self):
         """
         Fetches the current state.
         """
-        result = self.cmd("state pull")
+        result = self.command("state pull")
         stdout = result[1]
         return json.loads(stdout) if stdout else {}
+
+    def create_plan(self, destroy=False):
+        plan_file_name = "destroy_plan" if destroy else "plan"
+        plan_path = self.project_dir / plan_file_name
+        skip_delete = "true" if self.testing else "false"
+
+        plan_options = [
+            "-input=false",
+            f"-out={plan_path}",
+            f"-var=project_id={self.project_id}",
+            f"-var=project_name={self.project_id}",
+            f"-var=skip_delete={skip_delete}",
+        ]
+
+        if destroy:
+            plan_options.insert(0, "-destroy")
+
+        arguments = " ".join(plan_options)
+        self.command(f"plan {arguments}")
+
+        return plan_path
 
     def run(self, plan=False):
         """
@@ -92,35 +100,38 @@ class TerraformDeployer(Terraform):
         """
         state_before_apply = self.get_state()
 
-        plan = self.get_plan() if not plan else plan
-        apply_command = (
-            f"apply -no-color -input=false -auto-approve=false {plan}"
-        )
-        self.cmd(apply_command)
+        plan = self.create_plan() if not plan else plan
+        apply_options = [
+            "-no-color",
+            "-input=false",
+            "-auto-approve=false",
+            str(plan),
+        ]
+        apply_command = f"apply {' '.join(apply_options)}"
+        self.command(apply_command)
 
         self.previous_state = state_before_apply
         self.current_state = self.get_state()
 
-    def get_destroy_plan(self):
-        plan_path = self.project_dir / "destroy_plan"
-        skip_delete = "true" if self.testing else "false"
-        plan_options = [
-            f"-out={plan_path}",
-            f"-var=project_id={self.project_id}",
-            f"-var=project_name={self.project_id}",
-            f"-var=skip_delete={skip_delete}",
-        ]
-        arguments = " ".join(plan_options)
-        self.cmd("plan -destroy -input=false " + arguments)
-        return plan_path
-
     def delete(self):
-        self.run(self.get_destroy_plan())
+        self.run(self.create_plan(destroy=True))
 
     @staticmethod
     def _raise_if_bad_return_code(command, return_code, stdout, stderr):
         if return_code == ERROR_RETURN_CODE:
             raise TerraformCommandError(return_code, command, stdout, stderr)
+
+    def _create_workspace(self):
+        """
+        Check if there is existing workspace for current project,
+        and recreates it if so.
+        """
+        workspaces_list = self.command(f"workspace list")[1]
+        if self.project_id in workspaces_list:
+            self.command(f"workspace select default")
+            self.command(f"workspace delete {self.project_id}")
+        self.command(f"workspace new {self.project_id}")
+        self.command(f"workspace select {self.project_id}")
 
 
 def assert_deployments_equal(test_state, real_state):
@@ -133,7 +144,7 @@ def assert_deployments_equal(test_state, real_state):
         del real_state[key]
 
     if test_state != real_state:
-        raise DifferentStatedError(
+        raise DifferentStatesError(
             f"\nCurrent state:\n{test_state}\n\nDeployment state:\n{real_state}"
         )
 

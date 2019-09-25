@@ -1,12 +1,18 @@
 import os
 
+from uuid import uuid4
 from itertools import chain
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock
 
 import pytest
 
-from deployer import TerraformDeployer
+from deployer import (
+    deploy,
+    DifferentStatesError,
+    TerraformDeployer,
+    TerraformCommandError,
+)
 
 
 @pytest.fixture(scope="session")
@@ -14,32 +20,17 @@ def working_directory(tmpdir_factory):
     return tmpdir_factory.mktemp("data")
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def terraform_deployer(
-    working_directory, command_line_args, code_files, config_files
+    mocker, working_directory, command_line_args, code_files, config_files
 ):
-    with patch.dict(
+    mocker.patch.dict(
         "settings.SETTINGS.attributes",
         {"WORKING_DIR_BASE": Path(working_directory.strpath)},
-    ):
-        return TerraformDeployer(command_line_args, code_files, config_files)
-
-
-def test_terraform_deployer_init_creates_all_files(
-    working_directory, command_line_args, code_files, config_files
-):
-    """
-    Deployer instantiation results in a set of created .tf and .json files in the working directory.
-    """
-    with patch.dict(
-        "settings.SETTINGS.attributes",
-        {"WORKING_DIR_BASE": Path(working_directory.strpath)},
-    ):
-        deployer = TerraformDeployer(
-            command_line_args, code_files, config_files
-        )
-        for file in chain(code_files, config_files):
-            assert os.path.exists(deployer.working_dir / file.name)
+    )
+    deployer = TerraformDeployer(command_line_args, code_files, config_files)
+    yield deployer
+    deployer.cmd(f"workspace delete {deployer.project_id}")
 
 
 def test_terraform_deployer_init(terraform_deployer):
@@ -49,15 +40,126 @@ def test_terraform_deployer_init(terraform_deployer):
     assert terraform_deployer.current_state == {}
 
 
-def test_get_plan(terraform_deployer):
+def test_terraform_deployer_init_creates_all_files(
+    terraform_deployer, code_files, config_files
+):
     """
-    Tests, that get_plan method creates plan file in project dir.
+    Deployer instantiation results in a set of created .tf and .json files in the working directory.
     """
-    terraform_deployer.get_plan()
+    for file in chain(code_files, config_files):
+        assert os.path.exists(terraform_deployer.working_dir / file.name)
+
+
+def test_terraform_deployer_init_creates_workspace(terraform_deployer):
+    """
+    Terraform deployer init should prepare workspace.
+    """
+    assert (
+        terraform_deployer.project_id
+        in terraform_deployer.command("workspace list")[1]
+    )
+
+
+def test_command_throws_error(terraform_deployer):
+    """
+    If terraform subprocess returns error code, we throw error with detailed info.
+    """
+    terraform_deployer.cmd = Mock(return_value=(1, "", ""))
+    with pytest.raises(TerraformCommandError):
+        terraform_deployer.get_state()
+
+
+def test_get_state(terraform_deployer):
+    """
+    Initial state should be empty.
+    """
+    assert terraform_deployer.get_state() == {}
+
+
+def test_create_plan(terraform_deployer):
+    """
+    Tests, that create_plan method creates plan file in project dir.
+    """
+    terraform_deployer.create_plan()
     assert os.path.exists(terraform_deployer.project_dir / "plan")
 
 
-def test_run(terraform_deployer):
+def test_create_destroy_plan(terraform_deployer):
+    """
+    Tests, that create_plan method with destroy option creates plan file in project dir.
+    """
+    terraform_deployer.command = Mock(side_effect=terraform_deployer.command)
+    terraform_deployer.create_plan(destroy=True)
+    assert "-destroy" in terraform_deployer.command.call_args[0][0]
+    assert os.path.exists(terraform_deployer.project_dir / "destroy_plan")
+
+
+def test_run_changes_state(terraform_deployer):
+    """
+    `run` invocation changes state, so we should check that.
+    """
+    terraform_deployer.command = Mock()
+    terraform_deployer.get_state = lambda: str(uuid4())
     terraform_deployer.run()
-    assert terraform_deployer.current_state
-    assert terraform_deployer.previous_state == {}
+    assert terraform_deployer.previous_state != terraform_deployer.current_state
+
+
+def test_run_calls_apply(terraform_deployer):
+    """
+    `run` should invoke `terraform apply` with correct arguments.
+    """
+    terraform_deployer.get_state = Mock()
+    terraform_deployer.command = Mock()
+
+    plan = "some_plan"
+    terraform_deployer.run(plan=plan)
+    terraform_deployer.command.assert_called_with(
+        f"apply -no-color -input=false -auto-approve=false {plan}"
+    )
+
+
+def test_delete(terraform_deployer):
+    """
+    `delete` should call run with generated destruction plan.
+    """
+    terraform_deployer.run = Mock()
+    terraform_deployer.delete()
+    terraform_deployer.run.assert_called_with(
+        terraform_deployer.project_dir / "destroy_plan"
+    )
+
+
+def test_deploy(mocker, command_line_args, code_files, config_files):
+    test_deployment = Mock()
+    real_deployment = Mock()
+
+    test_deployment.current_state = {"serial": 1, "lineage": str(uuid4())}
+    real_deployment.current_state = {"serial": 2, "lineage": str(uuid4())}
+
+    deployer = mocker.patch("deployer.TerraformDeployer")
+    deployer.side_effect = [test_deployment, real_deployment]
+    deploy(command_line_args, code_files, config_files)
+
+    test_deployment.run.assert_called_once()
+    test_deployment.delete.assert_called_once()
+    real_deployment.run.assert_called_once()
+
+
+def test_deploy_different_states(
+    mocker, command_line_args, code_files, config_files
+):
+    test_deployment = Mock()
+    real_deployment = Mock()
+
+    test_deployment.current_state = {"serial": 1, "lineage": str(uuid4())}
+    real_deployment.current_state = {
+        "serial": 2,
+        "lineage": str(uuid4()),
+        "different_element": True,
+    }
+
+    deployer = mocker.patch("deployer.TerraformDeployer")
+    deployer.side_effect = [test_deployment, real_deployment]
+
+    with pytest.raises(DifferentStatesError):
+        deploy(command_line_args, code_files, config_files)

@@ -7,7 +7,7 @@ from cloud_control import ArgumentsParser
 
 @pytest.fixture(scope="session")
 def command_line_args():
-    return ArgumentsParser(["-ptest", "deploy", "--cloud", "gcp"]).args
+    return ArgumentsParser(["-ptestproject", "deploy", "--cloud", "gcp"]).args
 
 
 @pytest.fixture(scope="session")
@@ -33,6 +33,7 @@ def code_files(github_file_factory):
             variable "org_id" {}
             variable "folder_id" {}
             variable "region" {}
+            variable "skip_delete" {}
             
             provider "google" {
              region = "${var.region}"
