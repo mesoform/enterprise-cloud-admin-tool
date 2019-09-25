@@ -129,7 +129,7 @@ class TerraformDeployer(Terraform):
         workspaces_list = self.command(f"workspace list")[1]
         if self.project_id in workspaces_list:
             self.command(f"workspace select default")
-            self.command(f"workspace delete {self.project_id}")
+            self.command(f"workspace delete -force {self.project_id}")
         self.command(f"workspace new {self.project_id}")
         self.command(f"workspace select {self.project_id}")
 
