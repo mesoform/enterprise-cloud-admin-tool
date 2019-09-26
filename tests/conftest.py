@@ -112,3 +112,144 @@ def config_files(github_file_factory):
             """,
         ),
     ]
+
+
+@pytest.fixture
+def project_state1():
+    return {
+        "version": 4,
+        "terraform_version": "0.12.3",
+        "serial": 3,
+        "lineage": "3e192a43-85d6-a1e1-7bb2-d7265b16340a",
+        "outputs": {
+            "project_id": {
+                "value": "testing-billing-test-123456789",
+                "type": "string",
+            }
+        },
+        "resources": [
+            {
+                "mode": "managed",
+                "type": "google_project",
+                "name": "project",
+                "provider": "provider.google",
+                "instances": [
+                    {
+                        "schema_version": 1,
+                        "attributes": {
+                            "app_engine": [],
+                            "auto_create_network": True,
+                            "billing_account": "018FB9-3FB698-74962C",
+                            "folder_id": "",
+                            "id": "testing-billing-test-123456789",
+                            "labels": None,
+                            "name": "testing-billing-test-123456789",
+                            "number": "10394113145",
+                            "org_id": "409420773147",
+                            "policy_data": None,
+                            "policy_etag": None,
+                            "project_id": "testing-billing-test-123456789",
+                            "skip_delete": None,
+                            "timeouts": None,
+                        },
+                        "private": "123531261326231613263216132",
+                    }
+                ],
+            },
+            {
+                "mode": "managed",
+                "type": "google_project_services",
+                "name": "project",
+                "provider": "provider.google",
+                "instances": [
+                    {
+                        "schema_version": 0,
+                        "attributes": {
+                            "disable_on_destroy": True,
+                            "id": "testing-billing-test-123456789",
+                            "project": "testing-billing-test-123456789",
+                            "services": ["compute.googleapis.com"],
+                            "timeouts": None,
+                        },
+                        "private": "123531261326231613263216132=",
+                        "depends_on": ["google_project.project"],
+                    }
+                ],
+            },
+        ],
+    }
+
+
+@pytest.fixture
+def project_state2():
+    return {
+        "version": 4,
+        "terraform_version": "0.12.3",
+        "serial": 3,
+        "lineage": "c87e8b0e-d952-595f-6074-056ccede2046",
+        "outputs": {
+            "project_id": {"value": "billing-test-123456789", "type": "string"}
+        },
+        "resources": [
+            {
+                "mode": "managed",
+                "type": "google_project",
+                "name": "project",
+                "provider": "provider.google",
+                "instances": [
+                    {
+                        "schema_version": 1,
+                        "attributes": {
+                            "app_engine": [],
+                            "auto_create_network": True,
+                            "billing_account": "018FB9-3FB698-74962C",
+                            "folder_id": "",
+                            "id": "billing-test-123456789",
+                            "labels": None,
+                            "name": "billing-test-123456789",
+                            "number": "978341859879",
+                            "org_id": "409420773147",
+                            "policy_data": None,
+                            "policy_etag": None,
+                            "project_id": "billing-test-123456789",
+                            "skip_delete": None,
+                            "timeouts": None,
+                        },
+                        "private": "123531261326231613263216132=",
+                    }
+                ],
+            },
+            {
+                "mode": "managed",
+                "type": "google_project_services",
+                "name": "project",
+                "provider": "provider.google",
+                "instances": [
+                    {
+                        "schema_version": 0,
+                        "attributes": {
+                            "disable_on_destroy": True,
+                            "id": "billing-test-123456789",
+                            "project": "billing-test-123456789",
+                            "services": ["compute.googleapis.com"],
+                            "timeouts": None,
+                        },
+                        "private": "123531261326231613263216132=",
+                        "depends_on": ["google_project.project"],
+                    }
+                ],
+            },
+        ],
+    }
+
+
+@pytest.fixture
+def state_of_deleted_project():
+    return {
+        "version": 4,
+        "terraform_version": "0.12.3",
+        "serial": 6,
+        "lineage": "3e192a43-85d6-a1e1-7bb2-d7265b16340a",
+        "outputs": {},
+        "resources": [],
+    }
