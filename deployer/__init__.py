@@ -134,18 +134,61 @@ class TerraformDeployer(Terraform):
         self.command(f"workspace select {self.project_id}")
 
 
+def _prepare_state_for_compare(state):
+    """
+    State obtained from `terraform state pull` can contain items
+    that differs from one deployment from another, so we should remove them
+    to compare states.
+    """
+    sanitized_state = state.copy()
+
+    global_keys_to_remove = ["serial", "lineage"]
+
+    for key in global_keys_to_remove:
+        sanitized_state.pop(key, None)
+
+    # delete unique project_id from state
+    outputs = sanitized_state.get("outputs", {})
+    if outputs.get("project_id", {}) is not None:
+        outputs.get("project_id", {}).pop("value", None)
+
+    # delete unique attributes of resources
+    instance_attributes_keys_to_remove = [
+        "id",
+        "name",
+        "number",
+        "project_id",
+        "project",
+    ]
+    for resource in sanitized_state.get("resources", []):
+        for instance in resource.get("instances", []):
+            attributes = instance.get("attributes") or {}
+            for key in instance_attributes_keys_to_remove:
+                attributes.pop(key, None)
+
+    return sanitized_state
+
+
 def assert_deployments_equal(test_state, real_state):
     """
     Compare state of test deployment against state of real deployment
     """
-    keys_to_remove = ["serial", "lineage"]
-    for key in keys_to_remove:
-        del test_state[key]
-        del real_state[key]
+    test_state = _prepare_state_for_compare(test_state)
+    real_state = _prepare_state_for_compare(real_state)
 
     if test_state != real_state:
         raise DifferentStatesError(
             f"\nCurrent state:\n{test_state}\n\nDeployment state:\n{real_state}"
+        )
+
+
+def assert_deployment_deleted(state):
+    """
+    Deleted project's state does not contain outputs or resources keys.
+    """
+    if state and (state.get("outputs") or state.get("resources")):
+        DifferentStatesError(
+            f"\nProject was not deleted, current state:\n{state}"
         )
 
 
@@ -155,7 +198,6 @@ def deploy(parsed_args, code, config):
     :param parsed_args: object: which contains arguments required to run code
     :param code: list: of files containing deployment code
     :param config: list: of files containing deployment configuration
-    :return: boolean
     """
     test_deployer = TerraformDeployer(parsed_args, code, config, testing=True)
     real_deployer = TerraformDeployer(parsed_args, code, config)
@@ -166,9 +208,12 @@ def deploy(parsed_args, code, config):
 
     test_deployment.run()
     real_deployment.run()
-    test_deployment_deletion.run()
-
     assert_deployments_equal(
         test_deployer.current_state, real_deployer.current_state
     )
+
+    test_deployment_deletion.run()
+    assert_deployment_deleted(test_deployer.current_state)
+
     print("Success!")
+    return True
