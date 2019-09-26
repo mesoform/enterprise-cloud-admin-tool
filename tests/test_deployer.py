@@ -9,6 +9,7 @@ import pytest
 
 from deployer import (
     deploy,
+    _prepare_state_for_compare,
     DifferentStatesError,
     TerraformDeployer,
     TerraformCommandError,
@@ -129,7 +130,20 @@ def test_delete(terraform_deployer):
     )
 
 
+def test_prepare_state_for_compare(project_state1, project_state2):
+    """
+    Tests that states being cleaned properly.
+    """
+    assert _prepare_state_for_compare(
+        project_state1
+    ) == _prepare_state_for_compare(project_state2)
+
+
 def test_deploy(mocker, command_line_args, code_files, config_files):
+    """
+    Checks, that when `deploy` bein called, `TerraformDeployer.run` called
+    for two instances, and `TerraformDeployer.delete` called for test instance.
+    """
     test_deployment = Mock()
     real_deployment = Mock()
 
@@ -148,6 +162,9 @@ def test_deploy(mocker, command_line_args, code_files, config_files):
 def test_deploy_different_states(
     mocker, command_line_args, code_files, config_files
 ):
+    """
+    Checks that state of deployer instance changes from deploy to deploy.
+    """
     test_deployment = Mock()
     real_deployment = Mock()
 
