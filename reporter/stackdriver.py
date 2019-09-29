@@ -137,8 +137,6 @@ class TimeSeriesMetrics(Metrics):
         elif message.value_type == MetricDescriptor.DOUBLE:
             data_point.value.double_value = value
 
-        if self._start_time:
-            data_point.interval.start_time.FromDatetime(self._start_time)
         data_point.interval.end_time.FromDatetime(datetime.utcnow())
         return message
 

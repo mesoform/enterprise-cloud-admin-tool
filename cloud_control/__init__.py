@@ -138,8 +138,13 @@ class CloudControl:
                 {
                     "metric_name": "deployment_counter",
                     "labels": {
-                        "deploy_datetime": str(
-                            self._app_metrics._start_time.utcnow()
+                        "deploy_start": str(self._app_metrics._start_time),
+                        "deploy_end": str(self._app_metrics.end_time),
+                        "deploy_taken": str(
+                            (
+                                self._app_metrics.end_time
+                                - self._app_metrics._start_time
+                            ).seconds
                         ),
                         "command": self.args.command,
                     },
