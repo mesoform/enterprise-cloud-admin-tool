@@ -96,6 +96,7 @@ class Metrics(object):
 class TimeSeriesMetrics(Metrics):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self._start_time = None
 
     def initialize_base_metrics_message(
         self,
@@ -136,6 +137,8 @@ class TimeSeriesMetrics(Metrics):
         elif message.value_type == MetricDescriptor.DOUBLE:
             data_point.value.double_value = value
 
+        if self._start_time:
+            data_point.interval.start_time.FromDatetime(self._start_time)
         data_point.interval.end_time.FromDatetime(datetime.utcnow())
         return message
 
