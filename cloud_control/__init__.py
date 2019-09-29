@@ -1,6 +1,8 @@
 import argparse
 from datetime import datetime
 
+from google.api.metric_pb2 import MetricDescriptor
+
 import common
 import reporter.local
 
@@ -108,7 +110,7 @@ class CloudControl:
         self._app_metrics = reporter.stackdriver.AppMetrics(
             monitoring_credentials=auth.credentials,
             monitoring_project=self.args.monitoring_namespace,
-            metrics_set_list=[("deploy", {"time": "time1"}, 5)],
+            metrics_set_list=[],
         )
 
     def perform_command(self):
@@ -126,11 +128,26 @@ class CloudControl:
                 "Command {} does not implemented".format(self.args.command)
             )
 
+        result = False
         try:
-            command()
+            result = command()
         finally:
             self._log.info("finished " + self.args.command + " run")
             self._app_metrics.end_time = datetime.utcnow()
+            self._app_metrics.metrics_set_list = [
+                {
+                    "metric_name": "deployment_counter",
+                    "labels": {
+                        "deploy_datetime": str(
+                            self._app_metrics._start_time.utcnow()
+                        ),
+                        "command": self.args.command,
+                    },
+                    "metric_kind": MetricDescriptor.GAUGE,
+                    "value_type": MetricDescriptor.BOOL,
+                    "value": result,
+                }
+            ]
             self._app_metrics.send_metrics()
 
     def _deploy(self):
@@ -164,7 +181,7 @@ class CloudControl:
         testing_prefix = f"{config_hash[:7]}-{code_hash[:7]}"
 
         # check(self.args.cloud, config_files)
-        deploy(self.args, code_files, config_files, testing_prefix)
+        return deploy(self.args, code_files, config_files, testing_prefix)
 
     def _config(self):
-        setup(self.args)
+        return setup(self.args)

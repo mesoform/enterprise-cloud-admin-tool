@@ -1,320 +1,14 @@
-from google.cloud.monitoring_v3 import (
-    AlertPolicyServiceClient,
-    NotificationChannelServiceClient,
-    MetricServiceClient,
-)
-from google.auth.credentials import Credentials
 from datetime import datetime
 
-# noinspection PyUnresolvedReferences
+from google.api.metric_pb2 import MetricDescriptor
+from google.cloud.monitoring_v3 import MetricServiceClient
+from google.auth.credentials import Credentials
+
 from google.cloud.monitoring_v3.types import NotificationChannel, TimeSeries
-from google.cloud.monitoring_v3.types import (
-    AlertPolicy as StackdriverAlertPolicy,
-)
-
-from decimal import *
-
-getcontext().prec = 2  # Set decimal places to two
 
 
-class InvalidMonitoringClientType(Exception):
+class MissingMetricSetValue(Exception):
     pass
-
-
-class TooManyMatchingResultsError(Exception):
-    pass
-
-
-class MediaTypeNotSupported(Exception):
-    pass
-
-
-class InvalidAlertPolicyCombinerError(Exception):
-    pass
-
-
-class InvalidConditionComparisonError(Exception):
-    pass
-
-
-class Alert(object):
-    def __init__(
-        self,
-        monitoring_project: str,
-        monitoring_credentials: Credentials = None,
-        policy: dict = None,
-        alert_client=AlertPolicyServiceClient,
-        notification_channel_client=NotificationChannelServiceClient,
-        alert_policy=StackdriverAlertPolicy,
-        notify_contact_by: str = None,
-        notify_contact_address: str = None,
-    ):
-        self._monitoring_project: str = monitoring_project
-        self._policy: dict = policy
-        self.credentials = monitoring_credentials
-        self._alert_client = alert_client
-        self._notification_channel_client = notification_channel_client
-        self._alert_policy = alert_policy
-        self._notify_contact_by: str = notify_contact_by
-        self._notify_contact_address: str = notify_contact_address
-
-    @property
-    def notify_contact_address(self):
-        return self._notify_contact_address
-
-    @notify_contact_address.setter
-    def notify_contact_address(self, value):
-        self._notify_contact_address = value
-
-    @property
-    def notify_contact_by(self):
-        return self._notify_contact_by
-
-    @notify_contact_by.setter
-    def notify_contact_by(self, value):
-        self._notify_contact_by = value
-
-    @property
-    def alert_policy(self):
-        return self._alert_policy
-
-    @alert_policy.setter
-    def alert_policy(self, class_):
-        self._alert_policy = class_
-
-    @property
-    def alert_client(self):
-        return self._alert_client(credentials=self.credentials)
-
-    @alert_client.setter
-    def alert_client(self, class_):
-        self._alert_client = class_
-
-    @property
-    def notification_channel_client(self):
-        return self._notification_channel_client(credentials=self.credentials)
-
-    @notification_channel_client.setter
-    def notification_channel_client(self, class_):
-        self._notification_channel_client = class_
-
-    @property
-    def monitoring_project(self):
-        return self._monitoring_project
-
-    @monitoring_project.setter
-    def monitoring_project(self, value):
-        self._monitoring_project = value
-
-    @property
-    def monitoring_project_path(self):
-        return self.alert_client.project_path(self.monitoring_project)
-
-    @property
-    def policy(self):
-        return self._policy
-
-    @policy.setter
-    def policy(self, value):
-        self._policy = value
-
-    @staticmethod
-    def __condition_exists(alert_policy, condition_name):
-        """ to be used when updating Alert conditions"""
-        for condition in alert_policy.conditions:
-            if condition.display_name == condition_name:
-                return True
-        return False
-
-    def notification_name_for(self, contact: str, media: str):
-
-        if media == "email":
-            label = "labels.email_address='" + contact + "'"
-        else:
-            raise MediaTypeNotSupported(media + "is not currently supported")
-
-        notification_channels_list = list(
-            self.notification_channel_client.list_notification_channels(
-                self.monitoring_project_path,
-                "display_name='"
-                + contact
-                + "' AND type='"
-                + media
-                + "' AND "
-                + label,
-            )
-        )
-
-        if len(notification_channels_list) > 1:
-            raise TooManyMatchingResultsError(
-                str(len(notification_channels_list))
-                + " notification channels found matching:\n notify "
-                + contact
-                + " by "
-                + media
-            )
-        elif len(notification_channels_list) == 1:
-            notification_channel = notification_channels_list[0]
-            return notification_channel.name
-        elif len(notification_channels_list) == 0:
-            notification_channel = NotificationChannel()
-            notification_channel.type = media
-            notification_channel.display_name = contact
-            notification_channel.description = (
-                "Send alert notification by " + media + " to " + contact
-            )
-            if media == "email":
-                notification_channel.labels["email_address"] = contact
-            new_channel = self.notification_channel_client.create_notification_channel(
-                self.monitoring_project_path, notification_channel
-            )
-            return new_channel.name
-
-    @staticmethod
-    def alert_policy_exists(
-        display_name: str,
-        monitoring_project_path: str,
-        alert_policy_client: AlertPolicyServiceClient,
-    ):
-        """
-        Checks if an alert policy already exists
-        :param display_name: display name of the policy
-        :param monitoring_project_path: project where the monitoring data is
-        :param alert_policy_client: client for communicating with Stackdriver API
-        :return: True if policy exists
-        """
-
-        alert_policy_list = list(
-            alert_policy_client.list_alert_policies(
-                monitoring_project_path, 'display_name="' + display_name + '"'
-            )
-        )
-
-        if len(alert_policy_list) == 0:
-            return True
-        return False
-
-    def initialize_alert_policy(
-        self, display_name: str, documentation: str, combiner: str
-    ) -> StackdriverAlertPolicy:
-        """
-        Initialize a basic alert policy from base class
-        :param display_name: name we want to give to the alert
-        :param documentation: description of the alert
-        :param combiner: how to combine multiple condition. available options are 'OR' and 'AND'
-        :return: ::google.cloud.monitoring_v3.types.AlertPolicy::
-        """
-
-        assert isinstance(display_name, str)
-        assert isinstance(documentation, str)
-        assert isinstance(combiner, str)
-        if not combiner.upper() == "OR" and not combiner.upper() == "AND":
-            raise InvalidMonitoringClientType(
-                str(combiner.upper()) + " is not a valid option. "
-                'Only "OR" and "AND"'
-            )
-        alert_policy = self.alert_policy()
-        alert_policy.display_name = display_name
-        alert_policy.documentation.content = documentation
-        alert_policy.documentation.mime_type = "text/markdown"
-        combiner_enum = "self.alert_policy." + combiner.upper()
-        alert_policy.combiner = eval(combiner_enum)
-        return alert_policy
-
-    @staticmethod
-    def add_alert_condition(
-        alert_policy: StackdriverAlertPolicy,
-        type_: str,
-        display_name: str,
-        filter_: str,
-        duration: int,
-        threshold=float(),
-        comparison: int = int(),
-    ):
-        """
-        Takes an initialized AlertPolicy and adds conditions on when to fire an alert
-        :param alert_policy: Initialized AlertPolicy
-        :param type_: "condition_threshold" or "condition_absent"
-        :param display_name: name of the condition
-        :param filter_: filter used to specify metric we want to add condition on
-        :param duration: period of time to which the condition must be true before firing
-        :param threshold: value to which a condition will fire when breached
-        :param comparison: enumerated value of greater than (>) = 1; or less than (<) = 3
-        :return: ::google.cloud.monitoring_v3.types.AlertPolicy:: with added trigger conditions
-        """
-
-        assert isinstance(alert_policy, StackdriverAlertPolicy)
-        assert isinstance(display_name, str)
-        assert isinstance(filter_, str)
-        assert isinstance(threshold, int) or isinstance(threshold, float)
-        assert isinstance(duration, float)
-        assert isinstance(comparison, int)
-
-        condition = alert_policy.conditions.add()
-        condition.display_name = display_name
-        condition_type = "condition." + type_
-        eval(condition_type).filter = filter_
-        eval(condition_type).duration.seconds = duration
-        if type_ == "condition_threshold":
-            eval(condition_type).threshold_value = threshold
-            eval(condition_type).comparison = comparison
-        return alert_policy
-
-
-class AppAlert(Alert):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-    def create_alert_from_dict(self, profile: dict):
-        """
-        takes a dictionary of an alert profile and constructs a correct AlertPolicy object to be
-        processed by the API
-        :type profile: simplified dictionary of the AlertPolicy
-        :return: fully constructed ::google.cloud.monitoring_v3.types.AlertPolicy::
-        """
-        assert isinstance(profile, dict)
-        if profile["CONDITION_COMPARISON"].upper() == "GT":
-            profile["CONDITION_COMPARISON"] = 1
-        elif profile["CONDITION_COMPARISON"].upper() == "LT":
-            profile["CONDITION_COMPARISON"] = 3
-        else:
-            raise InvalidConditionComparisonError
-
-        base_policy = self.initialize_alert_policy(
-            profile["NAME"], profile["DESCRIPTION"], "OR"
-        )
-        initialized_policy = self.add_alert_condition(
-            base_policy,
-            "condition_threshold",
-            profile["CONDITION_NAME"],
-            profile["CONDITION_FILTER"],
-            profile["CONDITION_DURATION"],
-            profile["CONDITION_THRESHOLD"],
-            profile["CONDITION_COMPARISON"],
-        )
-        if "ABSENT_CONDITION_NAME" in profile:
-            initialized_policy = self.add_alert_condition(
-                initialized_policy,
-                "condition_absent",
-                profile["ABSENT_CONDITION_NAME"],
-                profile["CONDITION_FILTER"],
-                profile["ABSENT_CONDITION_DURATION"],
-            )
-        for contact in profile["NOTIFICATION_CONTACTS"]:
-            initialized_policy.notification_channels.append(
-                self.notification_name_for(contact["ADDRESS"], contact["media"])
-            )
-        return initialized_policy
-
-    def create_alerts(self, alerts_list):
-        for profile in alerts_list:
-            if not self.alert_policy_exists(
-                profile["NAME"], self.monitoring_project_path, self.alert_client
-            ):
-                self.alert_client.create_alert_policy(
-                    self.monitoring_project_path,
-                    self.create_alert_from_dict(profile),
-                )
 
 
 class Metrics(object):
@@ -333,9 +27,6 @@ class Metrics(object):
         self._metrics_client = metrics_client
         self._metrics_type = metrics_type
         self._complete_message = complete_message
-
-    class MissingMetricSetValue(Exception):
-        pass
 
     @property
     def complete_message(self):
@@ -407,24 +98,29 @@ class TimeSeriesMetrics(Metrics):
         super().__init__(**kwargs)
 
     def initialize_base_metrics_message(
-        self, metric_name: str, labels: dict
+        self,
+        metric_name: str,
+        labels: dict,
+        metric_kind=MetricDescriptor.GAUGE,
+        value_type=MetricDescriptor.INT64,
     ) -> TimeSeries:
         """
         creates an TimeSeries metrics object called metric_name and with labels
         :param metric_name: name to call custom metric. As in custom.googleapis.com/ + metric_name
         :param labels: metric labels to add
+        :param metric_kind: the kind of measurement. It describes how the data is reported
+        :param value_type: Type of metric value
         :return: ::google.cloud.monitoring_v3.types.TimeSeries::
         """
-        series = self.metrics_type()
+        series = self.metrics_type(
+            metric_kind=metric_kind, value_type=value_type
+        )
         series.resource.type = "global"
-        series.metric.type = "custom.googleapis.com/" + metric_name
-        for k, v in labels.items():
-            series.metric.labels[k] = v
+        series.metric.type = f"custom.googleapis.com/{metric_name}"
+        series.metric.labels.update(labels)
         return series
 
-    def add_data_points_to_metric_message(
-        self, message: TimeSeries, data_point_value: float
-    ):
+    def add_data_points_to_metric_message(self, message: TimeSeries, value):
         """
         takes an initialized TimeSeries Protobuf message object and adds data_point_value with the
             end_time as now()
@@ -433,7 +129,13 @@ class TimeSeriesMetrics(Metrics):
         :return: ::google.cloud.monitoring_v3.types.TimeSeries::
         """
         data_point = message.points.add()
-        data_point.value.double_value = data_point_value
+        if message.value_type == MetricDescriptor.BOOL:
+            data_point.value.bool_value = value
+        elif message.value_type == MetricDescriptor.INT64:
+            data_point.value.int64_value = value
+        elif message.value_type == MetricDescriptor.DOUBLE:
+            data_point.value.double_value = value
+
         data_point.interval.end_time.FromDatetime(datetime.utcnow())
         return message
 
@@ -442,15 +144,18 @@ class TimeSeriesMetrics(Metrics):
         try:
             for metrics_set in self.metrics_set_list:
                 base_metrics = self.initialize_base_metrics_message(
-                    metrics_set[0], metrics_set[1]
+                    metrics_set["metric_name"],
+                    metrics_set["labels"],
+                    metrics_set["metric_kind"],
+                    metrics_set["value_type"],
                 )
                 time_series_list.append(
                     self.add_data_points_to_metric_message(
-                        base_metrics, metrics_set[2]
+                        base_metrics, metrics_set["value"]
                     )
                 )
         except IndexError:
-            raise self.MissingMetricSetValue(
+            raise MissingMetricSetValue(
                 "missing element from metric set. Needs to be tuple:"
                 "(metric_name, {label_name: label_value}, metric_value)"
             )
@@ -473,11 +178,3 @@ class AppMetrics(TimeSeriesMetrics):
     @end_time.setter
     def end_time(self, value):
         self._end_time = value
-
-
-def main():
-    pass
-
-
-if __name__ == "__main__":
-    main()
