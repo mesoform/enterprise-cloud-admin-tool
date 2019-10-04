@@ -152,7 +152,11 @@ def project_state1():
                             "skip_delete": None,
                             "timeouts": None,
                         },
-                        "private": "123531261326231613263216132",
+                        "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2Jj"
+                        "N2M0YzAiOnsiY3JlYXRlIjoyNDAwMDAwMDAwMDAsImRl"
+                        "bGV0ZSI6MjQwMDAwMDAwMDAwLCJyZWFkIjoyNDAwMDAw"
+                        "MDAwMDAsInVwZGF0ZSI6MjQwMDAwMDAwMDAwfSwic2NoZ"
+                        "W1hX3ZlcnNpb24iOiIxIn0=",
                     }
                 ],
             },
@@ -171,7 +175,11 @@ def project_state1():
                             "services": ["compute.googleapis.com"],
                             "timeouts": None,
                         },
-                        "private": "123531261326231613263216132=",
+                        "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2Jj"
+                        "N2M0YzAiOnsiY3JlYXRlIjoyNDAwMDAwMDAwMDAsImRl"
+                        "bGV0ZSI6MjQwMDAwMDAwMDAwLCJyZWFkIjoyNDAwMDAw"
+                        "MDAwMDAsInVwZGF0ZSI6MjQwMDAwMDAwMDAwfSwic2NoZ"
+                        "W1hX3ZlcnNpb24iOiIxIn0=",
                         "depends_on": ["google_project.project"],
                     }
                 ],
@@ -215,7 +223,11 @@ def project_state2():
                             "skip_delete": None,
                             "timeouts": None,
                         },
-                        "private": "123531261326231613263216132=",
+                        "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2Jj"
+                        "N2M0YzAiOnsiY3JlYXRlIjoyNDAwMDAwMDAwMDAsImRl"
+                        "bGV0ZSI6MjQwMDAwMDAwMDAwLCJyZWFkIjoyNDAwMDAw"
+                        "MDAwMDAsInVwZGF0ZSI6MjQwMDAwMDAwMDAwfSwic2NoZ"
+                        "W1hX3ZlcnNpb24iOiIxIn0=",
                     }
                 ],
             },
@@ -234,7 +246,11 @@ def project_state2():
                             "services": ["compute.googleapis.com"],
                             "timeouts": None,
                         },
-                        "private": "123531261326231613263216132=",
+                        "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2Jj"
+                        "N2M0YzAiOnsiY3JlYXRlIjoyNDAwMDAwMDAwMDAsImRl"
+                        "bGV0ZSI6MjQwMDAwMDAwMDAwLCJyZWFkIjoyNDAwMDAw"
+                        "MDAwMDAsInVwZGF0ZSI6MjQwMDAwMDAwMDAwfSwic2NoZ"
+                        "W1hX3ZlcnNpb24iOiIxIn0=",
                         "depends_on": ["google_project.project"],
                     }
                 ],
