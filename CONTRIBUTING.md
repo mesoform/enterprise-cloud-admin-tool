@@ -9,4 +9,4 @@ Before sending pull request, run `black .` and commit changes, if they are prese
 
 ### Code of Conduct
 
-We are using [Code of Ethics](https://www.sqlite.org/codeofethics.html) of SQLite project.
+Mesoform officially incorporates the [Mozilla Community Participation Guidelines](https://www.mozilla.org/en-US/about/governance/policies/participation/) as its Code of Conduct with the exception that the reporting email address is changed to [support](mailto:support@mesoform.com).
