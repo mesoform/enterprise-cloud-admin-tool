@@ -1,111 +1,195 @@
 import os
 import json
 import threading
-from datetime import time
 from itertools import chain
 
-from python_terraform import Terraform
+from python_terraform import Terraform, TerraformCommandError as TerraformError
 
 from settings import SETTINGS
 
+ERROR_RETURN_CODE = 1
+
+
+class DifferentStatesError(Exception):
+    """
+    This exception can be raised when states of some deployments does not the same.
+    """
+
+
+class TerraformCommandError(TerraformError):
+    """
+    Redefined existing terraform command error to add content of stdout and stderr.
+    """
+
+    def __str__(self):
+        return f"{super().__str__()}\nSTDOUT:\n{self.out}\nSTDERR:\n{self.err}"
+
 
 class TerraformDeployer(Terraform):
-    def __init__(self, parsed_args, code_files, config_files):
+    def __init__(self, parsed_args, code_files, config_files, testing=False):
+        self.project_id = (
+            f"testing-{parsed_args.project_id}"
+            if testing
+            else parsed_args.project_id
+        )
+        self.project_dir = SETTINGS.WORKING_DIR_BASE / self.project_id
+
         # working directory should be unique for each deployment to prevent
         # overlapping workspaces
-        working_dir = SETTINGS.WORKING_DIR_BASE / parsed_args.project_id
-        self.test_dir = working_dir / parsed_args.cloud
-        os.makedirs(working_dir / parsed_args.cloud, exist_ok=True)
-        # write code and config files to directory
+        self.working_dir = self.project_dir / parsed_args.cloud
+        self.testing = testing
+
+        os.makedirs(self.working_dir, exist_ok=True)
+
         for file_ in chain(code_files, config_files):
-            with open(working_dir / file_.path, "wb") as f:
+            with open(self.project_dir / file_.path, "wb") as f:
                 f.write(file_.decoded_content)
+
         super(TerraformDeployer, self).__init__(
-            working_dir=working_dir / parsed_args.cloud, terraform_bin_path=str(SETTINGS.TERRAFORM_BINARY_PATH)
+            working_dir=self.working_dir,
+            terraform_bin_path=str(SETTINGS.TERRAFORM_BINARY_PATH),
         )
-        self.cmd("get")  # get terraform modules
+
+        self.command("get")  # get terraform modules
         self.init()
-        # copy plugins to directory or create link
-        self.cmd("workspace select" + parsed_args.project_id)
+
+        self._create_workspace()
+
         self.current_state = self.get_state()
         self.previous_state = None
 
-    class UnexpectedResultError(Exception):
-        def __init__(self, result):
-            self.message = result
-
-    def get_plan(self, tf_vars=None, testing=False):
-        if tf_vars is None:
-            tf_vars = {}
-
-        if testing:
-            git_commit = "truncated_git_ref"
-            tf_vars = {
-                "gcp_project": "test-" + git_commit + "-" + str(time.hour) + str(time.minute),
-                "disable_project": True,
-            }
-        return self.plan(var=tf_vars)
+    def command(self, command, *args, **kwargs):
+        result = self.cmd(command, *args, **kwargs)
+        self._raise_if_bad_return_code(command, *result)
+        return result
 
     def get_state(self):
-        stdout = self.cmd("state pull")[1]
+        """
+        Fetches the current state.
+        """
+        result = self.command("state pull")
+        stdout = result[1]
         return json.loads(stdout) if stdout else {}
 
-    def run(self, testing=False, tf_vars={}):
-        if testing:
-            plan = self.get_plan(tf_vars, testing=True)
-        else:
-            plan = self.get_plan()
-        self.apply(skip_plan=True, var=tf_vars)
-        return self
+    def create_plan(self, destroy=False):
+        plan_file_name = "destroy_plan" if destroy else "plan"
+        plan_path = self.project_dir / plan_file_name
+        skip_delete = "true" if self.testing else "false"
 
-    def __tidy_up(self):
-        pass
+        plan_options = [
+            "-input=false",
+            f"-out={plan_path}",
+            f"-var=project_id={self.project_id}",
+            f"-var=project_name={self.project_id}",
+            f"-var=skip_delete={skip_delete}",
+        ]
 
-    def delete(self, project_id):
-        return_code, std_out, std_err = self.destroy(project_id)
-        if return_code is not 200:
-            return False, std_err
-        return True
+        if destroy:
+            plan_options.insert(0, "-destroy")
+
+        arguments = " ".join(plan_options)
+        self.command(f"plan {arguments}")
+
+        return plan_path
+
+    def run(self, plan=False):
+        """
+        Creates plan (or accepts existing) and then runs `terraform apply` command.
+        Not using `Terraform.apply`, because it automatically passes `-var-file` argument,
+        while plan already contain all variables.
+        """
+        state_before_apply = self.get_state()
+
+        plan = self.create_plan() if not plan else plan
+        apply_options = [
+            "-no-color",
+            "-input=false",
+            "-auto-approve=false",
+            str(plan),
+        ]
+        apply_command = f"apply {' '.join(apply_options)}"
+        self.command(apply_command)
+
+        self.previous_state = state_before_apply
+        self.current_state = self.get_state()
+
+    def delete(self):
+        self.run(self.create_plan(destroy=True))
 
     @staticmethod
-    def __retry_tf_apply():
-        pass
+    def _raise_if_bad_return_code(command, return_code, stdout, stderr):
+        if return_code == ERROR_RETURN_CODE:
+            raise TerraformCommandError(return_code, command, stdout, stderr)
 
-    @staticmethod
-    def __prepare_state_for_compare(state):
+    def _create_workspace(self):
         """
-        Since TerraformDeployer.tfstate differs from output of state pull,
-        we need clean both to be able to compare.
+        Check if there is existing workspace for current project,
+        and recreates it if so.
         """
-        keys_to_remove = ["tfstate_file", "serial"]
+        workspaces_list = self.command(f"workspace list")[1]
+        if self.project_id in workspaces_list:
+            self.command(f"workspace select default")
+            self.command(f"workspace delete -force {self.project_id}")
+        self.command(f"workspace new {self.project_id}")
+        self.command(f"workspace select {self.project_id}")
 
-        final_state = state.copy()
-        for key in keys_to_remove:
-            if key in final_state:
-                del final_state[key]
 
-        for resource in final_state.get("resources", []):
-            for instance in resource.get("instances", []):
-                attributes = instance.get("attributes")
-                if attributes["labels"] is None:
-                    attributes["labels"] = {}
+def _prepare_state_for_compare(state):
+    """
+    State obtained from `terraform state pull` can contain items
+    that differs from one deployment from another, so we should remove them
+    to compare states.
+    """
+    sanitized_state = state.copy()
 
-        return final_state
+    global_keys_to_remove = ["serial", "lineage"]
 
-    def assert_deployments_equal(self, comparative_deployment):
-        """
-        Compare the known state of the current environment to another
-        :param comparative_deployment:  dict: of state file for first
-            comparative_deployment
-        :return: boolean
-        """
-        comparative_deployment_state = self.__prepare_state_for_compare(comparative_deployment.tfstate.__dict__)
-        current_state = self.__prepare_state_for_compare(self.current_state)
+    for key in global_keys_to_remove:
+        sanitized_state.pop(key, None)
 
-        if current_state != comparative_deployment_state:
-            raise self.UnexpectedResultError(
-                f"Current state: {current_state}\nDeployment state: {comparative_deployment_state}"
-            )
+    # delete unique project_id from state
+    outputs = sanitized_state.get("outputs", {})
+    if outputs.get("project_id", {}) is not None:
+        outputs.get("project_id", {}).pop("value", None)
+
+    # delete unique attributes of resources
+    instance_attributes_keys_to_remove = [
+        "id",
+        "name",
+        "number",
+        "project_id",
+        "project",
+    ]
+    for resource in sanitized_state.get("resources", []):
+        for instance in resource.get("instances", []):
+            attributes = instance.get("attributes") or {}
+            for key in instance_attributes_keys_to_remove:
+                attributes.pop(key, None)
+
+    return sanitized_state
+
+
+def assert_deployments_equal(test_state, real_state):
+    """
+    Compare state of test deployment against state of real deployment
+    """
+    test_state = _prepare_state_for_compare(test_state)
+    real_state = _prepare_state_for_compare(real_state)
+
+    if test_state != real_state:
+        raise DifferentStatesError(
+            f"\nCurrent state:\n{test_state}\n\nDeployment state:\n{real_state}"
+        )
+
+
+def assert_deployment_deleted(state):
+    """
+    Deleted project's state does not contain outputs or resources keys.
+    """
+    if state and (state.get("outputs") or state.get("resources")):
+        DifferentStatesError(
+            f"\nProject was not deleted, current state:\n{state}"
+        )
 
 
 def deploy(parsed_args, code, config):
@@ -114,18 +198,22 @@ def deploy(parsed_args, code, config):
     :param parsed_args: object: which contains arguments required to run code
     :param code: list: of files containing deployment code
     :param config: list: of files containing deployment configuration
-    :return: boolean
     """
-    real_deploy = TerraformDeployer(parsed_args, code, config)
-    # test deploy
-    test_deploy = real_deploy.run(testing=True)
-    # compare test project state file against actual state file
-    test_deploy.read_state_file()
-    real_deploy.assert_deployments_equal(test_deploy)
-    # full deploy & destroy test project
-    full_deployment = threading.Thread(target=real_deploy.run)
-    test_deletion = threading.Thread(target=test_deploy.delete, args=(parsed_args.project_id,))
-    full_deployment.start()
-    test_deletion.start()
-    # validate
-    return real_deploy.assert_deployments_equal(real_deploy.previous_state)
+    test_deployer = TerraformDeployer(parsed_args, code, config, testing=True)
+    real_deployer = TerraformDeployer(parsed_args, code, config)
+
+    test_deployment = threading.Thread(target=test_deployer.run)
+    real_deployment = threading.Thread(target=real_deployer.run)
+    test_deployment_deletion = threading.Thread(target=test_deployer.delete)
+
+    test_deployment.run()
+    real_deployment.run()
+    assert_deployments_equal(
+        test_deployer.current_state, real_deployer.current_state
+    )
+
+    test_deployment_deletion.run()
+    assert_deployment_deleted(test_deployer.current_state)
+
+    print("Success!")
+    return True
