@@ -1,6 +1,6 @@
 ## Contributing
 
-Feel free to ask any questions in issues or on this [email](mailto:gareth@mesoform.com).
+Feel free to ask any questions in issues or on this [email](mailto:support@mesoform.com).
 
 ### Pull Request Process
 

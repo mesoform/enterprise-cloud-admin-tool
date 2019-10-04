@@ -86,4 +86,4 @@ Please read [CONTRIBUTING.md](https://github.com/mesoform/enterprise-cloud-admin
 
 ## License
 
-This project is licensed under the [Beerware License](https://gist.githubusercontent.com/azizshamim/660282/raw/46044b78fd6e814b8252294fc86ccb8bf6563031/Beerware%2520License)
+This project is licensed under the [MPL 2.0](https://www.mozilla.org/en-US/MPL/2.0/FAQ/)
