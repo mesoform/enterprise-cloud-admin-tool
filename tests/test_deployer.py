@@ -16,11 +16,6 @@ from deployer import (
 )
 
 
-@pytest.fixture(scope="session")
-def working_directory(tmpdir_factory):
-    return tmpdir_factory.mktemp("data")
-
-
 @pytest.fixture
 def terraform_deployer(
     mocker, working_directory, command_line_args, code_files, config_files
@@ -77,6 +72,7 @@ def test_get_state(terraform_deployer):
     assert terraform_deployer.get_state() == {}
 
 
+@pytest.mark.usefixtures("google_credentials")
 def test_create_plan(terraform_deployer):
     """
     Tests, that create_plan method creates plan file in project dir.
