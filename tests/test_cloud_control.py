@@ -11,16 +11,21 @@ def app_metrics_mock(mocker):
     return mocker.patch("cloud_control.reporter.stackdriver.AppMetrics")
 
 
-def test_deploy(
-    mocker, command_line_args, app_metrics_mock, google_credentials
-):
+@pytest.mark.usefixtures("app_metrics_mock")
+def test_deploy(mocker, command_line_args, sha256_hash, short_code_config_hash):
     deploy = mocker.patch("cloud_control.deploy")
-    mocker.patch("cloud_control.common")
+    common = mocker.patch("cloud_control.common")
+    common.get_hash_of_latest_commit.return_value = sha256_hash
 
     cloud_control = CloudControl(command_line_args)
 
     cloud_control.perform_command()
-    deploy.assert_called_once()
+    deploy.assert_called_once_with(
+        command_line_args,
+        common.get_files(),
+        common.get_files(),
+        short_code_config_hash,
+    )
     app_metrics_mock.return_value.send_metrics.assert_called_once()
 
 

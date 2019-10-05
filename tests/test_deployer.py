@@ -3,7 +3,7 @@ import os
 from uuid import uuid4
 from itertools import chain
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import Mock, call
 
 import pytest
 
@@ -135,10 +135,13 @@ def test_prepare_state_for_compare(project_state1, project_state2):
     ) == _prepare_state_for_compare(project_state2)
 
 
-def test_deploy(mocker, command_line_args, code_files, config_files):
+def test_deploy(
+    mocker, command_line_args, code_files, config_files, short_code_config_hash
+):
     """
-    Checks, that when `deploy` bein called, `TerraformDeployer.run` called
-    for two instances, and `TerraformDeployer.delete` called for test instance.
+    Checks, that when `deploy` being called:
+    1) `TerraformDeployer` instantiated twice.
+    2) `TerraformDeployer.run` called for two instances, and `TerraformDeployer.delete` called for test instance.
     """
     test_deployment = Mock()
     real_deployment = Mock()
@@ -148,7 +151,19 @@ def test_deploy(mocker, command_line_args, code_files, config_files):
 
     deployer = mocker.patch("deployer.TerraformDeployer")
     deployer.side_effect = [test_deployment, real_deployment]
-    deploy(command_line_args, code_files, config_files)
+    deploy(command_line_args, code_files, config_files, short_code_config_hash)
+
+    deployer.assert_has_calls(
+        [
+            call(
+                command_line_args,
+                code_files,
+                config_files,
+                short_code_config_hash,
+            ),
+            call(command_line_args, code_files, config_files),
+        ]
+    )
 
     test_deployment.run.assert_called_once()
     test_deployment.delete.assert_called_once()

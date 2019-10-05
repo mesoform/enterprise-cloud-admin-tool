@@ -26,18 +26,21 @@ class TerraformCommandError(TerraformError):
 
 
 class TerraformDeployer(Terraform):
-    def __init__(self, parsed_args, code_files, config_files, testing=False):
+    def __init__(
+        self, parsed_args, code_files, config_files, testing_prefix=None
+    ):
         self.project_id = (
-            f"testing-{parsed_args.project_id}"
-            if testing
+            f"{testing_prefix}-testing"
+            if testing_prefix
             else parsed_args.project_id
         )
+
         self.project_dir = SETTINGS.WORKING_DIR_BASE / self.project_id
 
         # working directory should be unique for each deployment to prevent
         # overlapping workspaces
         self.working_dir = self.project_dir / parsed_args.cloud
-        self.testing = testing
+        self.testing_prefix = testing_prefix
 
         os.makedirs(self.working_dir, exist_ok=True)
 
@@ -74,7 +77,7 @@ class TerraformDeployer(Terraform):
     def create_plan(self, destroy=False):
         plan_file_name = "destroy_plan" if destroy else "plan"
         plan_path = self.project_dir / plan_file_name
-        skip_delete = "true" if self.testing else "false"
+        skip_delete = "true" if self.testing_prefix else "false"
 
         plan_options = [
             "-input=false",
@@ -189,14 +192,15 @@ def assert_deployment_deleted(state):
         )
 
 
-def deploy(parsed_args, code, config):
+def deploy(parsed_args, code, config, testing_prefix=None):
     """
     deploy infrastructure using code and configuration supplied
     :param parsed_args: object: which contains arguments required to run code
     :param code: list: of files containing deployment code
     :param config: list: of files containing deployment configuration
+    :param testing_prefix: string: unique for code and config repos combination of short hashes
     """
-    test_deployer = TerraformDeployer(parsed_args, code, config, testing=True)
+    test_deployer = TerraformDeployer(parsed_args, code, config, testing_prefix)
     real_deployer = TerraformDeployer(parsed_args, code, config)
 
     test_deployment = threading.Thread(target=test_deployer.run)

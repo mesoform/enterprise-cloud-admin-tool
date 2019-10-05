@@ -316,3 +316,13 @@ def google_credentials(working_directory, monkeypatch):
     yield filepath
 
     os.remove(filepath)
+
+
+@pytest.fixture
+def sha256_hash():
+    return "cfe3246ba56244faf3f8e58fa2bca3dd21f83ae1"
+
+
+@pytest.fixture
+def short_code_config_hash(sha256_hash):
+    return f"{sha256_hash[:7]}-{sha256_hash[:7]}"
