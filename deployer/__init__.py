@@ -123,14 +123,11 @@ class TerraformDeployer(Terraform):
 
     def _create_workspace(self):
         """
-        Check if there is existing workspace for current project,
-        and recreates it if so.
+        Creates workspace if it's not exists and selects it.
         """
         workspaces_list = self.command(f"workspace list")[1]
-        if self.project_id in workspaces_list:
-            self.command(f"workspace select default")
-            self.command(f"workspace delete -force {self.project_id}")
-        self.command(f"workspace new {self.project_id}")
+        if self.project_id not in workspaces_list:
+            self.command(f"workspace new {self.project_id}")
         self.command(f"workspace select {self.project_id}")
 
 

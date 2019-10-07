@@ -1,3 +1,6 @@
+import os
+import json
+
 from collections import namedtuple
 
 import pytest
@@ -6,8 +9,24 @@ from cloud_control import ArgumentsParser
 
 
 @pytest.fixture(scope="session")
-def command_line_args():
-    return ArgumentsParser(["-ptestproject", "deploy", "--cloud", "gcp"]).args
+def working_directory(tmpdir_factory):
+    return tmpdir_factory.mktemp("data")
+
+
+@pytest.fixture(scope="session")
+def command_line_args(working_directory):
+    default_log_file = f"{working_directory.strpath}/enterprise_cloud_admin.log"
+
+    return ArgumentsParser(
+        [
+            "-ptestproject",
+            "--log-file",
+            default_log_file,
+            "deploy",
+            "--cloud",
+            "gcp",
+        ]
+    ).args
 
 
 @pytest.fixture(scope="session")
@@ -152,7 +171,11 @@ def project_state1():
                             "skip_delete": None,
                             "timeouts": None,
                         },
-                        "private": "123531261326231613263216132",
+                        "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2Jj"
+                        "N2M0YzAiOnsiY3JlYXRlIjoyNDAwMDAwMDAwMDAsImRl"
+                        "bGV0ZSI6MjQwMDAwMDAwMDAwLCJyZWFkIjoyNDAwMDAw"
+                        "MDAwMDAsInVwZGF0ZSI6MjQwMDAwMDAwMDAwfSwic2NoZ"
+                        "W1hX3ZlcnNpb24iOiIxIn0=",
                     }
                 ],
             },
@@ -171,7 +194,11 @@ def project_state1():
                             "services": ["compute.googleapis.com"],
                             "timeouts": None,
                         },
-                        "private": "123531261326231613263216132=",
+                        "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2Jj"
+                        "N2M0YzAiOnsiY3JlYXRlIjoyNDAwMDAwMDAwMDAsImRl"
+                        "bGV0ZSI6MjQwMDAwMDAwMDAwLCJyZWFkIjoyNDAwMDAw"
+                        "MDAwMDAsInVwZGF0ZSI6MjQwMDAwMDAwMDAwfSwic2NoZ"
+                        "W1hX3ZlcnNpb24iOiIxIn0=",
                         "depends_on": ["google_project.project"],
                     }
                 ],
@@ -215,7 +242,11 @@ def project_state2():
                             "skip_delete": None,
                             "timeouts": None,
                         },
-                        "private": "123531261326231613263216132=",
+                        "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2Jj"
+                        "N2M0YzAiOnsiY3JlYXRlIjoyNDAwMDAwMDAwMDAsImRl"
+                        "bGV0ZSI6MjQwMDAwMDAwMDAwLCJyZWFkIjoyNDAwMDAw"
+                        "MDAwMDAsInVwZGF0ZSI6MjQwMDAwMDAwMDAwfSwic2NoZ"
+                        "W1hX3ZlcnNpb24iOiIxIn0=",
                     }
                 ],
             },
@@ -234,7 +265,11 @@ def project_state2():
                             "services": ["compute.googleapis.com"],
                             "timeouts": None,
                         },
-                        "private": "123531261326231613263216132=",
+                        "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2Jj"
+                        "N2M0YzAiOnsiY3JlYXRlIjoyNDAwMDAwMDAwMDAsImRl"
+                        "bGV0ZSI6MjQwMDAwMDAwMDAwLCJyZWFkIjoyNDAwMDAw"
+                        "MDAwMDAsInVwZGF0ZSI6MjQwMDAwMDAwMDAwfSwic2NoZ"
+                        "W1hX3ZlcnNpb24iOiIxIn0=",
                         "depends_on": ["google_project.project"],
                     }
                 ],
@@ -253,3 +288,31 @@ def state_of_deleted_project():
         "outputs": {},
         "resources": [],
     }
+
+
+@pytest.fixture
+def google_credentials(working_directory, monkeypatch):
+    filename = "gcp_key.json"
+    credentials = json.dumps(
+        {
+            "type": "service_account",
+            "project_id": "",
+            "private_key_id": "",
+            "private_key": "",
+            "client_email": "",
+            "client_id": "",
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+            "client_x509_cert_url": "",
+        }
+    )
+    filepath = f"{working_directory.strpath}/{filename}"
+    with open(filepath, "w") as credentials_file:
+        credentials_file.write(credentials)
+
+    monkeypatch.setenv("GOOGLE_APPLICATION_CREDENTIALS", filepath)
+
+    yield filepath
+
+    os.remove(filepath)

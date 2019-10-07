@@ -7,11 +7,13 @@ from cloud_control import ArgumentsParser, CloudControl, CloudControlException
 
 @pytest.fixture
 def app_metrics_mock(mocker):
-    mocker.patch("cloud_control.reporter.stackdriver.AppMetrics")
+    mocker.patch("cloud_control.common.GcpAuth")
+    return mocker.patch("cloud_control.reporter.stackdriver.AppMetrics")
 
 
-@pytest.mark.usefixtures("app_metrics_mock")
-def test_deploy(mocker, command_line_args):
+def test_deploy(
+    mocker, command_line_args, app_metrics_mock, google_credentials
+):
     deploy = mocker.patch("cloud_control.deploy")
     mocker.patch("cloud_control.common")
 
@@ -19,10 +21,10 @@ def test_deploy(mocker, command_line_args):
 
     cloud_control.perform_command()
     deploy.assert_called_once()
+    app_metrics_mock.return_value.send_metrics.assert_called_once()
 
 
-@pytest.mark.usefixtures("app_metrics_mock")
-def test_config(mocker, command_line_args):
+def test_config(mocker, command_line_args, app_metrics_mock):
     setup = mocker.patch("cloud_control.setup")
 
     command_line_args.command = "config"
@@ -31,6 +33,7 @@ def test_config(mocker, command_line_args):
 
     cloud_control.perform_command()
     setup.assert_called_once()
+    app_metrics_mock.return_value.send_metrics.assert_called_once()
 
 
 @pytest.mark.usefixtures("app_metrics_mock")
