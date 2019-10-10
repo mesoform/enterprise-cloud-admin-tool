@@ -154,8 +154,17 @@ class CloudControl:
             self.args.cloud,
             self.args.config_version,
         )
+
+        config_hash = common.get_hash_of_latest_commit(
+            config_org, self.args.project_id, self.args.config_version
+        )
+        code_hash = common.get_hash_of_latest_commit(
+            code_org, self.args.project_id, self.args.config_version
+        )
+        testing_prefix = f"{config_hash[:7]}-{code_hash[:7]}"
+
         # check(self.args.cloud, config_files)
-        deploy(self.args, code_files, config_files)
+        deploy(self.args, code_files, config_files, testing_prefix)
 
     def _config(self):
         setup(self.args)

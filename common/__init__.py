@@ -214,6 +214,20 @@ def get_files(org, repo_name, directory, version):
     return repo.get_dir_contents(directory, version)
 
 
+def get_hash_of_latest_commit(org, repo_name, branch):
+    """
+    Get sha256 hash of latest commit in some branch of the repo.
+    :param org: object: of :class:`github.Organization.Organization`
+    :param repo_name: string: of name of the organisational repository where
+     files are located
+    :param branch: string : name of the git branch
+    :return: sha256 hash string
+    """
+    repo = get_repo(org, repo_name)
+    branch = repo.get_branch(branch)
+    return branch.commit.sha
+
+
 def valid_project_id_format(project_id):
     if not re.match(SETTINGS.VALID_PROJECT_ID_FORMAT, project_id):
         raise ProjectIdFormatError(
