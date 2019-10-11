@@ -1,13 +1,10 @@
 import argparse
 from datetime import datetime
 
-from google.api.metric_pb2 import MetricDescriptor
-
 import common
 import reporter.local
 
 from deployer import deploy
-from checker import check
 from code_control import setup, TemplatesArgAction
 
 from settings import SETTINGS
@@ -134,22 +131,23 @@ class CloudControl:
         finally:
             self._log.info("finished " + self.args.command + " run")
             self._app_metrics.end_time = datetime.utcnow()
+
+            deploy_taken = str(
+                (
+                    self._app_metrics.end_time - self._app_metrics._start_time
+                ).seconds
+            )
             self._app_metrics.metrics_set_list = [
                 {
                     "metric_name": "deployment_counter",
                     "labels": {
                         "deploy_start": str(self._app_metrics._start_time),
                         "deploy_end": str(self._app_metrics.end_time),
-                        "deploy_taken": str(
-                            (
-                                self._app_metrics.end_time
-                                - self._app_metrics._start_time
-                            ).seconds
-                        ),
+                        "deploy_taken": deploy_taken,
                         "command": self.args.command,
                     },
-                    "metric_kind": MetricDescriptor.GAUGE,
-                    "value_type": MetricDescriptor.BOOL,
+                    "metric_kind": "gauge",
+                    "value_type": "bool",
                     "value": result,
                 }
             ]
@@ -172,7 +170,7 @@ class CloudControl:
         # and operating requirements. The code repo should be public.
         code_files = common.get_files(
             code_org,
-            self.args.project_id,
+            "tf-inf-code",
             self.args.cloud,
             self.args.config_version,
         )
@@ -181,12 +179,11 @@ class CloudControl:
             config_org, self.args.project_id, self.args.config_version
         )
         code_hash = common.get_hash_of_latest_commit(
-            code_org, self.args.project_id, self.args.config_version
+            code_org, "tf-inf-code", self.args.config_version
         )
-        testing_prefix = f"{config_hash[:7]}-{code_hash[:7]}"
+        testing_ending = f"{config_hash[:7]}-{code_hash[:7]}"
 
-        # check(self.args.cloud, config_files)
-        return deploy(self.args, code_files, config_files, testing_prefix)
+        return deploy(self.args, code_files, config_files, testing_ending)
 
     def _config(self):
         return setup(self.args)
