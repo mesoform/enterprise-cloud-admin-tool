@@ -7,8 +7,72 @@ from google.auth.credentials import Credentials
 from google.cloud.monitoring_v3.types import NotificationChannel, TimeSeries
 
 
-class MissingMetricSetValue(Exception):
+class SerializationException(Exception):
     pass
+
+
+class StackdriverModuleException(Exception):
+    pass
+
+
+class MessageSerializer:
+    """
+    Performs serialization of raw metrics data to constructed message, that
+    can be taken and processed by stackdriver reporting backend.
+    """
+
+    metric_type_value_types = (
+        "int64",
+        "bool",
+        "double",
+        "string",
+        "distribution",
+    )
+    metric_kinds = ("gauge",)
+
+    descriptors_mapping = {
+        "gauge": MetricDescriptor.GAUGE,
+        "int64": MetricDescriptor.INT64,
+        "bool": MetricDescriptor.BOOL,
+        "double": MetricDescriptor.DOUBLE,
+        "string": MetricDescriptor.STRING,
+        "distribution": MetricDescriptor.DISTRIBUTION,
+    }
+
+    def deserialize(self, raw_data):
+        self._validate_raw_data(raw_data)
+
+        deserialized = raw_data.copy()
+
+        deserialized["metric_kind"] = self.descriptors_mapping[
+            deserialized["metric_kind"]
+        ]
+        deserialized["value_type"] = self.descriptors_mapping[
+            deserialized["value_type"]
+        ]
+
+        return deserialized
+
+    def _validate_raw_data(self, raw_data):
+        if not isinstance(raw_data, dict):
+            raise SerializationException(
+                f"Wrong data, should be dict: {raw_data}"
+            )
+
+        if raw_data["value_type"] not in self.metric_type_value_types:
+            raise SerializationException(
+                f"Wrong value type: {raw_data['value_type']}, should be one of {self.metric_type_value_types}"
+            )
+
+        if raw_data["metric_kind"] not in self.metric_kinds:
+            raise SerializationException(
+                f"Wrong metric kind: {raw_data['metric_kind']}, should be one of {self.metric_kinds}"
+            )
+
+    def _is_value_valid(self, value):
+        """
+        Here should be some validation of raw metric data value.
+        """
 
 
 class Metrics(object):
@@ -20,6 +84,7 @@ class Metrics(object):
         metrics_client=MetricServiceClient,
         metrics_type=TimeSeries,
         complete_message=None,
+        serializer_class=MessageSerializer,
     ):
         self._monitoring_project: str = monitoring_project
         self._monitoring_credentials: Credentials = monitoring_credentials
@@ -27,6 +92,7 @@ class Metrics(object):
         self._metrics_client = metrics_client
         self._metrics_type = metrics_type
         self._complete_message = complete_message
+        self._serializer = serializer_class()
 
     @property
     def complete_message(self):
@@ -77,11 +143,30 @@ class Metrics(object):
 
     @property
     def metrics_set_list(self):
+        """
+        metrics_set_list is a list of tuples in the form of:
+        (matric_name, metric_labels, value_type, metric_value)
+        value type can be: int64, bool, double, string, distribution
+
+        For example:
+        ("runtime", {"type": "seconds"}, "int", 5})
+        :return: list
+        """
         return self._metrics_set_list
 
     @metrics_set_list.setter
-    def metrics_set_list(self, value: list):
-        self._metrics_set_list = value
+    def metrics_set_list(self, metrics_sets: list):
+        """
+        takes a list of tuples in the format described above
+        :param value: list of dicts
+        """
+        self._metrics_set_list = [
+            self._serializer.deserialize(metric) for metric in metrics_sets
+        ]
+
+    def add_metric_set(self, metrics_set):
+        metric_set = self._serializer.deserialize(metrics_set)
+        self._metrics_set_list.append(metric_set)
 
     def initialize_base_metrics_message(self, metric_name, labels):
         pass
@@ -93,10 +178,11 @@ class Metrics(object):
         pass
 
 
-class TimeSeriesMetrics(Metrics):
+class AppMetrics(Metrics):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._start_time = None
+        self._start_time = datetime.utcnow()
+        self._end_time = None
 
     def initialize_base_metrics_message(
         self,
@@ -124,53 +210,49 @@ class TimeSeriesMetrics(Metrics):
     def add_data_points_to_metric_message(self, message: TimeSeries, value):
         """
         takes an initialized TimeSeries Protobuf message object and adds data_point_value with the
-            end_time as now()
+        end_time as now()
         :param message: TimeSeries object
-        :param data_point_value: value to add
+        :param value: value to add to data point
         :return: ::google.cloud.monitoring_v3.types.TimeSeries::
         """
-        data_point = message.points.add()
-        if message.value_type == MetricDescriptor.BOOL:
-            data_point.value.bool_value = value
-        elif message.value_type == MetricDescriptor.INT64:
-            data_point.value.int64_value = value
-        elif message.value_type == MetricDescriptor.DOUBLE:
-            data_point.value.double_value = value
+        message_value_attributes = {
+            MetricDescriptor.BOOL: "bool_value",
+            MetricDescriptor.INT64: "int64_value",
+            MetricDescriptor.DOUBLE: "double_value",
+        }
+        attribute = message_value_attributes.get(message.value_type)
+        if not attribute:
+            raise StackdriverModuleException(
+                f"Unexpected value type: {message.value_type}"
+            )
 
-        data_point.interval.end_time.FromDatetime(datetime.utcnow())
+        data_point = message.points.add()
+        setattr(data_point.value, attribute, value)
+
+        if self._start_time and message.metric_kind != MetricDescriptor.GAUGE:
+            data_point.interval.start_time.FromDatetime(self._start_time)
+
+        end_time = self.end_time if self.end_time else datetime.utcnow()
+
+        data_point.interval.end_time.FromDatetime(end_time)
         return message
 
     def send_metrics(self):
-        time_series_list = list()
-        try:
-            for metrics_set in self.metrics_set_list:
-                base_metrics = self.initialize_base_metrics_message(
-                    metrics_set["metric_name"],
-                    metrics_set["labels"],
-                    metrics_set["metric_kind"],
-                    metrics_set["value_type"],
-                )
-                time_series_list.append(
-                    self.add_data_points_to_metric_message(
-                        base_metrics, metrics_set["value"]
-                    )
-                )
-        except IndexError:
-            raise MissingMetricSetValue(
-                "missing element from metric set. Needs to be tuple:"
-                "(metric_name, {label_name: label_value}, metric_value)"
+        time_series_list = []
+
+        for metrics_set in self.metrics_set_list:
+            value = metrics_set.pop("value")
+
+            base_metrics = self.initialize_base_metrics_message(**metrics_set)
+            time_series = self.add_data_points_to_metric_message(
+                base_metrics, value
             )
+
+            time_series_list.append(time_series)
 
         self.metrics_client.create_time_series(
             self.monitoring_project_path, time_series_list
         )
-
-
-class AppMetrics(TimeSeriesMetrics):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self._start_time = datetime.utcnow()
-        self._end_time = None
 
     @property
     def end_time(self):

@@ -27,11 +27,11 @@ class TerraformCommandError(TerraformError):
 
 class TerraformDeployer(Terraform):
     def __init__(
-        self, parsed_args, code_files, config_files, testing_prefix=None
+        self, parsed_args, code_files, config_files, testing_ending=None
     ):
         self.project_id = (
-            f"{testing_prefix}-testing"
-            if testing_prefix
+            f"testing-{testing_ending}"
+            if testing_ending
             else parsed_args.project_id
         )
 
@@ -40,7 +40,7 @@ class TerraformDeployer(Terraform):
         # working directory should be unique for each deployment to prevent
         # overlapping workspaces
         self.working_dir = self.project_dir / parsed_args.cloud
-        self.testing_prefix = testing_prefix
+        self.testing_ending = testing_ending
 
         os.makedirs(self.working_dir, exist_ok=True)
 
@@ -77,7 +77,7 @@ class TerraformDeployer(Terraform):
     def create_plan(self, destroy=False):
         plan_file_name = "destroy_plan" if destroy else "plan"
         plan_path = self.project_dir / plan_file_name
-        skip_delete = "true" if self.testing_prefix else "false"
+        skip_delete = "true" if self.testing_ending else "false"
 
         plan_options = [
             "-input=false",
@@ -192,15 +192,15 @@ def assert_deployment_deleted(state):
         )
 
 
-def deploy(parsed_args, code, config, testing_prefix=None):
+def deploy(parsed_args, code, config, testing_ending=None):
     """
     deploy infrastructure using code and configuration supplied
     :param parsed_args: object: which contains arguments required to run code
     :param code: list: of files containing deployment code
     :param config: list: of files containing deployment configuration
-    :param testing_prefix: string: unique for code and config repos combination of short hashes
+    :param testing_ending: string: unique for code and config repos combination of short hashes
     """
-    test_deployer = TerraformDeployer(parsed_args, code, config, testing_prefix)
+    test_deployer = TerraformDeployer(parsed_args, code, config, testing_ending)
     real_deployer = TerraformDeployer(parsed_args, code, config)
 
     test_deployment = threading.Thread(target=test_deployer.run)

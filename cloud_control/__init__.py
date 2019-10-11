@@ -170,7 +170,7 @@ class CloudControl:
         # and operating requirements. The code repo should be public.
         code_files = common.get_files(
             code_org,
-            "tf-inf-code",
+            self.args.project_id,
             self.args.cloud,
             self.args.config_version,
         )
@@ -179,7 +179,7 @@ class CloudControl:
             config_org, self.args.project_id, self.args.config_version
         )
         code_hash = common.get_hash_of_latest_commit(
-            code_org, "tf-inf-code", self.args.config_version
+            code_org, self.args.project_id, self.args.config_version
         )
         testing_ending = f"{config_hash[:7]}-{code_hash[:7]}"
 

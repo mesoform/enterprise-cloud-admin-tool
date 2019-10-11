@@ -11,7 +11,13 @@ def app_metrics_mock(mocker):
     return mocker.patch("cloud_control.reporter.stackdriver.AppMetrics")
 
 
-def test_deploy(mocker, command_line_args, sha256_hash, short_code_config_hash, app_metrics_mock):
+def test_deploy(
+    mocker,
+    command_line_args,
+    sha256_hash,
+    short_code_config_hash,
+    app_metrics_mock,
+):
     deploy = mocker.patch("cloud_control.deploy")
     common = mocker.patch("cloud_control.common")
     common.get_hash_of_latest_commit.return_value = sha256_hash
