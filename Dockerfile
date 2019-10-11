@@ -5,7 +5,7 @@ ENV PYTHONUNBUFFERED 1
 ENV APP_DIR "/home/user/app"
 ENV PYTHONPATH "$APP_DIR"
 
-ENV GOOGLE_APPLICATION_CREDENTIALS "/home/user/app/resources/gcp_key.json"
+ENV GOOGLE_APPLICATION_CREDENTIALS "$APP_DIR/resources/gcp_key.json"
 
 # Version of used terraform binary
 ENV TFVER "0.12.10"
@@ -37,6 +37,6 @@ RUN wget $TFURL -O terraform_bin.zip
 RUN unzip terraform_bin.zip -d ${APP_DIR}
 
 # Copy your gcp service account key
-COPY ./resources/gcp_key.json /home/user/app/resources/
+COPY ./resources/gcp_key.json $APP_DIR/resources/
 
 ENTRYPOINT pipenv shell
