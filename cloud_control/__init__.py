@@ -110,6 +110,31 @@ class CloudControl:
             metrics_set_list=[],
         )
 
+    def _log_and_send_metrics(self, command, command_result):
+        self._log.info("finished " + command + " run")
+        self._app_metrics.end_time = datetime.utcnow()
+
+        deploy_taken = str(
+            (
+                    self._app_metrics.end_time - self._app_metrics._start_time
+            ).seconds
+        )
+        self._app_metrics.metrics_set_list = [
+            {
+                "metric_name": "deployment_counter",
+                "labels": {
+                    "deploy_start": str(self._app_metrics._start_time),
+                    "deploy_end": str(self._app_metrics.end_time),
+                    "deploy_taken": deploy_taken,
+                    "command": self.args.command,
+                },
+                "metric_kind": "gauge",
+                "value_type": "bool",
+                "value": command_result,
+            }
+        ]
+        self._app_metrics.send_metrics()
+
     def perform_command(self):
         """
         Checks that passed command implemented in entry point class,
@@ -129,29 +154,7 @@ class CloudControl:
         try:
             result = command()
         finally:
-            self._log.info("finished " + self.args.command + " run")
-            self._app_metrics.end_time = datetime.utcnow()
-
-            deploy_taken = str(
-                (
-                    self._app_metrics.end_time - self._app_metrics._start_time
-                ).seconds
-            )
-            self._app_metrics.metrics_set_list = [
-                {
-                    "metric_name": "deployment_counter",
-                    "labels": {
-                        "deploy_start": str(self._app_metrics._start_time),
-                        "deploy_end": str(self._app_metrics.end_time),
-                        "deploy_taken": deploy_taken,
-                        "command": self.args.command,
-                    },
-                    "metric_kind": "gauge",
-                    "value_type": "bool",
-                    "value": result,
-                }
-            ]
-            self._app_metrics.send_metrics()
+            self._log_and_send_metrics(self.args.command, result)
 
     def _deploy(self):
         self._log.info("Starting deployment")
