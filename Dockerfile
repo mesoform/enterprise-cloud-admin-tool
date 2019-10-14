@@ -36,7 +36,4 @@ RUN pipenv install --dev
 RUN wget $TFURL -O terraform_bin.zip
 RUN unzip terraform_bin.zip -d ${APP_DIR}
 
-# Copy your gcp service account key
-COPY ./resources/gcp_key.json $APP_DIR/resources/
-
 ENTRYPOINT pipenv shell
