@@ -3,14 +3,14 @@ import os
 from uuid import uuid4
 from itertools import chain
 from pathlib import Path
-from unittest.mock import Mock, call
+from unittest.mock import Mock, PropertyMock, call, patch
 
 import pytest
 
 from deployer import (
     deploy,
     _prepare_state_for_compare,
-    DifferentStatesError,
+    WrongStateError,
     TerraformDeployer,
     TerraformCommandError,
 )
@@ -142,15 +142,28 @@ def test_deploy(
     Checks, that when `deploy` being called:
     1) `TerraformDeployer` instantiated twice.
     2) `TerraformDeployer.run` called for two instances, and `TerraformDeployer.delete` called for test instance.
+    3) No errors raised
     """
     test_deployment = Mock()
     real_deployment = Mock()
 
-    test_deployment.current_state = {"serial": 1, "lineage": str(uuid4())}
-    real_deployment.current_state = {"serial": 2, "lineage": str(uuid4())}
+    test_deployment.current_state = {
+        "serial": 1,
+        "lineage": str(uuid4()),
+        "some_key": 123,
+    }
+    # since real_deploy changes it's state twice, we use PropertyMock here to return different
+    # state per __get__ invocation
+    type(real_deployment).current_state = PropertyMock(
+        side_effect=[
+            {},
+            {"serial": 2, "lineage": str(uuid4()), "some_key": 123},
+        ]
+    )
 
     deployer = mocker.patch("deployer.TerraformDeployer")
     deployer.side_effect = [test_deployment, real_deployment]
+
     deploy(command_line_args, code_files, config_files, short_code_config_hash)
 
     deployer.assert_has_calls(
@@ -170,24 +183,40 @@ def test_deploy(
     real_deployment.run.assert_called_once()
 
 
+@pytest.mark.parametrize(
+    "test_state, real_state",
+    [
+        (
+            {"serial": 1, "lineage": str(uuid4())},
+            {"serial": 2, "lineage": str(uuid4())},
+        ),
+        (
+            {"serial": 1, "lineage": str(uuid4()), "same_key": 123},
+            {"serial": 2, "lineage": str(uuid4()), "same_key": 123},
+        ),
+        (
+            {"serial": 1, "lineage": str(uuid4())},
+            {"serial": 2, "lineage": str(uuid4()), "different_key": 123},
+        ),
+    ],
+)
 def test_deploy_different_states(
-    mocker, command_line_args, code_files, config_files
+    mocker, command_line_args, code_files, config_files, test_state, real_state
 ):
     """
-    Checks that state of deployer instance changes from deploy to deploy.
+    Checks that wrong state leads to wrong state error.
+    First case: state of test deployment equal to actual prod state, so we don't neet to deploy.
+    Second case: same as first, but state contains keys, that are not cleaned by `_prepare_state_for_compare` function
+    Third case: after prod deployment, if states different, then something gone wrong.
     """
     test_deployment = Mock()
     real_deployment = Mock()
 
-    test_deployment.current_state = {"serial": 1, "lineage": str(uuid4())}
-    real_deployment.current_state = {
-        "serial": 2,
-        "lineage": str(uuid4()),
-        "different_element": True,
-    }
+    test_deployment.current_state = test_state
+    real_deployment.current_state = real_state
 
     deployer = mocker.patch("deployer.TerraformDeployer")
     deployer.side_effect = [test_deployment, real_deployment]
 
-    with pytest.raises(DifferentStatesError):
+    with pytest.raises(WrongStateError):
         deploy(command_line_args, code_files, config_files)
