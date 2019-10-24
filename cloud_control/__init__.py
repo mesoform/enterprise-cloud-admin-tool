@@ -5,6 +5,7 @@ import common
 import reporter.local
 
 from deployer import deploy
+
 # from checker import check
 from code_control import setup, TemplatesArgAction
 
@@ -115,23 +116,26 @@ class CloudControl:
         self._log.info("finished " + command + " run")
         self._app_metrics.end_time = datetime.utcnow()
 
-        deploy_taken = str(
-            (
-                    self._app_metrics.end_time - self._app_metrics._start_time
-            ).seconds
-        )
         self._app_metrics.metrics_set_list = [
             {
-                "metric_name": "deployment_counter",
+                "metric_name": "deployment_time",
                 "labels": {
-                    "deploy_start": str(self._app_metrics._start_time),
-                    "deploy_end": str(self._app_metrics.end_time),
-                    "deploy_taken": deploy_taken,
+                    "result": "success" if command_result else "failure",
                     "command": self.args.command,
                 },
                 "metric_kind": "gauge",
-                "value_type": "bool",
-                "value": command_result,
+                "value_type": "double",
+                "value": self._app_metrics.app_runtime.total_seconds()
+            },
+            {
+                "metric_name": "total_deployments",
+                "labels": {
+                    "result": "success" if command_result else "failure",
+                    "command": self.args.command,
+                },
+                "metric_kind": "cumulative",
+                "value_type": "int64",
+                "value": 1
             }
         ]
         self._app_metrics.send_metrics()

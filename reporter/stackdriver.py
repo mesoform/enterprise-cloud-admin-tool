@@ -21,17 +21,12 @@ class MessageSerializer:
     can be taken and processed by stackdriver reporting backend.
     """
 
-    metric_type_value_types = (
-        "int64",
-        "bool",
-        "double",
-        "string",
-        "distribution",
-    )
-    metric_kinds = ("gauge",)
-
-    descriptors_mapping = {
+    metric_kinds = {
         "gauge": MetricDescriptor.GAUGE,
+        "cumulative": MetricDescriptor.CUMULATIVE,
+    }
+
+    value_types = {
         "int64": MetricDescriptor.INT64,
         "bool": MetricDescriptor.BOOL,
         "double": MetricDescriptor.DOUBLE,
@@ -44,10 +39,10 @@ class MessageSerializer:
 
         deserialized = raw_data.copy()
 
-        deserialized["metric_kind"] = self.descriptors_mapping[
+        deserialized["metric_kind"] = self.metric_kinds[
             deserialized["metric_kind"]
         ]
-        deserialized["value_type"] = self.descriptors_mapping[
+        deserialized["value_type"] = self.value_types[
             deserialized["value_type"]
         ]
 
@@ -59,14 +54,16 @@ class MessageSerializer:
                 f"Wrong data, should be dict: {raw_data}"
             )
 
-        if raw_data["value_type"] not in self.metric_type_value_types:
-            raise SerializationException(
-                f"Wrong value type: {raw_data['value_type']}, should be one of {self.metric_type_value_types}"
-            )
-
         if raw_data["metric_kind"] not in self.metric_kinds:
             raise SerializationException(
-                f"Wrong metric kind: {raw_data['metric_kind']}, should be one of {self.metric_kinds}"
+                f"Wrong metric kind: {raw_data['metric_kind']},"
+                f"should be one of {list(self.metric_kinds.keys())}"
+            )
+
+        if raw_data["value_type"] not in self.value_types:
+            raise SerializationException(
+                f"Wrong value type: {raw_data['value_type']},"
+                f"should be one of {list(self.value_types.keys())}"
             )
 
     def _is_value_valid(self, value):
@@ -261,3 +258,7 @@ class AppMetrics(Metrics):
     @end_time.setter
     def end_time(self, value):
         self._end_time = value
+
+    @property
+    def app_runtime(self):
+        return self._end_time - self._start_time
