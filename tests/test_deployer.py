@@ -3,7 +3,7 @@ import os
 from uuid import uuid4
 from itertools import chain
 from pathlib import Path
-from unittest.mock import Mock, PropertyMock, call, patch
+from unittest.mock import Mock, PropertyMock, call
 
 import pytest
 
