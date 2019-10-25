@@ -26,7 +26,7 @@ some Github organization.
 
 5) You must have existing project on google cloud platform, that will used as monitoring namespace.
 
-    This project must have service account attached, with `Monitorin Metric Writer` role assigned to this profile.
+    This project must have service account attached, with `Monitoring Metric Writer` role assigned to this profile.
     So, just switch to your monitoring project, go to `IAM` menu, and add service account as a member with this role.
 
 6) You must create, export and save your GCP service account private key in `json` format.
