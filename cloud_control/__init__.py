@@ -125,18 +125,18 @@ class CloudControl:
                 },
                 "metric_kind": "gauge",
                 "value_type": "double",
-                "value": self._app_metrics.app_runtime.total_seconds()
+                "value": self._app_metrics.app_runtime.total_seconds(),
             },
             {
-                "metric_name": "total_deployments",
+                "metric_name": "deployments_rate",
                 "labels": {
                     "result": "success" if command_result else "failure",
                     "command": self.args.command,
                 },
                 "metric_kind": "cumulative",
                 "value_type": "int64",
-                "value": 1
-            }
+                "value": 1,
+            },
         ]
         self._app_metrics.send_metrics()
 
