@@ -188,6 +188,16 @@ def assert_deployments_not_equal(test_state, real_state):
         raise WrongStateError(f"\nStates are equal:\n{test_state}")
 
 
+def assert_project_id_did_not_change(project_id, state):
+    outputs = state.get("outputs", {})
+    if outputs.get("project_id", {}) is not None:
+        project_id_from_state = outputs.get("project_id", {}).get("value")
+        if project_id_from_state and project_id != project_id_from_state:
+            raise WrongStateError(
+                f"Project id from state: {project_id_from_state} differs from given: {project_id}"
+            )
+
+
 def assert_deployment_deleted(state):
     """
     Deleted project's state does not contain outputs or resources keys.
@@ -212,11 +222,13 @@ def deploy(parsed_args, code, config, testing_ending=None):
     test_deployment_deletion = threading.Thread(target=test_deployer.delete)
 
     test_deployment.run()
+    assert_project_id_did_not_change(test_deployer.project_id, test_deployer.current_state)
     assert_deployments_not_equal(
         test_deployer.current_state, real_deployer.current_state
     )
 
     real_deployment.run()
+    assert_project_id_did_not_change(real_deployer.project_id, real_deployer.current_state)
     assert_deployments_equal(
         test_deployer.current_state, real_deployer.current_state
     )

@@ -158,6 +158,7 @@ def test_deploy(
         side_effect=[
             {},
             {"serial": 2, "lineage": str(uuid4()), "some_key": 123},
+            {"serial": 2, "lineage": str(uuid4()), "some_key": 123},
         ]
     )
 
