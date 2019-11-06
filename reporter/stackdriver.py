@@ -4,7 +4,7 @@ from google.api.metric_pb2 import MetricDescriptor
 from google.cloud.monitoring_v3 import MetricServiceClient
 from google.auth.credentials import Credentials
 
-from google.cloud.monitoring_v3.types import NotificationChannel, TimeSeries
+from google.cloud.monitoring_v3.types import TimeSeries
 
 
 class SerializationException(Exception):
@@ -33,6 +33,8 @@ class MessageSerializer:
         "string": MetricDescriptor.STRING,
         "distribution": MetricDescriptor.DISTRIBUTION,
     }
+
+    units = ("s", "min", "h", "d")
 
     def deserialize(self, raw_data):
         self._validate_raw_data(raw_data)
@@ -64,6 +66,12 @@ class MessageSerializer:
             raise SerializationException(
                 f"Wrong value type: {raw_data['value_type']},"
                 f"should be one of {list(self.value_types.keys())}"
+            )
+
+        if "unit" in raw_data and raw_data["unit"] not in self.units:
+            raise SerializationException(
+                f"Wrong unit: {raw_data['unit']},"
+                f"should be one of {self.units}"
             )
 
     def _is_value_valid(self, value):
@@ -187,6 +195,7 @@ class AppMetrics(Metrics):
         labels: dict,
         metric_kind=MetricDescriptor.GAUGE,
         value_type=MetricDescriptor.INT64,
+        unit=None,
     ) -> TimeSeries:
         """
         creates an TimeSeries metrics object called metric_name and with labels
@@ -194,11 +203,26 @@ class AppMetrics(Metrics):
         :param labels: metric labels to add
         :param metric_kind: the kind of measurement. It describes how the data is reported
         :param value_type: Type of metric value
+        :param unit: The unit in which the metric value is reported.
         :return: ::google.cloud.monitoring_v3.types.TimeSeries::
         """
+        metric_descriptor_values = {
+            "metric_kind": metric_kind,
+            "value_type": value_type,
+            "type": f"custom.googleapis.com/{metric_name}",
+        }
+        if unit is not None:
+            metric_descriptor_values["unit"] = unit
+
+        self.metrics_client.create_metric_descriptor(
+            name=self.monitoring_project_path,
+            metric_descriptor=MetricDescriptor(**metric_descriptor_values),
+        )
+
         series = self.metrics_type(
             metric_kind=metric_kind, value_type=value_type
         )
+
         series.resource.type = "global"
         series.metric.type = f"custom.googleapis.com/{metric_name}"
         series.metric.labels.update(labels)

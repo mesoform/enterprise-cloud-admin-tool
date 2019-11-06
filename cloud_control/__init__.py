@@ -136,7 +136,8 @@ class CloudControl:
                 "metric_kind": "cumulative",
                 "value_type": "int64",
                 "value": 1,
-            },
+                "unit": "h",
+            }
         ]
         self._app_metrics.send_metrics()
 
