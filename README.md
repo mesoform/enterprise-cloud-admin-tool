@@ -104,10 +104,11 @@ some repo of your organization account. To do so, at first, you must supply mini
 ```shell script
 nano resources/templates/gcp_project_settings.auto.tfvars.json
 ```
-In this file, you should set unique `project_id`.
+In this file, you should set unique `project_id` ([project creation docs](https://cloud.google.com/resource-manager/docs/creating-managing-projects)).
 Be aware, that it's unique across whole GCP platform, even six month after deletion.
 So, if someone already have project with your id, you will receive unclear error.
-Valid `billing_id` also mandatory.
+Valid `billing_id` also mandatory ([billing docs](https://cloud.google.com/billing/docs/how-to/modify-project)).
+
 
 Now you able to push variables and infrastructure code on VCS:
 ```shell script
