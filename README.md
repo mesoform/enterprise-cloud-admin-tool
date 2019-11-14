@@ -12,8 +12,15 @@ These instructions will get you an environment, ready for `enterprise-cloud-admi
 
 ### Prerequisites
 
-1) You need to [download](https://www.terraform.io/downloads.html) and extract `terraform` binary
-for your platform.
+1) You should have [terraform](https://www.terraform.io/downloads.html) in your `PATH` environment variable.
+
+    For example, you can download terraform and extract it to `/usr/local/bin`.
+
+    Also, you can create make `tf_bin` directory right where you are, copy `terraform` into this directory, and run
+    `export PATH=$PATH:$PWD/tf_bin`.
+
+    Official Terraform documentation points [here](https://stackoverflow.com/questions/14637979/how-to-permanently-set-path-on-linux-unix) for additional instructions. 
+
 2) Your platform should have installed [pipenv](https://github.com/pypa/pipenv).
 3) You must have access token of your Github account, and this account should be admin of
 some Github organization.
