@@ -128,6 +128,12 @@ And perform test deployment on GCP:
 ./cloudctl -p <project id> -o <github organization name> -O <github organization name> --key-file resources/gcp_service_account_key.json --vcs-token <github token> --monitoring-namespace <monitoring project id> deploy --cloud gcp
 ```
 
+Where:
+ - `project id` — id of project, that will be created.
+ - `github organization name` — name of organization, that holds repos with code/config.
+ - `github token` — you developer's github token, that you have obtained in prerequisites section.
+ - `monitoring project id` — id of existing monitoring project. You should have one if followed prerequisites section.
+
 After that, you should receive success message in console, and metrics in your GCP monitoring project workspace.
 
 
