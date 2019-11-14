@@ -6,8 +6,6 @@ from pathlib import Path
 # ############## Common settings #############
 DEFAULT_LOG_FILE = "/var/log/enterprise_cloud_admin.log"
 MODULE_ROOT_DIR = Path(__file__).resolve().parent.parent
-TERRAFORM_BINARY_PATH = MODULE_ROOT_DIR / "terraform"
-
 
 # ############## Builder settings ##############
 DEFAULT_GITHUB_API_URL = "https://api.github.com"

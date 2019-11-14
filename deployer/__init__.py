@@ -48,10 +48,7 @@ class TerraformDeployer(Terraform):
             with open(self.project_dir / file_.path, "wb") as f:
                 f.write(file_.decoded_content)
 
-        super(TerraformDeployer, self).__init__(
-            working_dir=self.working_dir,
-            terraform_bin_path=str(SETTINGS.TERRAFORM_BINARY_PATH),
-        )
+        super(TerraformDeployer, self).__init__(working_dir=self.working_dir)
 
         self.command("get")  # get terraform modules
         self.init()
