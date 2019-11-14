@@ -12,7 +12,8 @@ These instructions will get you an environment, ready for `enterprise-cloud-admi
 
 ### Prerequisites
 
-1) You should have [terraform](https://www.terraform.io/downloads.html) in your `PATH` environment variable.
+1) This tool designed to work with Python of version `3.6`.
+2) You should have [terraform](https://www.terraform.io/downloads.html) in your `PATH` environment variable.
 
     For example, you can download terraform and extract it to `/usr/local/bin`.
 
@@ -21,22 +22,22 @@ These instructions will get you an environment, ready for `enterprise-cloud-admi
 
     Official Terraform documentation points [here](https://stackoverflow.com/questions/14637979/how-to-permanently-set-path-on-linux-unix) for additional instructions. 
 
-2) Your platform should have installed [pipenv](https://github.com/pypa/pipenv).
-3) You must have access token of your Github account, and this account should be admin of
+3) Your platform should have installed [pipenv](https://github.com/pypa/pipenv).
+4) You must have access token of your Github account, and this account should be admin of
 some Github organization.
 
     You can generate it here: `Settings` -> `Developer settings` -> `Personal access tokens` -> `Generate new token`.
-4) You must have service account on google cloud platform, with enabled billing.
+5) You must have service account on google cloud platform, with enabled billing.
 
     You can find how to create it [here](https://cloud.google.com/iam/docs/creating-managing-service-accounts).
     It doesn't matter for which project you will create service account, you will be able to use it for any API activity.
 
-5) You must have existing project on google cloud platform, that will used as monitoring namespace.
+6) You must have existing project on google cloud platform, that will used as monitoring namespace.
 
     This project must have service account attached, with `Monitoring Metric Writer` role assigned to this profile.
     So, just switch to your monitoring project, go to `IAM` menu, and add service account as a member with this role.
 
-6) You must create, export and save your GCP service account private key in `json` format.
+7) You must create, export and save your GCP service account private key in `json` format.
 
     More details about [here](https://cloud.google.com/iam/docs/creating-managing-service-account-keys).
 
