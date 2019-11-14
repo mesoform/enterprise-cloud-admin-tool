@@ -65,7 +65,7 @@ configurable, check `cat settings/default_settings.py | grep TERRAFORM_BINARY_PA
 ## Running the tests
 
 ```shell script
-pytest tests/
+pytest
 ```
 
 ### Running tests inside docker container
@@ -80,7 +80,7 @@ docker run -it test_eca
 
 After that, you will be attached to container's pipenv shell. You can run tests:
 ```shell script
-pytest tests
+pytest
 ```
 
 ### Parametrized tests
