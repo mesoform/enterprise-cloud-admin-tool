@@ -80,13 +80,13 @@ pytest
 If you just cloned repo and have docker installed, you can just build the container and run
 tests without installing anything in your environment.
 
-Build container and run pipenv shell:
+Build container and run bash shell:
 ```shell script
 docker build . -t test_eca
-docker run -it test_eca
+docker run -it test_eca bash
 ```
 
-After that, you will be attached to container's pipenv shell. You can run tests:
+After that, you will be attached to container's bash shell. You can run tests:
 ```shell script
 pytest
 ```
