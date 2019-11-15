@@ -340,3 +340,5 @@ def setup(parsed_args):
     set_master_branch_permissions(repo, parsed_args.branch_permissions)
     if parsed_args.output_data:
         write_project_data(repo, [std_team, priv_team])
+
+    return True

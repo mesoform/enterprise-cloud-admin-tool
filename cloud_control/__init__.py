@@ -5,7 +5,8 @@ import common
 import reporter.local
 
 from deployer import deploy
-from checker import check
+
+# from checker import check
 from code_control import setup, TemplatesArgAction
 
 from settings import SETTINGS
@@ -108,8 +109,37 @@ class CloudControl:
         self._app_metrics = reporter.stackdriver.AppMetrics(
             monitoring_credentials=auth.credentials,
             monitoring_project=self.args.monitoring_namespace,
-            metrics_set_list=[("deploy", {"time": "time1"}, 5)],
+            metrics_set_list=[],
         )
+
+    def _log_and_send_metrics(self, command, command_result):
+        self._log.info("finished " + command + " run")
+        self._app_metrics.end_time = datetime.utcnow()
+
+        self._app_metrics.metrics_set_list = [
+            {
+                "metric_name": "deployment_time",
+                "labels": {
+                    "result": "success" if command_result else "failure",
+                    "command": self.args.command,
+                },
+                "metric_kind": "gauge",
+                "value_type": "double",
+                "value": self._app_metrics.app_runtime.total_seconds(),
+            },
+            {
+                "metric_name": "deployments_rate",
+                "labels": {
+                    "result": "success" if command_result else "failure",
+                    "command": self.args.command,
+                },
+                "metric_kind": "cumulative",
+                "value_type": "int64",
+                "value": 1,
+                "unit": "h",
+            }
+        ]
+        self._app_metrics.send_metrics()
 
     def perform_command(self):
         """
@@ -126,12 +156,11 @@ class CloudControl:
                 "Command {} does not implemented".format(self.args.command)
             )
 
+        result = False
         try:
-            command()
+            result = command()
         finally:
-            self._log.info("finished " + self.args.command + " run")
-            self._app_metrics.end_time = datetime.utcnow()
-            self._app_metrics.send_metrics()
+            self._log_and_send_metrics(self.args.command, result)
 
     def _deploy(self):
         self._log.info("Starting deployment")
@@ -161,10 +190,9 @@ class CloudControl:
         code_hash = common.get_hash_of_latest_commit(
             code_org, self.args.project_id, self.args.config_version
         )
-        testing_prefix = f"{config_hash[:7]}-{code_hash[:7]}"
+        testing_ending = f"{config_hash[:7]}-{code_hash[:7]}"
 
-        # check(self.args.cloud, config_files)
-        deploy(self.args, code_files, config_files, testing_prefix)
+        return deploy(self.args, code_files, config_files, testing_ending)
 
     def _config(self):
-        setup(self.args)
+        return setup(self.args)
