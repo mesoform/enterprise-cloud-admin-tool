@@ -10,9 +10,9 @@ from settings import SETTINGS
 ERROR_RETURN_CODE = 1
 
 
-class DifferentStatesError(Exception):
+class WrongStateError(Exception):
     """
-    This exception can be raised when states of some deployments does not the same.
+    This exception can be raised when state of some deployment is not expected.
     """
 
 
@@ -166,17 +166,36 @@ def _prepare_state_for_compare(state):
     return sanitized_state
 
 
-def assert_deployments_equal(test_state, real_state):
+def are_states_equal(test_state, real_state):
     """
     Compare state of test deployment against state of real deployment
     """
     test_state = _prepare_state_for_compare(test_state)
     real_state = _prepare_state_for_compare(real_state)
 
-    if test_state != real_state:
-        raise DifferentStatesError(
-            f"\nCurrent state:\n{test_state}\n\nDeployment state:\n{real_state}"
+    return test_state == real_state
+
+
+def assert_deployments_equal(test_state, real_state):
+    if not are_states_equal(test_state, real_state):
+        raise WrongStateError(
+            f"\nStates are different.\nCurrent state:\n{test_state}\n\nDeployment state:\n{real_state}"
         )
+
+
+def assert_deployments_not_equal(test_state, real_state):
+    if are_states_equal(test_state, real_state):
+        raise WrongStateError(f"\nStates are equal:\n{test_state}")
+
+
+def assert_project_id_did_not_change(project_id, state):
+    outputs = state.get("outputs", {})
+    if outputs.get("project_id", {}) is not None:
+        project_id_from_state = outputs.get("project_id", {}).get("value")
+        if project_id_from_state and project_id != project_id_from_state:
+            raise WrongStateError(
+                f"Project id from state: {project_id_from_state} differs from given: {project_id}"
+            )
 
 
 def assert_deployment_deleted(state):
@@ -184,9 +203,7 @@ def assert_deployment_deleted(state):
     Deleted project's state does not contain outputs or resources keys.
     """
     if state and (state.get("outputs") or state.get("resources")):
-        DifferentStatesError(
-            f"\nProject was not deleted, current state:\n{state}"
-        )
+        WrongStateError(f"\nProject was not deleted, current state:\n{state}")
 
 
 def deploy(parsed_args, code, config, testing_ending=None):
@@ -205,7 +222,13 @@ def deploy(parsed_args, code, config, testing_ending=None):
     test_deployment_deletion = threading.Thread(target=test_deployer.delete)
 
     test_deployment.run()
+    assert_project_id_did_not_change(test_deployer.project_id, test_deployer.current_state)
+    assert_deployments_not_equal(
+        test_deployer.current_state, real_deployer.current_state
+    )
+
     real_deployment.run()
+    assert_project_id_did_not_change(real_deployer.project_id, real_deployer.current_state)
     assert_deployments_equal(
         test_deployer.current_state, real_deployer.current_state
     )
