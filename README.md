@@ -107,29 +107,59 @@ you are able to determine which one by it's name in square brackets, like `test_
 here number of parametrize argument is a number after test name.
 
 ## Test deployment
-You need to upload your terraform variable files and infrastructure code to
-some repo of your organization account. To do so, at first, you must supply minimum GCP configuration.
-```shell script
-nano resources/templates/gcp_project_settings.auto.tfvars.json
-```
-In this file, you should set unique `project_id` ([project creation docs](https://cloud.google.com/resource-manager/docs/creating-managing-projects)).
+### Create config and code using examples
+We prepared two example repos:
+1) [example-ecat-project-config](https://github.com/mesoform/example-ecat-project-config) — contains terraform
+variable files.
+2) [example-ecat-deployment-code](https://github.com/mesoform/example-ecat-deployment-code) — contains terraform infrastructure code.
+
+In order to perform test deployment, you should fork these repos to your organization, and customize config repo.
+
+`example-ecat-project-config/gcp/project_settings.auto.tfvars.json` — In this file, you should set unique `project_id` ([project creation docs](https://cloud.google.com/resource-manager/docs/creating-managing-projects)).
+
 Be aware, that it's unique across whole GCP platform, even six month after deletion.
 So, if someone already have project with your id, you will receive unclear error.
 Valid `billing_id` also mandatory ([billing docs](https://cloud.google.com/billing/docs/how-to/modify-project)).
 
-
-Now you able to push variables and infrastructure code on VCS:
+### Create config repo with eCat from template
 ```shell script
-./cloudctl -p <project id> -o <github organization name> -O <github organization name> --vcs-token <github token> --key-file resources/gcp_service_account_key.json --monitoring-namespace <monitoring project id> --debug true config create --force
-``` 
-
-And perform test deployment on GCP:
-```shell script
-./cloudctl -p <project id> -o <github organization name> -O <github organization name> --key-file resources/gcp_service_account_key.json --vcs-token <github token> --monitoring-namespace <monitoring project id> deploy --cloud gcp
+./cloudctl -p <project id> \
+  -o <github organization name> \
+  -O <github organization name> \
+  --code-repo <code repo> \
+  --config-repo <config repo> \
+  --vcs-token <github token> \
+  --key-file resources/gcp_service_account_key.json \
+  --monitoring-namespace <monitoring project id> \
+  --debug true config create --force
 ```
 
 Where:
  - `project id` — id of project, that will be created.
+ - `code repo` — name of repo, that will contain infrastructure code.
+ - `config repo` — name of repo, that will contain terraform variables files.
+ - `github organization name` — name of organization, that holds repos with code/config.
+ - `github token` — you developer's github token, that you have obtained in prerequisites section.
+ - `monitoring project id` — id of existing monitoring project. You should have one if followed prerequisites section.
+
+
+### Test deployment using created code and config
+When you created/forked example code and config repos, you can perform test deployment:
+```shell script
+./cloudctl -p <project id> \
+  -o <github organization name> \
+  -O <github organization name> \
+  --code-repo <code repo> \
+  --config-repo <config repo> \
+  --vcs-token <github token> \
+  --key-file resources/gcp_service_account_key.json \
+  --monitoring-namespace <monitoring project id> deploy --cloud gcp
+```
+
+Where:
+ - `project id` — id of project, that will be created.
+ - `code repo` — name of repo, that contain created infrastructure code.
+ - `config repo` — name of repo, that contain created terraform variables files.
  - `github organization name` — name of organization, that holds repos with code/config.
  - `github token` — you developer's github token, that you have obtained in prerequisites section.
  - `monitoring project id` — id of existing monitoring project. You should have one if followed prerequisites section.
