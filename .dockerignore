@@ -95,3 +95,4 @@ venv/
 
 # Misc
 terraform
+tf_bin/
