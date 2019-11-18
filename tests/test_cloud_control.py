@@ -1,5 +1,3 @@
-from argparse import FileType
-
 from uuid import uuid4
 
 import pytest
