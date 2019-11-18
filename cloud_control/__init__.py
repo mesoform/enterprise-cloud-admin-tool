@@ -170,7 +170,7 @@ class CloudControl:
         code_org = common.get_org(self.args, self.args.code_org)
         config_files = common.get_files(
             config_org,
-            self.args.project_id,
+            self.args.config_repo,
             self.args.cloud,
             self.args.config_version,
         )
@@ -179,7 +179,7 @@ class CloudControl:
         # and operating requirements. The code repo should be public.
         code_files = common.get_files(
             code_org,
-            self.args.project_id,
+            self.args.code_repo,
             self.args.cloud,
             self.args.config_version,
         )
