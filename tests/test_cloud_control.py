@@ -1,3 +1,5 @@
+from argparse import FileType
+
 from uuid import uuid4
 
 import pytest
@@ -56,24 +58,54 @@ def test_perform_command_exception(command_line_args):
         cloud_control.perform_command()
 
 
-def test_argument_parser_defaults():
-    command_line_args = ArgumentsParser(["-ptest", "deploy"]).args
+def test_argument_parser_defaults(tmpdir):
+    token = tmpdir.join("some_token.json")
+    token.write("content")
 
-    assert vars(command_line_args) == {
+    command_line_args = ArgumentsParser(
+        [
+            "-p",
+            "test",
+            "-o",
+            "my-code-org",
+            "-O",
+            "my-config-org",
+            "--key-file",
+            token.strpath,
+            "--vcs-token",
+            "e750dcf1c15273dfc687049f6dfcb38d970e0547",
+            "--monitoring-namespace",
+            "random-monitorin-project",
+            "deploy",
+            "--cloud",
+            "gcp",
+            "--code-repo",
+            "testrepo1",
+            "--config-repo",
+            "testrepo2",
+        ]
+    ).args
+
+    command_line_args_dict = vars(command_line_args)
+
+    assert command_line_args_dict.pop("key_file").name == token.strpath
+
+    assert command_line_args_dict == {
         "api_url": "https://api.github.com",
         "output_data": False,
         "code_org": "my-code-org",
         "config_org": "my-config-org",
+        "code_repo": "testrepo1",
+        "config_repo": "testrepo2",
         "project_id": "test",
         "queued_projects": None,
-        "vcs_token": None,
+        "vcs_token": "e750dcf1c15273dfc687049f6dfcb38d970e0547",
         "config_version": "master",
         "code_version": "master",
-        "key_file": None,
-        "monitoring_namespace": None,
+        "monitoring_namespace": "random-monitorin-project",
         "log_file": "/var/log/enterprise_cloud_admin.log",
         "debug": False,
         "command": "deploy",
         "force": False,
-        "cloud": None,
+        "cloud": "gcp",
     }

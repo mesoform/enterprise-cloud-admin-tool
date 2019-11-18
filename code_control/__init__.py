@@ -260,7 +260,7 @@ def setup(parsed_args):
         raise BadCredentialsException(e.status, e.data)
 
     try:
-        existing_repo = get_repo(org, parsed_args.project_id)
+        existing_repo = get_repo(org, parsed_args.config_repo)
     except GithubException as e:
         if e.status == 404:
             existing_repo = None
@@ -270,7 +270,7 @@ def setup(parsed_args):
     if existing_repo and not parsed_args.force:
         print(
             "Repository "
-            + parsed_args.project_id
+            + parsed_args.config_repo
             + " already exists. Use --force to reconfigure"
         )
         exit(1)
@@ -278,7 +278,7 @@ def setup(parsed_args):
         repo = existing_repo
         commit_msg = "Update "
     else:
-        repo = create_repo(org, name=parsed_args.project_id)
+        repo = create_repo(org, name=parsed_args.config_repo)
         commit_msg = "Initial commit"
 
     # Configure project

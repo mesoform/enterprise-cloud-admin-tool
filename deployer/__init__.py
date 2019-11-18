@@ -222,13 +222,17 @@ def deploy(parsed_args, code, config, testing_ending=None):
     test_deployment_deletion = threading.Thread(target=test_deployer.delete)
 
     test_deployment.run()
-    assert_project_id_did_not_change(test_deployer.project_id, test_deployer.current_state)
+    assert_project_id_did_not_change(
+        test_deployer.project_id, test_deployer.current_state
+    )
     assert_deployments_not_equal(
         test_deployer.current_state, real_deployer.current_state
     )
 
     real_deployment.run()
-    assert_project_id_did_not_change(real_deployer.project_id, real_deployer.current_state)
+    assert_project_id_did_not_change(
+        real_deployer.project_id, real_deployer.current_state
+    )
     assert_deployments_equal(
         test_deployer.current_state, real_deployer.current_state
     )

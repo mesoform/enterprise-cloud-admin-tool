@@ -49,16 +49,6 @@ def root_parser():
         help="ID of the organisation where the configuration" "repository is",
         default=SETTINGS.DEFAULT_CONFIG_ORG,
     )
-    parser.add_argument(
-        "--code-repo",
-        help="Name of the repository with terraform infrastructure code",
-        required=True
-    )
-    parser.add_argument(
-        "--config-repo",
-        help="Name of the repository with terraform variables files",
-        required=True
-    )
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument(
         "-p",

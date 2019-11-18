@@ -126,21 +126,20 @@ Valid `billing_id` also mandatory ([billing docs](https://cloud.google.com/billi
 ./cloudctl -p <project id> \
   -o <github organization name> \
   -O <github organization name> \
-  --code-repo <code repo> \
-  --config-repo <config repo> \
   --vcs-token <github token> \
   --key-file resources/gcp_service_account_key.json \
   --monitoring-namespace <monitoring project id> \
-  --debug true config create --force
+  --debug true config create \
+  --config-repo <config repo> \
+  --force
 ```
 
 Where:
  - `project id` — id of project, that will be created.
- - `code repo` — name of repo, that will contain infrastructure code.
- - `config repo` — name of repo, that will contain terraform variables files.
  - `github organization name` — name of organization, that holds repos with code/config.
  - `github token` — you developer's github token, that you have obtained in prerequisites section.
  - `monitoring project id` — id of existing monitoring project. You should have one if followed prerequisites section.
+ - `config repo` — name of repo, that will contain terraform variables files.
 
 
 ### Test deployment using created code and config
@@ -149,11 +148,11 @@ When you created/forked example code and config repos, you can perform test depl
 ./cloudctl -p <project id> \
   -o <github organization name> \
   -O <github organization name> \
-  --code-repo <code repo> \
-  --config-repo <config repo> \
   --vcs-token <github token> \
   --key-file resources/gcp_service_account_key.json \
-  --monitoring-namespace <monitoring project id> deploy --cloud gcp
+  --monitoring-namespace <monitoring project id> deploy --cloud gcp \
+  --code-repo <code repo> \
+  --config-repo <config repo>
 ```
 
 Where:
