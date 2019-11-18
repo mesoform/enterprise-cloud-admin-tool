@@ -63,11 +63,10 @@ def code_files(github_file_factory):
              project_id      = "${var.project_id}"
             }
             
-            resource "google_project_services" "project" {
-             project = "${google_project.project.project_id}"
-             services = [
-               "compute.googleapis.com"
-             ]
+            resource "google_project_service" "project" {
+              project = "${google_project.project.project_id}"
+              service = "compute.googleapis.com"
+              disable_on_destroy = false
             }
             
             output "project_id" {
