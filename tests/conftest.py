@@ -25,6 +25,10 @@ def command_line_args(working_directory):
             "deploy",
             "--cloud",
             "gcp",
+            "--code-repo",
+            "testrepo1",
+            "--config-repo",
+            "testrepo2",
         ]
     ).args
 
@@ -63,11 +67,10 @@ def code_files(github_file_factory):
              project_id      = "${var.project_id}"
             }
             
-            resource "google_project_services" "project" {
-             project = "${google_project.project.project_id}"
-             services = [
-               "compute.googleapis.com"
-             ]
+            resource "google_project_service" "project" {
+              project = "${google_project.project.project_id}"
+              service = "compute.googleapis.com"
+              disable_on_destroy = false
             }
             
             output "project_id" {
@@ -82,8 +85,8 @@ def code_files(github_file_factory):
 def config_files(github_file_factory):
     return [
         github_file_factory(
-            "gcp_enabled_apis.auto.tfvars.json",
-            "gcp/gcp_enabled_apis.auto.tfvars.json",
+            "enabled_apis.auto.tfvars.json",
+            "gcp/enabled_apis.auto.tfvars.json",
             b"""
             {
               "enabled_apis": [
@@ -94,8 +97,8 @@ def config_files(github_file_factory):
             """,
         ),
         github_file_factory(
-            "gcp_project_settings.auto.tfvars.json",
-            "gcp/gcp_project_settings.auto.tfvars.json",
+            "project_settings.auto.tfvars.json",
+            "gcp/project_settings.auto.tfvars.json",
             b"""
             {
               "project_id": "test-1234",
@@ -108,8 +111,8 @@ def config_files(github_file_factory):
             """,
         ),
         github_file_factory(
-            "gcp_role_bindings.auto.tfvars.json",
-            "gcp/gcp_role_bindings.auto.tfvars.json",
+            "iam.auto.tfvars.json",
+            "gcp/iam.auto.tfvars.json",
             b"""
             {
               "project_roles": {
@@ -120,8 +123,8 @@ def config_files(github_file_factory):
             """,
         ),
         github_file_factory(
-            "gcp_service_accounts.auto.tfvars.json",
-            "gcp/gcp_service_accounts.auto.tfvars.json",
+            "service_accounts.auto.tfvars.json",
+            "gcp/service_accounts.auto.tfvars.json",
             b"""
             {
               "service_accounts":[

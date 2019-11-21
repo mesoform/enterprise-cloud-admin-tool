@@ -137,7 +137,9 @@ def test_prepare_state_for_compare(project_state1, project_state2):
 
 
 def test_assert_project_id_did_not_change(project_state1):
-    assert_project_id_did_not_change(project_state1["outputs"]["project_id"]["value"], project_state1)
+    assert_project_id_did_not_change(
+        project_state1["outputs"]["project_id"]["value"], project_state1
+    )
 
     with pytest.raises(WrongStateError):
         assert_project_id_did_not_change(str(uuid4()), project_state1)

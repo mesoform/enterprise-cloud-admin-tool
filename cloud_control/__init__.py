@@ -44,6 +44,16 @@ class ArgumentsParser:
         deploy_parser.add_argument(
             "--cloud", choices=["all"] + SETTINGS.SUPPORTED_CLOUDS
         )
+        deploy_parser.add_argument(
+            "--code-repo",
+            help="Name of the repository with terraform infrastructure code",
+            required=True,
+        )
+        deploy_parser.add_argument(
+            "--config-repo",
+            help="Name of the repository with terraform variables files",
+            required=True,
+        )
 
     def _setup_config_parser(self):
         """
@@ -64,9 +74,9 @@ class ArgumentsParser:
             "c_action", choices=("create", "delete", "update")
         )
         config_parser.add_argument(
-            "--templates-repo",
-            help="Repository where default templates are stored",
-            action=TemplatesArgAction,
+            "--config-repo",
+            help="Name of the repository with terraform variables files",
+            required=True,
         )
         config_parser.add_argument(
             "--bypass-branch-protection",
@@ -137,7 +147,7 @@ class CloudControl:
                 "value_type": "int64",
                 "value": 1,
                 "unit": "h",
-            }
+            },
         ]
         self._app_metrics.send_metrics()
 
@@ -170,7 +180,7 @@ class CloudControl:
         code_org = common.get_org(self.args, self.args.code_org)
         config_files = common.get_files(
             config_org,
-            self.args.project_id,
+            self.args.config_repo,
             self.args.cloud,
             self.args.config_version,
         )
@@ -179,7 +189,7 @@ class CloudControl:
         # and operating requirements. The code repo should be public.
         code_files = common.get_files(
             code_org,
-            self.args.project_id,
+            self.args.code_repo,
             self.args.cloud,
             self.args.config_version,
         )
