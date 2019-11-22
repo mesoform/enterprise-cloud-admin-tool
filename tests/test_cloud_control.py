@@ -6,9 +6,9 @@ from cloud_control import ArgumentsParser, CloudControl, CloudControlException
 
 
 @pytest.fixture
-def app_metrics_mock(mocker):
+def stackdriver_mock(mocker):
     mocker.patch("cloud_control.common.GcpAuth")
-    return mocker.patch("cloud_control.reporter.stackdriver.AppMetrics")
+    return mocker.patch("cloud_control.StackdriverReporter")
 
 
 def test_deploy(
@@ -16,7 +16,7 @@ def test_deploy(
     command_line_args,
     sha256_hash,
     short_code_config_hash,
-    app_metrics_mock,
+    stackdriver_mock,
 ):
     deploy = mocker.patch("cloud_control.deploy")
     common = mocker.patch("cloud_control.common")
@@ -31,10 +31,10 @@ def test_deploy(
         common.get_files(),
         short_code_config_hash,
     )
-    app_metrics_mock.return_value.send_metrics.assert_called_once()
+    stackdriver_mock.return_value.send_metrics.assert_called_once()
 
 
-def test_config(mocker, command_line_args, app_metrics_mock):
+def test_config(mocker, command_line_args, stackdriver_mock):
     setup = mocker.patch("cloud_control.setup")
 
     command_line_args.command = "config"
@@ -43,10 +43,10 @@ def test_config(mocker, command_line_args, app_metrics_mock):
 
     cloud_control.perform_command()
     setup.assert_called_once()
-    app_metrics_mock.return_value.send_metrics.assert_called_once()
+    stackdriver_mock.return_value.send_metrics.assert_called_once()
 
 
-@pytest.mark.usefixtures("app_metrics_mock")
+@pytest.mark.usefixtures("stackdriver_mock")
 def test_perform_command_exception(command_line_args):
     command_line_args.command = str(uuid4())
 
@@ -74,6 +74,8 @@ def test_argument_parser_defaults(tmpdir):
             "e750dcf1c15273dfc687049f6dfcb38d970e0547",
             "--monitoring-namespace",
             "random-monitoring-project",
+            "--enable-local-reporter",
+            "--json-logging",
             "deploy",
             "--cloud",
             "gcp",
@@ -100,6 +102,8 @@ def test_argument_parser_defaults(tmpdir):
         "vcs_token": "e750dcf1c15273dfc687049f6dfcb38d970e0547",
         "config_version": "master",
         "code_version": "master",
+        "enable_local_reporter": True,
+        "json_logging": True,
         "monitoring_namespace": "random-monitoring-project",
         "log_file": "/var/log/enterprise_cloud_admin.log",
         "debug": False,
