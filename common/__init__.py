@@ -98,6 +98,18 @@ def root_parser():
         help="output debug information to help troubleshoot issues",
         default=False,
     )
+    parser.add_argument(
+        "--enable-local-reporter",
+        help="Enable reporting to file",
+        default=False,
+        action="store_true",
+    )
+    parser.add_argument(
+        "--json-logging",
+        help="Enable json logging formatter",
+        default=False,
+        action="store_true",
+    )
     return parser
 
 
