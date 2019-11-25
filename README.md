@@ -190,12 +190,39 @@ Where:
 
 After that, you should receive success message in console, and metrics in your GCP monitoring project workspace.
 
+
+## Logging
+There is some command line arguments for logging setup:
+1) `--json-logging` — this one will enable logging in json format.
+2. `--enable-local-reporter` — in order to have all metrics dumped, you may want to pass this argument.
+
+Both arguments related to root cli parser, so you can pass them this way:
+```shell script
+./cloudctl -p <project id> \
+  -o <github organization name> \
+  ...
+  --json-logging \
+  --enable-local-reporter \
+  ...
+  deploy --cloud gcp \
+  ...
+```
+
+By default, we writing logs in `/var/log/enterprise_cloud_admin.log`,
+so probably you need to create and change ownership of this file:
+```shell script
+touch /var/log/enterprise_cloud_admin.log
+chown <user>:<group> /var/log/enterprise_cloud_admin.log
+```
+
+
 ## Troubleshooting
 
 ### Google Cloud Platform and Stackdriver
 
 Sometimes it's really hard to interpret immediately what GCP error means, so terraform community members
 created curated list of common problems: [TROUBLESHOOTING.md](https://github.com/terraform-google-modules/terraform-google-project-factory/blob/master/docs/TROUBLESHOOTING.md).
+
 
 ## Contributing
 
