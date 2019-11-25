@@ -51,7 +51,7 @@ def code_files(github_file_factory):
             "gcp/project.tf",
             b"""
             variable "project_id" {}
-            variable "project_roles" {}
+            variable "role_bindings" {}
             variable "project_name" {}
             variable "org_id" {}
             variable "folder_id" {}
@@ -115,7 +115,7 @@ def config_files(github_file_factory):
             "gcp/iam.auto.tfvars.json",
             b"""
             {
-              "project_roles": {
+              "role_bindings": {
                 "compute-admin": [],
                 "viewer": []
               }
