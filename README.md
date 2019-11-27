@@ -58,12 +58,12 @@ More details about [here](https://cloud.google.com/iam/docs/creating-managing-se
     pipenv shell
     ```
 
-1. Copy `terraform` binary in current directory. Path for this binary is
-configurable, check `cat settings/default_settings.py | grep TERRAFORM_BINARY_PATH`.
+1. Copy `terraform` binary in current directory. Path for this binary is configurable, check `cat settings/default_settings.py | grep TERRAFORM_BINARY_PATH`. Then,
 
     ```
     cp ~/Downloads/terraform $(pwd)/terraform
     ```
+
 1. Copy GCP service account token in `resources` directory:
 
     ```
