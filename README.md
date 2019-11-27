@@ -115,14 +115,16 @@ here number of parametrize argument is a number after test name.
 ## Test deployment
 ### Create config and code using examples
 We prepared two example repos:
+
 1. [example-ecat-project-config](https://github.com/mesoform/example-ecat-project-config) — contains terraform
 variable files.
 1. [example-ecat-deployment-code](https://github.com/mesoform/example-ecat-deployment-code) — contains terraform infrastructure code.
-In order to perform test deployment, you should fork these repos to your organization, and customize config repo.
-`example-ecat-project-config/gcp/project_settings.auto.tfvars.json` — In this file, you should set unique `project_id` ([project creation docs](https://cloud.google.com/resource-manager/docs/creating-managing-projects)).
-Be aware, that it's unique across whole GCP platform, even six month after deletion.
-So, if someone already have project with your id, you will receive unclear error.
-Valid `billing_id` also mandatory ([billing docs](https://cloud.google.com/billing/docs/how-to/modify-project)).
+
+In order to perform test deployment, you should fork these repos to your organization, and customize config repo:
+
+* `example-ecat-project-config/gcp/project_settings.auto.tfvars.json` — In this file, you should set unique `project_id` ([project creation docs](https://cloud.google.com/resource-manager/docs/creating-managing-projects)).
+Be aware, that it's unique across whole GCP platform, even six month after deletion. So, if someone already have project with your id, you will receive unclear error.
+* Also add a valid `billing_id` also mandatory ([billing docs](https://cloud.google.com/billing/docs/how-to/modify-project)).
 
 ### Create config repo with eCat from template
 
