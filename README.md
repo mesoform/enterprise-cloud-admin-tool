@@ -15,31 +15,30 @@ These instructions will get you an environment, ready for `enterprise-cloud-admi
 1) This tool designed to work with Python of version `3.6`.
 2) You should have [terraform](https://www.terraform.io/downloads.html) in your `PATH` environment variable.
 
-    For example, you can download terraform and extract it to `/usr/local/bin`.
+For example, you can download terraform and extract it to `/usr/local/bin`.
 
-    Also, you can create make `tf_bin` directory right where you are, copy `terraform` into this directory, and run
-    `export PATH=$PATH:$PWD/tf_bin`.
+Also, you can create make `tf_bin` directory right where you are, copy `terraform` into this directory, and run
+`export PATH=$PATH:$PWD/tf_bin`.
 
-    Official Terraform documentation points [here](https://stackoverflow.com/questions/14637979/how-to-permanently-set-path-on-linux-unix) for additional instructions. 
+Official Terraform documentation points [here](https://stackoverflow.com/questions/14637979/how-to-permanently-set-path-on-linux-unix) for additional instructions. 
 
 3) Your platform should have installed [pipenv](https://github.com/pypa/pipenv).
 4) You must have access token of your Github account, and this account should be admin of
 some Github organization.
-
-    You can generate it here: `Settings` -> `Developer settings` -> `Personal access tokens` -> `Generate new token`.
+You can generate it here: `Settings` -> `Developer settings` -> `Personal access tokens` -> `Generate new token`.
 5) You must have service account on google cloud platform, with enabled billing.
 
-    You can find how to create it [here](https://cloud.google.com/iam/docs/creating-managing-service-accounts).
-    It doesn't matter for which project you will create service account, you will be able to use it for any API activity.
+You can find how to create it [here](https://cloud.google.com/iam/docs/creating-managing-service-accounts).
+It doesn't matter for which project you will create service account, you will be able to use it for any API activity.
 
 6) You must have existing project on google cloud platform, that will used as monitoring namespace.
 
-    This project must have service account attached, with `Monitoring Metric Writer` role assigned to this profile.
-    So, just switch to your monitoring project, go to `IAM` menu, and add service account as a member with this role.
+This project must have service account attached, with `Monitoring Metric Writer` role assigned to this profile.
+So, just switch to your monitoring project, go to `IAM` menu, and add service account as a member with this role.
 
 7) You must create, export and save your GCP service account private key in `json` format.
 
-    More details about [here](https://cloud.google.com/iam/docs/creating-managing-service-account-keys).
+More details about [here](https://cloud.google.com/iam/docs/creating-managing-service-account-keys).
 
 ### Installing
 
@@ -168,12 +167,12 @@ When you created/forked example code and config repos, you can perform test depl
 ```
 
 Where:
- - `project id` — id of project, that will be created.
- - `code repo` — name of repo, that contain created infrastructure code.
- - `config repo` — name of repo, that contain created terraform variables files.
- - `github organization name` — name of organization, that holds repos with code/config.
- - `github token` — you developer's github token, that you have obtained in prerequisites section.
- - `monitoring project id` — id of existing monitoring project. You should have one if followed prerequisites section.
+* `project id` — id of project, that will be created.
+* `code repo` — name of repo, that contain created infrastructure code.
+* `config repo` — name of repo, that contain created terraform variables files.
+* `github organization name` — name of organization, that holds repos with code/config.
+* `github token` — you developer's github token, that you have obtained in prerequisites section.
+* `monitoring project id` — id of existing monitoring project. You should have one if followed prerequisites section.
 
 After that, you should receive success message in console, and metrics in your GCP monitoring project workspace.
 
