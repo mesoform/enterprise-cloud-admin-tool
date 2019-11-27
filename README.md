@@ -45,9 +45,9 @@ some Github organization.
 
 1) Clone this repo:
 
-    ```shell script
-    git clone https://github.com/mesoform/enterprise-cloud-admin.git && cd enterprise-cloud-admin
-    ```
+```shell script
+git clone https://github.com/mesoform/enterprise-cloud-admin.git && cd enterprise-cloud-admin
+```
 
 2) Install all dependencies:
    
