@@ -51,32 +51,32 @@ git clone https://github.com/mesoform/enterprise-cloud-admin.git && cd enterpris
 
 2) Install all dependencies:
    
-    ```shell script
-    pipenv install --dev
-    ```
+```shell
+pipenv install --dev
+```
 
 3) Activate virtual environment:
    
-    ```shell script
-    pipenv shell
-    ```
+```shell
+pipenv shell
+```
 
 4) Copy `terraform` binary in current directory. Path for this binary is
 configurable, check `cat settings/default_settings.py | grep TERRAFORM_BINARY_PATH`.
  
-    ```shell script
+```shell
     cp ~/Downloads/terraform $(pwd)/terraform
-    ```
+```
 
 5) Copy GCP service account token in `resources` directory:
   
-    ```shell script
+```shell
     cp ~/Downloads/gcp_service_account_key.json $(pwd)/resources/gcp_service_account_key.json
-    ```
+```
 
 ## Running the tests
 
-```shell script
+```shell
 pytest
 ```
 
@@ -86,21 +86,21 @@ tests without installing anything in your environment.
 
 Build container and run bash shell:
 
-```shell script
+```shell
 docker build . -t test_eca
 docker run -it test_eca bash
 ```
 
 After that, you will be attached to container's bash shell. You can run tests:
 
-```shell script
+```shell
 pytest
 ```
 
 ### Parametrized tests
 You can run pytest in verbose mode:
 
-```shell script
+```shell
 pytest -v
 ```
 
@@ -133,7 +133,7 @@ Valid `billing_id` also mandatory ([billing docs](https://cloud.google.com/billi
 
 ### Create config repo with eCat from template
 
-```shell script
+```shell
 ./cloudctl -p <project id> \
   -o <github organization name> \
   -O <github organization name> \
@@ -156,7 +156,7 @@ Where:
 ### Test deployment using created code and config
 When you created/forked example code and config repos, you can perform test deployment:
 
-```shell script
+```shell
 ./cloudctl -p <project id> \
   -o <github organization name> \
   -O <github organization name> \
