@@ -45,7 +45,7 @@ some Github organization.
 
 1) Clone this repo:
 
-```shell script
+```shell
 git clone https://github.com/mesoform/enterprise-cloud-admin.git && cd enterprise-cloud-admin
 ```
 
