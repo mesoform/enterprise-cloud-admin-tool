@@ -1,8 +1,11 @@
+import json
 import logging.config
-
+import socket
 from typing import Optional
 
 import structlog
+
+from settings import SETTINGS
 
 from .base import MetricsRegistry, MetricsReporter
 
@@ -11,6 +14,14 @@ class LocalReporterError(Exception):
     """
     Represents errors for local reporter
     """
+
+
+def add_hostname_and_application(logger, method_name, event_dict):
+    event_dict["hostname"] = socket.gethostname()
+    event_dict[
+        "application"
+    ] = f"{SETTINGS.APPLICATION_NAME}-{SETTINGS.APPLICATION_VERSION}"
+    return event_dict
 
 
 def get_logger(
@@ -31,6 +42,7 @@ def get_logger(
     )
 
     pre_chain = [
+        add_hostname_and_application,
         structlog.stdlib.add_log_level,
         structlog.stdlib.add_logger_name,
         structlog.processors.TimeStamper(),
@@ -125,4 +137,4 @@ class LocalMetricsReporter(MetricsReporter):
         """
 
     def prepare_metric_registry(self, metric_registry: MetricsRegistry):
-        metric_registry.prepared_record = metric_registry.raw_record
+        metric_registry.prepared_record = json.dumps(metric_registry.raw_record)
