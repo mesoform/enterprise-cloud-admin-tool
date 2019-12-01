@@ -3,6 +3,9 @@ import json
 
 from pathlib import Path
 
+APPLICATION_NAME = "eCat"
+APPLICATION_VERSION = "0.1"
+
 # ############## Common settings #############
 DEFAULT_LOG_FILE = "/var/log/enterprise_cloud_admin.log"
 MODULE_ROOT_DIR = Path(__file__).resolve().parent.parent
