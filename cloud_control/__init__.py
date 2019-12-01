@@ -131,7 +131,7 @@ class CloudControl:
         self._app_metrics.add_metric_registry(
             MetricsRegistry(
                 {
-                    "metric_name": "deployment_time222",
+                    "metric_name": "deployment_time",
                     "labels": {
                         "result": "success" if command_result else "failure",
                         "command": self.args.command,
@@ -145,7 +145,7 @@ class CloudControl:
         self._app_metrics.add_metric_registry(
             MetricsRegistry(
                 {
-                    "metric_name": "deployments_rate222",
+                    "metric_name": "deployments_rate",
                     "labels": {
                         "result": "success" if command_result else "failure",
                         "command": self.args.command,
