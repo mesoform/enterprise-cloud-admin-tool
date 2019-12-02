@@ -99,7 +99,7 @@ def root_parser():
         default=False,
     )
     parser.add_argument(
-        "--enable-local-reporter",
+        "--disable-local-reporter",
         help="Enable reporting to file",
         default=False,
         action="store_true",

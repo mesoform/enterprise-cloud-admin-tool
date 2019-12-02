@@ -194,7 +194,7 @@ After that, you should receive success message in console, and metrics in your G
 ## Logging
 There is some command line arguments for logging setup:
 1) `--json-logging` — this one will enable logging in json format.
-2. `--enable-local-reporter` — in order to have all metrics dumped, you may want to pass this argument.
+2. `--disable-local-reporter` — in order to disable dumping of all metrics, you may want to pass this argument.
 
 Both arguments related to root cli parser, so you can pass them this way:
 ```shell script
@@ -202,7 +202,7 @@ Both arguments related to root cli parser, so you can pass them this way:
   -o <github organization name> \
   ...
   --json-logging \
-  --enable-local-reporter \
+  --disable-local-reporter \
   ...
   deploy --cloud gcp \
   ...
