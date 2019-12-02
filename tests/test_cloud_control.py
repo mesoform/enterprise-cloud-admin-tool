@@ -8,7 +8,11 @@ from cloud_control import ArgumentsParser, CloudControl, CloudControlException
 @pytest.fixture
 def stackdriver_mock(mocker):
     mocker.patch("cloud_control.common.GcpAuth")
-    return mocker.patch("cloud_control.StackdriverMetrics")
+    metrics = mocker.patch("cloud_control.StackdriverMetrics")
+
+    # some random value
+    metrics.return_value.app_runtime.total_seconds.return_value = 450.45
+    return metrics
 
 
 def test_deploy(
@@ -106,6 +110,7 @@ def test_argument_parser_defaults(tmpdir):
         "json_logging": True,
         "monitoring_namespace": "random-monitoring-project",
         "log_file": "/var/log/enterprise_cloud_admin.log",
+        "metrics_log_file": "/var/log/enterprise_cloud_admin_metrics.log",
         "debug": False,
         "command": "deploy",
         "force": False,

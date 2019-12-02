@@ -6,7 +6,7 @@ import common
 from code_control import setup
 from deployer import deploy
 
-from reporter.local import get_logger
+from reporter.local import get_logger, LocalMetrics
 from reporter.stackdriver import MetricsRegistry, StackdriverMetrics
 
 from settings import SETTINGS
@@ -104,6 +104,7 @@ class CloudControl:
 
         self._setup_logger()
         self._setup_app_metrics()
+        self._setup_local_metrics()
 
     def _setup_logger(self):
         self._log = get_logger(
@@ -124,40 +125,48 @@ class CloudControl:
             monitoring_project=self.args.monitoring_namespace,
         )
 
+    def _setup_local_metrics(self):
+        self._local_metrics = LocalMetrics(
+            __name__, log_file=self.args.metrics_log_file, debug=self.args.debug
+        )
+
     def _log_and_send_metrics(self, command, command_result):
         self._log.info("finished " + command + " run")
 
         self._app_metrics.end_time = datetime.utcnow()
-        self._app_metrics.add_metric_registry(
-            MetricsRegistry(
-                {
-                    "metric_name": "deployment_time",
-                    "labels": {
-                        "result": "success" if command_result else "failure",
-                        "command": self.args.command,
-                    },
-                    "metric_kind": "gauge",
-                    "value_type": "double",
-                    "value": self._app_metrics.app_runtime.total_seconds(),
-                }
-            )
+        deployment_time = MetricsRegistry(
+            {
+                "metric_name": "deployment_time",
+                "labels": {
+                    "result": "success" if command_result else "failure",
+                    "command": self.args.command,
+                },
+                "metric_kind": "gauge",
+                "value_type": "double",
+                "value": self._app_metrics.app_runtime.total_seconds(),
+            }
         )
-        self._app_metrics.add_metric_registry(
-            MetricsRegistry(
-                {
-                    "metric_name": "deployments_rate",
-                    "labels": {
-                        "result": "success" if command_result else "failure",
-                        "command": self.args.command,
-                    },
-                    "metric_kind": "cumulative",
-                    "value_type": "int64",
-                    "value": 1,
-                    "unit": "h",
-                }
-            )
+        deployments_rate = MetricsRegistry(
+            {
+                "metric_name": "deployments_rate",
+                "labels": {
+                    "result": "success" if command_result else "failure",
+                    "command": self.args.command,
+                },
+                "metric_kind": "cumulative",
+                "value_type": "int64",
+                "value": 1,
+                "unit": "h",
+            }
         )
+        self._app_metrics.add_metric_registry(deployment_time)
+        self._app_metrics.add_metric_registry(deployments_rate)
         self._app_metrics.send_metrics()
+
+        if not self.args.disable_local_reporter:
+            self._local_metrics.add_metric_registry(deployment_time)
+            self._local_metrics.add_metric_registry(deployments_rate)
+            self._local_metrics.send_metrics()
 
     def perform_command(self):
         """
