@@ -300,8 +300,36 @@ def google_credentials(working_directory, monkeypatch):
         {
             "type": "service_account",
             "project_id": "",
-            "private_key_id": "",
-            "private_key": "",
+            # random hash
+            "private_key_id": "36a0f83abf1d1781f1ea1ca7cc513c67530693fd",
+            # random rsa private key
+            "private_key": """-----BEGIN RSA PRIVATE KEY-----
+MIIEpAIBAAKCAQEA5zIskf9Bb4Wj9sW6zQSyMBmcOTPFUGdhFxMzZbsb28fA4MbP
+Rh73jSNq/QccYrbBQMXIVSVxwN8tcL6vWX4rhjmxX07nKV1F8Cs6rdyJBQEcNFye
+sJrwF7Ub52irGYpjbGf/ZwMEaE424ZHeueGzuFdm0QPdwh9L7ocKfjPBuuycNVEU
+KmRdPwk21Ai+POk2FN3XP4L+uvD9xSTT48+ltQ4DCtVAyuwdIxOTcl2A0MHFBk1D
+Hb5QizvlODei4a35g4lptOseHl1SrhCk+pCg1ZLQacin094iAWHYFKPVu/LKrLc1
+UkDdXa2LXBywgmxlVjtURgUHAqjJkUwrAeKrJwIDAQABAoIBAQC0xjqrfdeAiBKI
+5lsF6+IYUi4hXCWwlOUJ0e2iYgeKdkqOd2WjApu2NDd32ZOMbDH3n67hRQIJOXii
+a7dYVptZvMrAJ0YAxfnlrSeYwpQw4YlYOAOtO7j4EJjc/K6srdTH8xl1RpqvpFit
+UA3DcoPAZDb0v/0pyKbqv5So0Xdt3BAWKqf4SrKb5N9VO1v0ijQtq1cRC60mWLNB
+LMYrTy12hiK/S/rZn9akED1LNtHOpq2EhOwLZ953kmdciVFgQHLIJ2GHoRLk2RxF
+45QfwTHMs+3ZyCaMeQ85XRAFoy0u6fGnIZVvnDX1kuxeB2I1hZ7GcToGUqRJ8I5T
+7LEyvAXhAoGBAP0z8z9RulXV2UY2HQ4Ft3o0bXDYfotikhBLHLeSSwmM14XJW6lE
+4RqE8tQVg9DRwevKRKcZtZZ+OO4lAe1mCUtLGmXYLIoh9FRclZqni0d4++/qTKuu
+PxxLGaMGNabR9LDYyfm8vFK+dzcbb/Gb8HH78ndOdJrjLL1sO3MBx/DFAoGBAOm/
+/S8N2FrJSYqxpnY+9PFKnDf6+f0TpAASQr5Wug9o1t13RmzVD8joY8Ncq4CHj0O0
+/1rFKyXXSxvE0FOUSwCgadniIHYaH+QBgpVytQKljtngCAXgH3QVx0+j2JPllKst
+dB0vKFAacSD97vKXZJvyjcL4vWQBzkuguVQHeNL7AoGAOFR6ZTfVcIsmz0vyos/6
+xaEsR9KiNHg1bpKHTP+q2fEPcaAeWEYOnku9ihlPPgGsVrylEVfS4iwqljB9gUcW
+Aj4vHUE+h2yOYsZGMiXcAoaT5ggGDpuxRqYeifozrW1ANqfEJ18ptm7RLt1XxjSf
+BXy7sHcv0dWAepO9lhRrWtECgYA7LbAbyZWM5okH5BIQvb+llw4V3iSMPfy3R+g9
+6BcS76f2Scw6oXZtlugq/bstvyQ2MAy2HlTeL7OERD+56UFT10j1MJqnS9XnE7rL
+u064bNHNtzpQwn00Fo9vSjv6tZT+AXP0L4w1O3yIrcFhCZMfKDlbsz2/o/VmkDpb
+W8jrIQKBgQC4aE5RLg57pb08Q7UKBCNAsobfWOKBmiuPpmYneijdvjDILyM8a43d
+FSwXLhkaUPvUycDNO38ES9NS1UsMlkC/tRq2iVnKWL0lNJ0+I5f2kDNsTOkFX/N7
+zU1w9KOJBJgLFCQeYupLKu4ojIzrtGtAoaY7fmvjPcUOhuqVQ0nxWA==
+-----END RSA PRIVATE KEY-----""",
             "client_email": "",
             "client_id": "",
             "auth_uri": "https://accounts.google.com/o/oauth2/auth",
