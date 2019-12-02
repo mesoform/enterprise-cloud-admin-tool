@@ -64,6 +64,9 @@ def test_get_logger_stderr_json(capsys):
 
 
 def test_get_logger_file_json(log_file_path):
+    # other tests trigger code that is writing logs, so we should clean that
+    os.remove(log_file_path)
+
     logger = get_logger(
         module_name=__name__,
         log_file=log_file_path,

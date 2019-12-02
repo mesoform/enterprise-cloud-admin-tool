@@ -63,11 +63,6 @@ class StackdriverReporter(MetricsReporter):
         """
         raw_record = metric_registry.raw_record
 
-        if not isinstance(raw_record, dict):
-            raise StackdriverReporterException(
-                f"Wrong data, should be dict: {raw_record}"
-            )
-
         for key in (
             "metric_name",
             "labels",
@@ -82,19 +77,19 @@ class StackdriverReporter(MetricsReporter):
 
         if raw_record["metric_kind"] not in self.metric_kinds:
             raise StackdriverReporterException(
-                f"Wrong metric kind: {raw_record['metric_kind']},"
+                f"Wrong metric kind: \"{raw_record['metric_kind']}\", "
                 f"should be one of {list(self.metric_kinds.keys())}"
             )
 
         if raw_record["value_type"] not in self.value_types:
             raise StackdriverReporterException(
-                f"Wrong value type: {raw_record['value_type']},"
+                f"Wrong value type: \"{raw_record['value_type']}\", "
                 f"should be one of {list(self.value_types.keys())}"
             )
 
         if "unit" in raw_record and raw_record["unit"] not in self.units:
             raise StackdriverReporterException(
-                f"Wrong unit: {raw_record['unit']},"
+                f"Wrong unit: \"{raw_record['unit']}\", "
                 f"should be one of {self.units}"
             )
 
