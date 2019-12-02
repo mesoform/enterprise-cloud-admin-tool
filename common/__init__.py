@@ -94,6 +94,11 @@ def root_parser():
         default=SETTINGS.DEFAULT_LOG_FILE,
     )
     parser.add_argument(
+        "--metrics-log-file",
+        help="path to metrics log file, if different from default",
+        default=SETTINGS.DEFAULT_METRICS_LOG_FILE,
+    )
+    parser.add_argument(
         "--debug",
         help="output debug information to help troubleshoot issues",
         default=False,
