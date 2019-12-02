@@ -8,7 +8,7 @@ from cloud_control import ArgumentsParser, CloudControl, CloudControlException
 @pytest.fixture
 def stackdriver_mock(mocker):
     mocker.patch("cloud_control.common.GcpAuth")
-    return mocker.patch("cloud_control.StackdriverReporter")
+    return mocker.patch("cloud_control.StackdriverMetrics")
 
 
 def test_deploy(

@@ -17,7 +17,7 @@ class MetricsRegistry:
         return self._raw_record
 
 
-class MetricsReporter:
+class Metrics:
     """
     Base class for reporting backends
     """

@@ -5,7 +5,7 @@ import socket
 import pytest
 
 from reporter.base import MetricsRegistry
-from reporter.local import get_logger, LocalMetricsReporter
+from reporter.local import get_logger, LocalMetrics
 from settings import SETTINGS
 
 
@@ -92,7 +92,7 @@ def test_get_logger_file_json(log_file_path):
 
 
 def test_local_metrics_reporter(log_file_path):
-    reporter = LocalMetricsReporter(__name__, log_file=log_file_path)
+    reporter = LocalMetrics(__name__, log_file=log_file_path)
 
     first_metric_data = {"some_random_key": "some_random_value"}
     second_metric_data = {"some_random_key1": "some_random_value1"}

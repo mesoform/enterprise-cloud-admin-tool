@@ -2,7 +2,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from reporter.base import MetricsRegistry, MetricsReporter
+from reporter.base import MetricsRegistry, Metrics
 
 
 def test_metric_registry():
@@ -18,7 +18,7 @@ def test_metric_registry():
 
 def test_metrics_reporter():
     metric_registry = MetricsRegistry({})
-    reporter = MetricsReporter()
+    reporter = Metrics()
 
     prepare_metric_registry = Mock()
     validate_metric_registry = Mock()

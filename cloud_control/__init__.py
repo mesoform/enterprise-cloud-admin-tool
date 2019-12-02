@@ -7,7 +7,7 @@ from code_control import setup
 from deployer import deploy
 
 from reporter.local import get_logger
-from reporter.stackdriver import MetricsRegistry, StackdriverReporter
+from reporter.stackdriver import MetricsRegistry, StackdriverMetrics
 
 from settings import SETTINGS
 
@@ -119,7 +119,7 @@ class CloudControl:
         else:
             auth = common.GcpAuth()
 
-        self._app_metrics = StackdriverReporter(
+        self._app_metrics = StackdriverMetrics(
             monitoring_credentials=auth.credentials,
             monitoring_project=self.args.monitoring_namespace,
         )

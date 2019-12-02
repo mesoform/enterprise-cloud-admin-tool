@@ -7,10 +7,10 @@ import structlog
 
 from settings import SETTINGS
 
-from .base import MetricsRegistry, MetricsReporter
+from .base import MetricsRegistry, Metrics
 
 
-class LocalReporterError(Exception):
+class LocalMetricsError(Exception):
     """
     Represents errors for local reporter
     """
@@ -114,7 +114,7 @@ def get_logger(
     return logging.getLogger(module_name)
 
 
-class LocalMetricsReporter(MetricsReporter):
+class LocalMetrics(Metrics):
     def __init__(
         self,
         module_name: str,
