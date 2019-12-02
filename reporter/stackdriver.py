@@ -9,16 +9,16 @@ from google.auth.credentials import Credentials
 from google.cloud.monitoring_v3 import MetricServiceClient
 from google.cloud.monitoring_v3.types import TimeSeries
 
-from .base import MetricsRegistry, MetricsReporter
+from .base import MetricsRegistry, Metrics
 
 
-class StackdriverReporterException(Exception):
+class StackdriverMetricsException(Exception):
     """
     Represents errors for stackdriver reporter
     """
 
 
-class StackdriverReporter(MetricsReporter):
+class StackdriverMetrics(Metrics):
     """
     Implementation of metrics reporter, that sends metrics to Google Stackdriver.
     """
@@ -71,24 +71,24 @@ class StackdriverReporter(MetricsReporter):
             "value",
         ):
             if key not in raw_record:
-                raise StackdriverReporterException(
+                raise StackdriverMetricsException(
                     f'Key "{key}" is required for stackdriver metric registry.'
                 )
 
         if raw_record["metric_kind"] not in self.metric_kinds:
-            raise StackdriverReporterException(
+            raise StackdriverMetricsException(
                 f"Wrong metric kind: \"{raw_record['metric_kind']}\", "
                 f"should be one of {list(self.metric_kinds.keys())}"
             )
 
         if raw_record["value_type"] not in self.value_types:
-            raise StackdriverReporterException(
+            raise StackdriverMetricsException(
                 f"Wrong value type: \"{raw_record['value_type']}\", "
                 f"should be one of {list(self.value_types.keys())}"
             )
 
         if "unit" in raw_record and raw_record["unit"] not in self.units:
-            raise StackdriverReporterException(
+            raise StackdriverMetricsException(
                 f"Wrong unit: \"{raw_record['unit']}\", "
                 f"should be one of {self.units}"
             )
@@ -183,7 +183,7 @@ class StackdriverReporter(MetricsReporter):
         }
         attribute = message_value_attributes.get(message.value_type)
         if not attribute:
-            raise StackdriverReporterException(
+            raise StackdriverMetricsException(
                 f"Unexpected value type: {message.value_type}"
             )
 
