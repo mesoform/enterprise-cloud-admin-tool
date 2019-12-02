@@ -110,7 +110,7 @@ def test_argument_parser_defaults(tmpdir):
         "json_logging": True,
         "monitoring_namespace": "random-monitoring-project",
         "log_file": "/var/log/enterprise_cloud_admin.log",
-        "metrics_log_file": "/var/log/enterprise_cloud_admin_metrics.log",
+        "metrics_file": "/var/log/enterprise_cloud_admin_metrics.log",
         "debug": False,
         "command": "deploy",
         "force": False,
