@@ -50,8 +50,6 @@ class StackdriverMetrics(Metrics):
         )
         self.metrics_type = TimeSeries
 
-        self.start_time = datetime.utcnow()
-        self.end_time = None
 
     @property
     def monitoring_project_path(self):

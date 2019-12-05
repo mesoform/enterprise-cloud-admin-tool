@@ -1,3 +1,6 @@
+from datetime import datetime
+
+
 class MetricsRegistry:
     """
     Instances of this class contain original and prepared metrics data
@@ -24,6 +27,9 @@ class Metrics:
 
     def __init__(self, *args, **kwargs):
         self.metrics_registry_set = []
+
+        self.start_time = datetime.utcnow()
+        self.end_time = None
 
     def add_metric_registry(self, metric_registry: MetricsRegistry):
         self.validate_metric_registry(metric_registry)
