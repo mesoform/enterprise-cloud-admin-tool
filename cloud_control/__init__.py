@@ -127,7 +127,7 @@ class CloudControl:
 
     def _setup_local_metrics(self):
         self._local_metrics = LocalMetrics(
-            __name__, log_file=self.args.metrics_file, debug=self.args.debug
+            __name__, metrics_file=self.args.metrics_file, debug=self.args.debug
         )
 
     def _log_and_send_metrics(self, command, command_result):

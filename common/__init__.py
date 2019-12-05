@@ -96,7 +96,7 @@ def root_parser():
     parser.add_argument(
         "--metrics-file",
         help="path to file containing monitoring metrics, if different from default",
-        default=SETTINGS.DEFAULT_METRICS_LOG_FILE,
+        default=SETTINGS.DEFAULT_METRICS_FILE,
     )
     parser.add_argument(
         "--debug",

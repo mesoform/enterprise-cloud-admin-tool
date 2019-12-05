@@ -118,13 +118,13 @@ class LocalMetrics(Metrics):
     def __init__(
         self,
         module_name: str,
-        log_file: Optional[str] = None,
+        metrics_file: Optional[str] = None,
         debug: bool = False,
     ):
         super().__init__()
         self.logger = get_logger(
             module_name=module_name,
-            log_file=log_file,
+            log_file=metrics_file,
             syslog=False,
             debug=debug,
             json_formatter=True,
