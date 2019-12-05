@@ -50,7 +50,6 @@ class StackdriverMetrics(Metrics):
         )
         self.metrics_type = TimeSeries
 
-
     @property
     def monitoring_project_path(self):
         return self.metrics_client.project_path(self.monitoring_project)
