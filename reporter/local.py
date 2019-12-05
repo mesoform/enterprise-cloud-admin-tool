@@ -10,6 +10,8 @@ from settings import SETTINGS
 
 from .base import MetricsRegistry, Metrics
 
+APPLICATION = f"{SETTINGS.APPLICATION_NAME}-{SETTINGS.APPLICATION_VERSION}"
+
 
 class LocalMetricsError(Exception):
     """
@@ -17,28 +19,39 @@ class LocalMetricsError(Exception):
     """
 
 
+class ContextFilter(logging.Filter):
+    """
+    Context filter for basic formatter.
+    """
+
+    def filter(self, record):
+        record.hostname = socket.gethostname()
+        record.application = APPLICATION
+        return True
+
+
 def _add_hostname_and_application(logger, method_name, event_dict):
     event_dict["hostname"] = socket.gethostname()
-    event_dict[
-        "application"
-    ] = f"{SETTINGS.APPLICATION_NAME}-{SETTINGS.APPLICATION_VERSION}"
+    event_dict["application"] = APPLICATION
     return event_dict
 
 
 _JSON_FORMATTER = structlog.stdlib.ProcessorFormatter(
-        processor=structlog.processors.JSONRenderer(),
-        foreign_pre_chain=[
-            _add_hostname_and_application,
-            structlog.stdlib.add_log_level,
-            structlog.stdlib.add_logger_name,
-            structlog.stdlib.PositionalArgumentsFormatter(),
-            structlog.processors.TimeStamper(fmt="iso"),
-            structlog.processors.StackInfoRenderer(),
-            structlog.processors.format_exc_info,
-        ],
-    )
+    processor=structlog.processors.JSONRenderer(),
+    foreign_pre_chain=[
+        _add_hostname_and_application,
+        structlog.stdlib.add_log_level,
+        structlog.stdlib.add_logger_name,
+        structlog.stdlib.PositionalArgumentsFormatter(),
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.processors.StackInfoRenderer(),
+        structlog.processors.format_exc_info,
+    ],
+)
 
-_BASIC_FORMATTER = logging.Formatter("%(asctime)s [%(threadName)s] [%(name)s] %(levelname)s: %(message)s")
+_BASIC_FORMATTER = logging.Formatter(
+    "%(asctime)s [%(application)s] [%(threadName)s] [%(name)s] %(levelname)s: %(message)s"
+)
 
 
 def get_logger(
@@ -67,6 +80,8 @@ def get_logger(
     logger.handlers = []
 
     formatter = _JSON_FORMATTER if json_formatter else _BASIC_FORMATTER
+    if not json_formatter:
+        logger.addFilter(ContextFilter())
 
     if stream_logger:
         stream_handler = logging.StreamHandler()

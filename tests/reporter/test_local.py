@@ -46,7 +46,9 @@ def test_get_logger_stderr_debug(capsys):
 
 def test_get_logger_stderr_json(capsys):
     module_name = str(uuid4())
-    logger = get_logger(module_name=module_name, debug=True, json_formatter=True)
+    logger = get_logger(
+        module_name=module_name, debug=True, json_formatter=True
+    )
 
     logging_entry = "some random entry"
     logger.debug(logging_entry)
