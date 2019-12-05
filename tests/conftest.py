@@ -17,7 +17,9 @@ def working_directory(tmpdir_factory):
 @pytest.fixture(scope="session")
 def command_line_args(working_directory):
     default_log_file = f"{working_directory.strpath}/enterprise_cloud_admin.log"
-    default_metrics_file = f"{working_directory.strpath}/enterprise_cloud_admin_metrics.log"
+    default_metrics_file = (
+        f"{working_directory.strpath}/enterprise_cloud_admin_metrics.log"
+    )
 
     return ArgumentsParser(
         [
