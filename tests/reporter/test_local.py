@@ -2,6 +2,8 @@ import json
 import os
 import socket
 
+from uuid import uuid4
+
 import pytest
 
 from reporter.base import MetricsRegistry
@@ -17,7 +19,7 @@ def log_file_path(working_directory):
 
 
 def test_get_logger_stderr(capsys):
-    logger = get_logger(module_name=__name__)
+    logger = get_logger(module_name=str(uuid4()))
 
     logging_entry = "some random entry"
     logger.info(logging_entry)
@@ -33,7 +35,7 @@ def test_get_logger_stderr(capsys):
 
 
 def test_get_logger_stderr_debug(capsys):
-    logger = get_logger(module_name=__name__, debug=True)
+    logger = get_logger(module_name=str(uuid4()), debug=True)
 
     logging_entry = "some random entry"
     logger.debug(logging_entry)
@@ -43,7 +45,8 @@ def test_get_logger_stderr_debug(capsys):
 
 
 def test_get_logger_stderr_json(capsys):
-    logger = get_logger(module_name=__name__, debug=True, json_formatter=True)
+    module_name = str(uuid4())
+    logger = get_logger(module_name=module_name, debug=True, json_formatter=True)
 
     logging_entry = "some random entry"
     logger.debug(logging_entry)
@@ -59,16 +62,14 @@ def test_get_logger_stderr_json(capsys):
         "event": "some random entry",
         "hostname": socket.gethostname(),
         "level": "debug",
-        "logger": "test_local",
+        "logger": module_name,
     }
 
 
 def test_get_logger_file_json(log_file_path):
-    # other tests trigger code that is writing logs, so we should clean that
-    os.remove(log_file_path)
-
+    module_name = str(uuid4())
     logger = get_logger(
-        module_name=__name__,
+        module_name=module_name,
         log_file=log_file_path,
         debug=True,
         json_formatter=True,
@@ -87,12 +88,12 @@ def test_get_logger_file_json(log_file_path):
         "event": "some random entry",
         "hostname": socket.gethostname(),
         "level": "debug",
-        "logger": "test_local",
+        "logger": module_name,
     }
 
 
 def test_local_metrics_reporter(log_file_path):
-    reporter = LocalMetrics(__name__, metrics_file=log_file_path)
+    reporter = LocalMetrics(str(uuid4()), metrics_file=log_file_path)
 
     first_metric_data = {"some_random_key": "some_random_value"}
     second_metric_data = {"some_random_key1": "some_random_value1"}

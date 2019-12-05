@@ -1,5 +1,6 @@
 import json
 import logging.config
+import logging.handlers
 import socket
 from typing import Optional
 
@@ -16,7 +17,7 @@ class LocalMetricsError(Exception):
     """
 
 
-def add_hostname_and_application(logger, method_name, event_dict):
+def _add_hostname_and_application(logger, method_name, event_dict):
     event_dict["hostname"] = socket.gethostname()
     event_dict[
         "application"
@@ -24,94 +25,52 @@ def add_hostname_and_application(logger, method_name, event_dict):
     return event_dict
 
 
+_JSON_FORMATTER = structlog.stdlib.ProcessorFormatter(
+        processor=structlog.processors.JSONRenderer(),
+        foreign_pre_chain=[
+            _add_hostname_and_application,
+            structlog.stdlib.add_log_level,
+            structlog.stdlib.add_logger_name,
+            structlog.stdlib.PositionalArgumentsFormatter(),
+            structlog.processors.TimeStamper(fmt="iso"),
+            structlog.processors.StackInfoRenderer(),
+            structlog.processors.format_exc_info,
+        ],
+    )
+
+_BASIC_FORMATTER = logging.Formatter("%(asctime)s [%(threadName)s] [%(name)s] %(levelname)s: %(message)s")
+
+
 def get_logger(
     module_name: str,
     log_file=None,
     syslog=None,
+    stream_logger=True,
     debug: bool = False,
     json_formatter: bool = False,
 ):
-    """
-    Logger setup.
-    """
-    logging_level = logging.DEBUG if debug else logging.INFO
-    default_processor = (
-        structlog.processors.JSONRenderer()
-        if json_formatter
-        else structlog.dev.ConsoleRenderer(colors=False)
-    )
+    logger = logging.getLogger(module_name)
+    logger.setLevel(logging.DEBUG if debug else logging.INFO)
+    logger.handlers = []
 
-    pre_chain = [
-        add_hostname_and_application,
-        structlog.stdlib.add_log_level,
-        structlog.stdlib.add_logger_name,
-        structlog.processors.TimeStamper(fmt="iso"),
-        structlog.processors.StackInfoRenderer(),
-        structlog.processors.format_exc_info,
-    ]
+    formatter = _JSON_FORMATTER if json_formatter else _BASIC_FORMATTER
 
-    logger_config = {
-        "version": 1,
-        "disable_existing_loggers": False,
-        "formatters": {
-            "default": {
-                "()": structlog.stdlib.ProcessorFormatter,
-                "processor": default_processor,
-                "foreign_pre_chain": pre_chain,
-            }
-        },
-        "handlers": {
-            "default": {
-                "level": logging_level,
-                "class": "logging.StreamHandler",
-                "formatter": "default",
-            }
-        },
-        "loggers": {
-            "": {
-                "handlers": ["default"],
-                "level": logging_level,
-                "propagate": True,
-            }
-        },
-    }
+    if stream_logger:
+        stream_handler = logging.StreamHandler()
+        stream_handler.setFormatter(formatter)
+        logger.addHandler(stream_handler)
 
     if log_file:
-        logger_config["handlers"]["file"] = {
-            "level": logging_level,
-            "class": "logging.handlers.WatchedFileHandler",
-            "filename": log_file,
-            "formatter": "default",
-        }
-        logger_config["loggers"][""]["handlers"].append("file")
+        file_handler = logging.FileHandler(log_file)
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
 
     if syslog:
-        logger_config["handlers"]["syslog"] = {
-            "level": logging_level,
-            "class": "logging.handlers.SysLogHandler",
-            "address": syslog,
-            "formatter": "default",
-        }
-        logger_config["loggers"][""]["handlers"].append("syslog")
+        syslog_handler = logging.handlers.SysLogHandler(syslog)
+        syslog_handler.setFormatter(formatter)
+        logger.addHandler(syslog_handler)
 
-    logging.config.dictConfig(logger_config)
-
-    structlog.configure(
-        processors=[
-            structlog.stdlib.add_log_level,
-            structlog.stdlib.PositionalArgumentsFormatter(),
-            structlog.processors.TimeStamper(),
-            structlog.processors.StackInfoRenderer(),
-            structlog.processors.format_exc_info,
-            structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
-        ],
-        context_class=dict,
-        logger_factory=structlog.stdlib.LoggerFactory(),
-        wrapper_class=structlog.stdlib.BoundLogger,
-        cache_logger_on_first_use=True,
-    )
-
-    return logging.getLogger(module_name)
+    return logger
 
 
 class LocalMetrics(Metrics):
