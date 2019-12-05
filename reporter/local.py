@@ -61,7 +61,7 @@ def get_logger(
     stream_logger: bool = True,
     debug: bool = False,
     json_formatter: bool = False,
-):
+) -> logging.Logger:
     """
     Helper method, that allows to setup logger instance with arbitrary combination of logging
     handlers.
