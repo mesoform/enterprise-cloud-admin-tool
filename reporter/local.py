@@ -43,12 +43,25 @@ _BASIC_FORMATTER = logging.Formatter("%(asctime)s [%(threadName)s] [%(name)s] %(
 
 def get_logger(
     module_name: str,
-    log_file=None,
-    syslog=None,
-    stream_logger=True,
+    log_file: str = None,
+    syslog: str = None,
+    stream_logger: bool = True,
     debug: bool = False,
     json_formatter: bool = False,
 ):
+    """
+    Helper method, that allows to setup logger instance with arbitrary combination of logging
+    handlers.
+    Also, allows to format all logs in json format. For this, we use `ProcessorFormatter` from
+    structlog package.
+
+    :param module_name: name of module, where get_logger will be used
+    :param log_file: path to file, enables logging to file
+    :param syslog: syslog address, enables logging to syslog
+    :param stream_logger: enables logging to standard output
+    :param debug: enables debug logging level
+    :param json_formatter: formats logs in json
+    """
     logger = logging.getLogger(module_name)
     logger.setLevel(logging.DEBUG if debug else logging.INFO)
     logger.handlers = []
@@ -84,7 +97,6 @@ class LocalMetrics(Metrics):
         self.logger = get_logger(
             module_name=module_name,
             log_file=metrics_file,
-            syslog=False,
             debug=debug,
             json_formatter=True,
         )
