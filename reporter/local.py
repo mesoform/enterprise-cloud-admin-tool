@@ -119,12 +119,15 @@ class LocalMetrics(Metrics):
         self,
         module_name: str,
         log_file: Optional[str] = None,
-        syslog: Optional[str] = None,
         debug: bool = False,
     ):
         super().__init__()
         self.logger = get_logger(
-            module_name, log_file, syslog, debug, json_formatter=True
+            module_name=module_name,
+            log_file=log_file,
+            syslog=False,
+            debug=debug,
+            json_formatter=True,
         )
 
     def send_metrics(self):
