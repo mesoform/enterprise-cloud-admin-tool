@@ -14,8 +14,18 @@ from settings import SETTINGS
 @pytest.fixture
 def log_file_path(working_directory):
     log_file_path = f"{working_directory.strpath}/enterprise_cloud_admin.log"
+
+    try:
+        os.remove(log_file_path)
+    except FileNotFoundError:
+        pass
+
     yield log_file_path
-    os.remove(log_file_path)
+
+    try:
+        os.remove(log_file_path)
+    except FileNotFoundError:
+        pass
 
 
 def test_get_logger_stderr(capsys):
@@ -95,7 +105,7 @@ def test_get_logger_file_json(log_file_path):
 
 
 def test_local_metrics_reporter(log_file_path):
-    reporter = LocalMetrics(str(uuid4()), metrics_file=log_file_path)
+    reporter = LocalMetrics(metrics_file=log_file_path)
 
     first_metric_data = {"some_random_key": "some_random_value"}
     second_metric_data = {"some_random_key1": "some_random_value1"}
@@ -110,8 +120,5 @@ def test_local_metrics_reporter(log_file_path):
 
     first_entry, second_entry = log_entries[0], log_entries[1]
 
-    first_entry = json.loads(first_entry)
-    second_entry = json.loads(second_entry)
-
-    assert json.loads(first_entry["event"]) == first_metric_data
-    assert json.loads(second_entry["event"]) == second_metric_data
+    assert json.loads(first_entry) == first_metric_data
+    assert json.loads(second_entry) == second_metric_data

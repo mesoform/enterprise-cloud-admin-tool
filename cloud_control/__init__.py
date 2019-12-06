@@ -126,9 +126,7 @@ class CloudControl:
         )
 
     def _setup_local_metrics(self):
-        self._local_metrics = LocalMetrics(
-            __name__, metrics_file=self.args.metrics_file, debug=self.args.debug
-        )
+        self._local_metrics = LocalMetrics(metrics_file=self.args.metrics_file)
 
     def _log_and_send_metrics(self, command, command_result):
         self._log.info("finished " + command + " run")
