@@ -1,3 +1,5 @@
+from time import sleep
+
 from datetime import datetime
 
 from google.api.metric_pb2 import MetricDescriptor
@@ -218,6 +220,10 @@ class AppMetrics(Metrics):
             name=self.monitoring_project_path,
             metric_descriptor=MetricDescriptor(**metric_descriptor_values),
         )
+
+        # if we send requests through metrics_client one after another, we receive unclear error 500,
+        # probably due to google's requests throttling
+        sleep(1)
 
         series = self.metrics_type(
             metric_kind=metric_kind, value_type=value_type
