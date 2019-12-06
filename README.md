@@ -25,6 +25,7 @@ Official Terraform documentation points [here](https://stackoverflow.com/questio
 1. You must have access token of your Github account, and this account should be admin of
 some Github organization.
 You can generate it here: `Settings` -> `Developer settings` -> `Personal access tokens` -> `Generate new token`.
+This token needs permissions for at 'repo', 'admin:org', and 'delete_repo'.
 
 1. You must have service account on google cloud platform, with enabled billing.
 You can find how to create it [here](https://cloud.google.com/iam/docs/creating-managing-service-accounts).
@@ -32,7 +33,9 @@ It doesn't matter for which project you will create service account, you will be
 
 1. You must have existing project on google cloud platform, that will used as monitoring namespace.
 This project must have service account attached, with `Monitoring Metric Writer` role assigned to this profile.
-So, just switch to your monitoring project, go to `IAM` menu, and add service account as a member with this role.
+So, just switch to your monitoring project, go to `IAM` menu, and add service account as a member with this role. 
+Once created go to 'Monitoring' and if it doesn't already exisit, craete a monitoring space in Stackdriver.
+
 
 1. You must create, export and save your GCP service account private key in `json` format.
 
