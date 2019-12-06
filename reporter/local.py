@@ -102,23 +102,15 @@ def get_logger(
 
 
 class LocalMetrics(Metrics):
-    def __init__(
-        self,
-        module_name: str,
-        metrics_file: Optional[str] = None,
-        debug: bool = False,
-    ):
+    def __init__(self, metrics_file: str):
         super().__init__()
-        self.logger = get_logger(
-            module_name=module_name,
-            log_file=metrics_file,
-            debug=debug,
-            json_formatter=True,
-        )
+        self.metrics_file = metrics_file
 
     def send_metrics(self):
-        for metrics_registry in self.metrics_registry_set:
-            self.logger.info(metrics_registry.prepared_record)
+        with open(self.metrics_file, "w") as metrics_file:
+            for metrics_registry in self.metrics_registry_set:
+                metrics_file.write(metrics_registry.prepared_record)
+                metrics_file.write("\n")
 
     def validate_metric_registry(self, metric_registry: MetricsRegistry):
         """
