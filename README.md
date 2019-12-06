@@ -25,7 +25,7 @@ Official Terraform documentation points [here](https://stackoverflow.com/questio
 1. You must have access token of your Github account, and this account should be admin of
 some Github organization.
 You can generate it here: `Settings` -> `Developer settings` -> `Personal access tokens` -> `Generate new token`.
-This token needs permissions for at 'repo', 'admin:org', and 'delete_repo'.
+This token needs permissions for 'repo', 'admin:org', and 'delete_repo'.
 
 1. You must have service account on google cloud platform, with enabled billing.
 You can find how to create it [here](https://cloud.google.com/iam/docs/creating-managing-service-accounts).
