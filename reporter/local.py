@@ -2,7 +2,6 @@ import json
 import logging.config
 import logging.handlers
 import socket
-from typing import Optional
 
 import structlog
 
