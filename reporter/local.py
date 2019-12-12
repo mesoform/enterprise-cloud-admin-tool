@@ -101,6 +101,8 @@ def get_logger(
 
 
 class LocalMetrics(Metrics):
+    TYPES_STRING_REPR = {int: "int", str: "str", float: "float"}
+
     def __init__(self, metrics_file: str):
         super().__init__()
         self.metrics_file = metrics_file
@@ -108,8 +110,9 @@ class LocalMetrics(Metrics):
     def send_metrics(self):
         with open(self.metrics_file, "w") as metrics_file:
             for metrics_registry in self.metrics_registry_set:
-                metrics_file.write(metrics_registry.prepared_record)
-                metrics_file.write("\n")
+                for metric_json in metrics_registry.prepared_metrics.values():
+                    metrics_file.write(metric_json)
+                    metrics_file.write("\n")
 
     def validate_metric_registry(self, metric_registry: MetricsRegistry):
         """
@@ -117,4 +120,13 @@ class LocalMetrics(Metrics):
         """
 
     def prepare_metric_registry(self, metric_registry: MetricsRegistry):
-        metric_registry.prepared_record = json.dumps(metric_registry.raw_record)
+        for metric_name, metric_dict in metric_registry.metrics.items():
+            prepared_metric_dict = metric_dict.copy()
+            prepared_metric_dict["type"] = self.TYPES_STRING_REPR[
+                prepared_metric_dict["type"]
+            ]
+            prepared_metric_dict["metric_name"] = metric_name
+
+            metric_registry.prepared_metrics[metric_name] = json.dumps(
+                prepared_metric_dict
+            )

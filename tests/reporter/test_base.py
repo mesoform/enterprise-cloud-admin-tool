@@ -5,19 +5,56 @@ import pytest
 from reporter.base import MetricsRegistry, Metrics
 
 
-def test_metric_registry():
+@pytest.mark.parametrize(
+    "metric_name, metric_value, metric_extra_data",
+    (
+        ("some_random_name", 123.45, {"some_key": "some_value"}),
+        ("deployment_time", "string", {"some_key": "some_value"}),
+        ("deployment_time", 123.45, {"type": "some_value"}),
+    ),
+)
+def test_metric_registry_error(metric_name, metric_value, metric_extra_data):
+    metrics = MetricsRegistry()
     with pytest.raises(ValueError):
-        MetricsRegistry(123)
+        metrics.add_metric(metric_name, metric_value, metric_extra_data)
 
-    some_dict = {"message": "Hello"}
-    metric_registry = MetricsRegistry(some_dict)
 
-    assert metric_registry.raw_record == some_dict
-    assert metric_registry.prepared_record == {}
+def test_metric_registry():
+    metrics = MetricsRegistry()
+
+    metrics.add_metric(
+        metric_name="deployment_time",
+        metric_value=123.45,
+        metric_extra_data={"some_key": "some_value"},
+    )
+
+    metrics.add_metric(
+        metric_name="deployments_rate",
+        metric_value=1,
+        metric_extra_data={"some_key": "some_value"},
+    )
+
+    assert metrics.metrics == {
+        "deployment_time": {
+            "type": float,
+            "unit": "s",
+            "value": 123.45,
+            "some_key": "some_value",
+        },
+        "deployments_rate": {
+            "type": int,
+            "unit": "h",
+            "value": 1,
+            "some_key": "some_value",
+        },
+    }
+
+    assert metrics.deployment_time
+    assert metrics.deployments_rate
 
 
 def test_metrics_reporter():
-    metric_registry = MetricsRegistry({})
+    metric_registry = MetricsRegistry()
     reporter = Metrics()
 
     prepare_metric_registry = Mock()

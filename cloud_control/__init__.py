@@ -132,38 +132,36 @@ class CloudControl:
         self._log.info("finished " + command + " run")
 
         self._app_metrics.end_time = datetime.utcnow()
-        deployment_time = MetricsRegistry(
-            {
-                "metric_name": "deployment_time",
+        stackdriver_metrics = MetricsRegistry()
+        stackdriver_metrics.add_metric(
+            metric_name="deployment_time",
+            metric_value=self._app_metrics.app_runtime.total_seconds(),
+            metric_extra_data={
                 "labels": {
                     "result": "success" if command_result else "failure",
                     "command": self.args.command,
                 },
                 "metric_kind": "gauge",
                 "value_type": "double",
-                "value": self._app_metrics.app_runtime.total_seconds(),
-            }
+            },
         )
-        deployments_rate = MetricsRegistry(
-            {
-                "metric_name": "deployments_rate",
+        stackdriver_metrics.add_metric(
+            metric_name="deployments_rate",
+            metric_value=1,
+            metric_extra_data={
                 "labels": {
                     "result": "success" if command_result else "failure",
                     "command": self.args.command,
                 },
                 "metric_kind": "cumulative",
                 "value_type": "int64",
-                "value": 1,
-                "unit": "h",
-            }
+            },
         )
-        self._app_metrics.add_metric_registry(deployment_time)
-        self._app_metrics.add_metric_registry(deployments_rate)
+        self._app_metrics.add_metric_registry(stackdriver_metrics)
         self._app_metrics.send_metrics()
 
         if not self.args.disable_local_reporter:
-            self._local_metrics.add_metric_registry(deployment_time)
-            self._local_metrics.add_metric_registry(deployments_rate)
+            self._local_metrics.add_metric_registry(stackdriver_metrics)
             self._local_metrics.send_metrics()
 
     def perform_command(self):

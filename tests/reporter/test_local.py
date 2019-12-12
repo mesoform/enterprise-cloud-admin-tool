@@ -110,15 +110,44 @@ def test_local_metrics_reporter(log_file_path):
     first_metric_data = {"some_random_key": "some_random_value"}
     second_metric_data = {"some_random_key1": "some_random_value1"}
 
-    reporter.add_metric_registry(MetricsRegistry(first_metric_data))
-    reporter.add_metric_registry(MetricsRegistry(second_metric_data))
+    metrics = MetricsRegistry()
+    metrics.add_metric(
+        metric_name="deployment_time",
+        metric_value=123.34,
+        metric_extra_data=first_metric_data,
+    )
+    metrics.add_metric(
+        metric_name="deployments_rate",
+        metric_value=1,
+        metric_extra_data=second_metric_data,
+    )
 
+    reporter.add_metric_registry(metrics)
     reporter.send_metrics()
 
     with open(log_file_path, "r") as log_file:
         log_entries = log_file.read().split("\n")
 
-    first_entry, second_entry = log_entries[0], log_entries[1]
+    log_entries.sort()
 
-    assert json.loads(first_entry) == first_metric_data
-    assert json.loads(second_entry) == second_metric_data
+    first_entry, second_entry = log_entries[1], log_entries[2]
+
+    assert json.loads(first_entry) == {
+        **first_metric_data,
+        **{
+            "metric_name": "deployment_time",
+            "value": 123.34,
+            "type": "float",
+            "unit": "s",
+        },
+    }
+
+    assert json.loads(second_entry) == {
+        **second_metric_data,
+        **{
+            "metric_name": "deployments_rate",
+            "value": 1,
+            "type": "int",
+            "unit": "h",
+        },
+    }
