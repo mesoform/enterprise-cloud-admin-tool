@@ -197,15 +197,14 @@ class StackdriverMetrics(Metrics):
         time_series_list = []
 
         for metrics_registry in self.metrics_registry_set:
-            for (
-                metric_name,
-                metric_dict,
-            ) in metrics_registry.prepared_metrics.items():
-                value = metric_dict.pop("value")
-                metric_dict.pop("type")
+            for metric_name, metric_dict in metrics_registry.prepared_metrics.items():
+                metric_dict_copy = metric_dict.copy()
+
+                metric_dict_copy.pop("type")
+                value = metric_dict_copy.pop("value")
 
                 base_metrics = self._initialize_base_metrics_message(
-                    metric_name=metric_name, **metric_dict
+                    metric_name=metric_name, **metric_dict_copy
                 )
                 time_series = self._add_data_points_to_metric_message(
                     base_metrics, value
