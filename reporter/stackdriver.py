@@ -58,53 +58,48 @@ class StackdriverMetrics(Metrics):
         """
         Ensures, that metrics registry contain all required data.
         """
-        raw_record = metric_registry.raw_record
+        for metric_dict in metric_registry.metrics.values():
+            for key in ("labels", "metric_kind", "value_type"):
+                if key not in metric_dict:
+                    raise StackdriverMetricsException(
+                        f'Key "{key}" is required for stackdriver\'s metric_extra_data.'
+                    )
 
-        for key in (
-            "metric_name",
-            "labels",
-            "metric_kind",
-            "value_type",
-            "value",
-        ):
-            if key not in raw_record:
+            if metric_dict["metric_kind"] not in self.metric_kinds:
                 raise StackdriverMetricsException(
-                    f'Key "{key}" is required for stackdriver metric registry.'
+                    f"Wrong metric kind: \"{metric_dict['metric_kind']}\", "
+                    f"should be one of {list(self.metric_kinds.keys())}"
                 )
 
-        if raw_record["metric_kind"] not in self.metric_kinds:
-            raise StackdriverMetricsException(
-                f"Wrong metric kind: \"{raw_record['metric_kind']}\", "
-                f"should be one of {list(self.metric_kinds.keys())}"
-            )
+            if metric_dict["value_type"] not in self.value_types:
+                raise StackdriverMetricsException(
+                    f"Wrong value type: \"{metric_dict['value_type']}\", "
+                    f"should be one of {list(self.value_types.keys())}"
+                )
 
-        if raw_record["value_type"] not in self.value_types:
-            raise StackdriverMetricsException(
-                f"Wrong value type: \"{raw_record['value_type']}\", "
-                f"should be one of {list(self.value_types.keys())}"
-            )
-
-        if "unit" in raw_record and raw_record["unit"] not in self.units:
-            raise StackdriverMetricsException(
-                f"Wrong unit: \"{raw_record['unit']}\", "
-                f"should be one of {self.units}"
-            )
+            if "unit" in metric_dict and metric_dict["unit"] not in self.units:
+                raise StackdriverMetricsException(
+                    f"Wrong unit: \"{metric_dict['unit']}\", "
+                    f"should be one of {self.units}"
+                )
 
     def prepare_metric_registry(self, metric_registry: MetricsRegistry):
         """
         Fulfills `prepared_record` of metric registry with implementation-specific
         metrics data, like protobuf descriptors.
         """
-        prepared_record = metric_registry.raw_record.copy()
+        prepared_metrics = metric_registry.metrics.copy()
 
-        prepared_record["metric_kind"] = self.metric_kinds[
-            prepared_record["metric_kind"]
-        ]
-        prepared_record["value_type"] = self.value_types[
-            prepared_record["value_type"]
-        ]
+        for metric_dict in prepared_metrics.values():
 
-        metric_registry.prepared_record = prepared_record
+            metric_dict["metric_kind"] = self.metric_kinds[
+                metric_dict["metric_kind"]
+            ]
+            metric_dict["value_type"] = self.value_types[
+                metric_dict["value_type"]
+            ]
+
+        metric_registry.prepared_metrics = prepared_metrics
 
     def _create_metric_descriptor(
         self, metric_kind, value_type, metric_name, unit
@@ -202,16 +197,21 @@ class StackdriverMetrics(Metrics):
         time_series_list = []
 
         for metrics_registry in self.metrics_registry_set:
-            value = metrics_registry.prepared_record.pop("value")
+            for (
+                metric_name,
+                metric_dict,
+            ) in metrics_registry.prepared_metrics.items():
+                value = metric_dict.pop("value")
+                metric_dict.pop("type")
 
-            base_metrics = self._initialize_base_metrics_message(
-                **metrics_registry.prepared_record
-            )
-            time_series = self._add_data_points_to_metric_message(
-                base_metrics, value
-            )
+                base_metrics = self._initialize_base_metrics_message(
+                    metric_name=metric_name, **metric_dict
+                )
+                time_series = self._add_data_points_to_metric_message(
+                    base_metrics, value
+                )
 
-            time_series_list.append(time_series)
+                time_series_list.append(time_series)
 
         self.metrics_client.create_time_series(
             self.monitoring_project_path, time_series_list

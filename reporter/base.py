@@ -6,18 +6,47 @@ class MetricsRegistry:
     Instances of this class contain original and prepared metrics data
     """
 
-    def __init__(self, record):
-        if not isinstance(record, dict):
-            raise ValueError(
-                "Record passed to MetricRegistry should be type of dict."
-            )
+    METRICS_TEMPLATES = {
+        "deployment_time": {"type": float, "value": 0, "unit": "s"},
+        "deployments_rate": {"type": int, "value": 1, "unit": "h"},
+    }
 
-        self._raw_record = record
-        self.prepared_record = {}
+    def __init__(self):
+        self._metrics = {}
+        self.prepared_metrics = {}
 
     @property
-    def raw_record(self):
-        return self._raw_record
+    def metrics(self):
+        return self._metrics
+
+    def add_metric(self, metric_name, metric_value, metric_extra_data=None):
+        if metric_name not in self.METRICS_TEMPLATES:
+            raise ValueError
+
+        template = self.METRICS_TEMPLATES[metric_name]
+
+        if not isinstance(metric_value, template["type"]):
+            raise ValueError
+
+        metric = self._metrics.setdefault(metric_name, {})
+
+        metric["type"] = template["type"]
+        metric["unit"] = template["unit"]
+
+        metric["value"] = metric_value
+
+        if metric_extra_data is not None:
+            if {"type", "unit", "value"} & set(metric_extra_data.keys()):
+                raise ValueError(
+                    "metric_extra_data keys shouldn't intersect with 'type', 'unit' or 'value'"
+                )
+            metric.update(metric_extra_data)
+
+    def __getattr__(self, item):
+        if item in self.METRICS_TEMPLATES:
+            return self.metrics.get(item)
+
+        raise AttributeError
 
 
 class Metrics:

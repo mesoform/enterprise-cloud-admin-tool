@@ -16,88 +16,64 @@ NANOS_PER_MICROSECOND = 1000
 
 @pytest.mark.usefixtures("google_credentials")
 @pytest.mark.parametrize(
-    "metric_registry_dict, error_message",
+    "metric_name, metric_value, metric_dict, error_message",
     [
         (
-            {
-                "labels": {"result": "success", "command": "deploy"},
-                "metric_kind": "gauge",
-                "value_type": "double",
-                "value": 453.77329,
-            },
-            'Key "metric_name" is required for stackdriver metric registry.',
-        ),
-        (
+            "deployment_time",
+            453.77329,
             {
                 "metric_name": "deployment_time",
                 "metric_kind": "gauge",
                 "value_type": "double",
-                "value": 453.77329,
             },
-            'Key "labels" is required for stackdriver metric registry.',
+            'Key "labels" is required for stackdriver\'s metric_extra_data.',
         ),
         (
+            "deployment_time",
+            453.77329,
             {
                 "metric_name": "deployment_time",
                 "labels": {"result": "success", "command": "deploy"},
                 "value_type": "double",
-                "value": 453.77329,
             },
-            'Key "metric_kind" is required for stackdriver metric registry.',
+            'Key "metric_kind" is required for stackdriver\'s metric_extra_data.',
         ),
         (
+            "deployment_time",
+            453.77329,
             {
                 "metric_name": "deployment_time",
                 "labels": {"result": "success", "command": "deploy"},
                 "metric_kind": "gauge",
-                "value": 453.77329,
             },
-            'Key "value_type" is required for stackdriver metric registry.',
+            'Key "value_type" is required for stackdriver\'s metric_extra_data.',
         ),
         (
-            {
-                "metric_name": "deployment_time",
-                "labels": {"result": "success", "command": "deploy"},
-                "metric_kind": "gauge",
-                "value_type": "double",
-            },
-            'Key "value" is required for stackdriver metric registry.',
-        ),
-        (
+            "deployment_time",
+            453.77329,
             {
                 "metric_name": "deployment_time",
                 "labels": {"result": "success", "command": "deploy"},
                 "metric_kind": "some_non_existent_kind",
                 "value_type": "double",
-                "value": 453.77329,
             },
             f'Wrong metric kind: "some_non_existent_kind", should be one of {list(StackdriverMetrics.metric_kinds.keys())}',
         ),
         (
+            "deployment_time",
+            453.77329,
             {
                 "metric_name": "deployment_time",
                 "labels": {"result": "success", "command": "deploy"},
                 "metric_kind": "gauge",
                 "value_type": "some_non_existent_type",
-                "value": 453.77329,
             },
             f'Wrong value type: "some_non_existent_type", should be one of {list(StackdriverMetrics.value_types.keys())}',
-        ),
-        (
-            {
-                "metric_name": "deployment_time",
-                "labels": {"result": "success", "command": "deploy"},
-                "metric_kind": "gauge",
-                "value_type": "double",
-                "value": 453.77329,
-                "unit": "some_non_existent_unit",
-            },
-            f'Wrong unit: "some_non_existent_unit", should be one of {StackdriverMetrics.units}',
         ),
     ],
 )
 def test_stackdriver_reporter_validation(
-    metric_registry_dict, error_message, command_line_args
+    metric_name, metric_value, metric_dict, error_message, command_line_args
 ):
     auth = GcpAuth()
 
@@ -105,7 +81,14 @@ def test_stackdriver_reporter_validation(
         command_line_args.monitoring_namespace, auth.credentials
     )
     with pytest.raises(StackdriverMetricsException) as e:
-        reporter.add_metric_registry(MetricsRegistry(metric_registry_dict))
+        stackdriver_metrics = MetricsRegistry()
+        stackdriver_metrics.add_metric(
+            metric_name=metric_name,
+            metric_value=metric_value,
+            metric_extra_data=metric_dict,
+        )
+
+        reporter.add_metric_registry(stackdriver_metrics)
 
     assert str(e.value) == error_message
 
@@ -128,29 +111,27 @@ def test_stackdriver_send_metrics(command_line_args):
     reporter.metrics_client.create_time_series = create_time_series
     reporter.metrics_client.create_metric_descriptor = create_metric_descriptor
 
-    reporter.add_metric_registry(
-        MetricsRegistry(
-            {
-                "metric_name": "deployment_time",
-                "labels": {"result": "success", "command": "deploy"},
-                "metric_kind": "gauge",
-                "value_type": "double",
-                "value": 453.77329,
-            }
-        )
+    stackdriver_metrics = MetricsRegistry()
+    stackdriver_metrics.add_metric(
+        metric_name="deployment_time",
+        metric_value=453.77329,
+        metric_extra_data={
+            "labels": {"result": "success", "command": "deploy"},
+            "metric_kind": "gauge",
+            "value_type": "double",
+        },
     )
-    reporter.add_metric_registry(
-        MetricsRegistry(
-            {
-                "metric_name": "deployments_rate",
-                "labels": {"result": "success", "command": "deploy"},
-                "metric_kind": "cumulative",
-                "value_type": "int64",
-                "value": 1,
-                "unit": "h",
-            }
-        )
+    stackdriver_metrics.add_metric(
+        metric_name="deployments_rate",
+        metric_value=1,
+        metric_extra_data={
+            "labels": {"result": "success", "command": "deploy"},
+            "metric_kind": "cumulative",
+            "value_type": "int64",
+        },
     )
+
+    reporter.add_metric_registry(stackdriver_metrics)
 
     reporter.send_metrics()
 
@@ -251,6 +232,7 @@ def test_stackdriver_send_metrics(command_line_args):
         """\
         metric_kind: GAUGE
         value_type: DOUBLE
+        unit: "s"
         type: "custom.googleapis.com/deployment_time"
         """
     )
