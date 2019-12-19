@@ -62,20 +62,20 @@ HIGHLY_PROTECTED_BRANCH = {
 LOCAL_FILES = {
     "readme_file": MODULE_ROOT_DIR / "resources/templates/README.md",
     "apis_file": MODULE_ROOT_DIR
-    / "resources/templates/gcp_enabled_apis.auto.tfvars.json",
+    / "resources/templates/enabled_apis.auto.tfvars.json",
     "project_settings_file": MODULE_ROOT_DIR
-    / "resources/templates/gcp_project_settings.auto.tfvars.json",
-    "role_bindings_file": MODULE_ROOT_DIR
-    / "resources/templates/gcp_role_bindings.auto.tfvars.json",
+    / "resources/templates/project_settings.auto.tfvars.json",
+    "iam_file": MODULE_ROOT_DIR
+    / "resources/templates/iam.auto.tfvars.json",
     "service_accounts_file": MODULE_ROOT_DIR
-    / "resources/templates/gcp_service_accounts.auto.tfvars.json",
+    / "resources/templates/service_accounts.auto.tfvars.json",
 }
 REMOTE_FILES = {
     "readme_file": "README.md",
-    "apis_file": "gcp/gcp_enabled_apis.auto.tfvars.json",
-    "project_settings_file": "gcp/gcp_project_settings.auto.tfvars.json",
-    "role_bindings_file": "gcp/gcp_role_bindings.auto.tfvars.json",
-    "service_accounts_file": "gcp/gcp_service_accounts.auto.tfvars.json",
+    "apis_file": "gcp/enabled_apis.auto.tfvars.json",
+    "project_settings_file": "gcp/project_settings.auto.tfvars.json",
+    "iam_file": "gcp/iam.auto.tfvars.json",
+    "service_accounts_file": "gcp/service_accounts.auto.tfvars.json",
 }
 
 
