@@ -156,6 +156,13 @@ Where:
 - `monitoring project id` — id of existing monitoring project. You should have one if followed prerequisites section.
 - `config repo` — name of repo, that will contain terraform variables files.
 
+#### Updating of config repo
+If you want to override config files, you can just run again the same command as for creation.
+If you see this:
+```
+{'message': 'Could not update file: At least 1 approving review is required by reviewers with write access.', 'documentation_url': 'https://help.github.com/articles/about-protected-branches'}
+```
+then, try to pass `--bypass-branch-protection` option to `config` subcommand.
 
 ### Test deployment using created code and config
 When you created/forked example code and config repos, you can perform test deployment:
