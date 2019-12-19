@@ -73,6 +73,11 @@ More details about [here](https://cloud.google.com/iam/docs/creating-managing-se
     cp ~/Downloads/gcp_service_account_key.json $(pwd)/resources/gcp_service_account_key.json
     ```
 
+1. Point `gcloud` to service account token file via `GOOGLE_CREDENTIALS` environment variable:
+    ```
+    export GOOGLE_CREDENTIALS=$(pwd)/resources/gcp_service_account_key.json
+    ```
+
 ## Running the tests
 
 ```shell
