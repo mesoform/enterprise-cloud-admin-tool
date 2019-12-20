@@ -6,6 +6,7 @@ from cloud_control import ArgumentsParser, CloudControl, CloudControlException
 
 
 @pytest.fixture
+@pytest.mark.usefixtures("google_credentials")
 def stackdriver_mock(mocker):
     mocker.patch("cloud_control.common.GcpAuth")
     metrics = mocker.patch("cloud_control.StackdriverMetrics")
@@ -109,6 +110,7 @@ def test_argument_parser_defaults(tmpdir):
         "disable_local_reporter": True,
         "json_logging": True,
         "monitoring_namespace": "random-monitoring-project",
+        "monitoring_system": "stackdriver",
         "log_file": "/var/log/enterprise_cloud_admin.log",
         "metrics_file": "/var/log/enterprise_cloud_admin_metrics.log",
         "debug": False,

@@ -16,6 +16,27 @@ class CloudControlException(Exception):
     pass
 
 
+class MonitoringSystemArgAction(argparse.Action):
+    """
+    Converts "monitoring-system" cli argument to instance of Metrics
+    """
+
+    def __init__(self, option_strings, dest, nargs=None, **kwargs):
+        if nargs is not None:
+            raise ValueError("nargs not allowed")
+        super().__init__(option_strings, dest, **kwargs)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        if values == "stackdriver":
+            monitoring_system = StackdriverMetrics
+        else:
+            raise CloudControlException(
+                f"Integration with '{values}' monitoring system is not implemented yet."
+            )
+
+        setattr(namespace, self.dest, monitoring_system)
+
+
 class ArgumentsParser:
     """
     That class used for subparsers setup, and storing all parsed arguments.
@@ -23,6 +44,14 @@ class ArgumentsParser:
 
     def __init__(self, args=None):
         self.root_parser = common.root_parser()
+
+        self.root_parser.add_argument(
+            "--monitoring-system",
+            help="monitoring system for metrics, such as GCP, AWS, Zabbix, etc.",
+            action=MonitoringSystemArgAction,
+            choices=["stackdriver", "aws", "zabbix"],
+        )
+
         self.management_parser = self.root_parser.add_subparsers(
             help="manage infrastructure deployment or infrastructure"
             " configuration",
@@ -115,53 +144,27 @@ class CloudControl:
         )
 
     def _setup_app_metrics(self):
-        if getattr(self.args, "key_file", None):
-            auth = common.GcpAuth(self.args.key_file)
-        else:
-            auth = common.GcpAuth()
-
-        self._app_metrics = StackdriverMetrics(
-            monitoring_credentials=auth.credentials,
-            monitoring_project=self.args.monitoring_namespace,
-        )
+        self._app_metrics = self.args.monitoring_system(self.args)
 
     def _setup_local_metrics(self):
-        self._local_metrics = LocalMetrics(metrics_file=self.args.metrics_file)
+        self._local_metrics = LocalMetrics(self.args)
 
-    def _log_and_send_metrics(self, command, command_result):
+    def _log_and_send_metrics(self, command):
         self._log.info("finished " + command + " run")
 
         self._app_metrics.end_time = datetime.utcnow()
-        stackdriver_metrics = MetricsRegistry()
-        stackdriver_metrics.add_metric(
-            metric_name="deployment_time",
-            metric_value=self._app_metrics.app_runtime.total_seconds(),
-            metric_extra_data={
-                "labels": {
-                    "result": "success" if command_result else "failure",
-                    "command": self.args.command,
-                },
-                "metric_kind": "gauge",
-                "value_type": "double",
-            },
+
+        metrics_registry = MetricsRegistry()
+        metrics_registry.add_metric(
+            "deployment_time", self._app_metrics.app_runtime.total_seconds()
         )
-        stackdriver_metrics.add_metric(
-            metric_name="deployments_rate",
-            metric_value=1,
-            metric_extra_data={
-                "labels": {
-                    "result": "success" if command_result else "failure",
-                    "command": self.args.command,
-                },
-                "metric_kind": "cumulative",
-                "value_type": "int64",
-            },
-        )
-        self._app_metrics.add_metric_registry(stackdriver_metrics)
+        metrics_registry.add_metric("deployments_rate", 1)
+
+        self._app_metrics.add_metric_registry(metrics_registry)
         self._app_metrics.send_metrics()
 
         if not self.args.disable_local_reporter:
-            self._local_metrics.add_metric_registry(stackdriver_metrics)
+            self._local_metrics.add_metric_registry(metrics_registry)
             self._local_metrics.send_metrics()
 
     def perform_command(self):
@@ -179,11 +182,10 @@ class CloudControl:
                 "Command {} does not implemented".format(self.args.command)
             )
 
-        result = False
         try:
-            result = command()
+            command()
         finally:
-            self._log_and_send_metrics(self.args.command, result)
+            self._log_and_send_metrics(self.args.command)
 
     def _deploy(self):
         self._log.info("Starting deployment")

@@ -5,9 +5,10 @@ from datetime import datetime
 from time import sleep
 
 from google.api.metric_pb2 import MetricDescriptor
-from google.auth.credentials import Credentials
 from google.cloud.monitoring_v3 import MetricServiceClient
 from google.cloud.monitoring_v3.types import TimeSeries
+
+from common import GcpAuth
 
 from .base import MetricsRegistry, Metrics
 
@@ -23,65 +24,50 @@ class StackdriverMetrics(Metrics):
     Implementation of metrics reporter, that sends metrics to Google Stackdriver.
     """
 
-    metric_kinds = {
-        "gauge": MetricDescriptor.GAUGE,
-        "cumulative": MetricDescriptor.CUMULATIVE,
-    }
-
     value_types = {
-        "int64": MetricDescriptor.INT64,
-        "bool": MetricDescriptor.BOOL,
-        "double": MetricDescriptor.DOUBLE,
-        "string": MetricDescriptor.STRING,
-        "distribution": MetricDescriptor.DISTRIBUTION,
+        int: MetricDescriptor.INT64,
+        bool: MetricDescriptor.BOOL,
+        float: MetricDescriptor.DOUBLE,
+        str: MetricDescriptor.STRING,
     }
 
-    units = ("s", "min", "h", "d")
+    units = {"second": "s", "minute": "min", "hour": "h", "day": "d"}
 
-    def __init__(
-        self, monitoring_project: str, monitoring_credentials: Credentials
-    ):
-        super().__init__()
+    metric_name_to_kind_map = {
+        "deployment_time": MetricDescriptor.GAUGE,
+        "deployments_rate": MetricDescriptor.CUMULATIVE,
+    }
 
-        self.monitoring_project: str = monitoring_project
-        self.monitoring_credentials: Credentials = monitoring_credentials
+    def __init__(self, args):
+        self.monitoring_credentials = None
+        self.monitoring_project = None
+
+        super().__init__(args)
+
         self.metrics_client = MetricServiceClient(
             credentials=self.monitoring_credentials
         )
         self.metrics_type = TimeSeries
 
+    def process_args(self, args):
+        auth = (
+            GcpAuth(args.key_file)
+            if getattr(args, "key_file", None)
+            else GcpAuth()
+        )
+
+        self.monitoring_credentials = auth.credentials
+        self.monitoring_project = args.monitoring_namespace
+
     @property
     def monitoring_project_path(self):
         return self.metrics_client.project_path(self.monitoring_project)
 
-    def validate_metric_registry(self, metric_registry: MetricsRegistry):
-        """
-        Ensures, that metrics registry contain all required data.
-        """
-        for metric_dict in metric_registry.metrics.values():
-            for key in ("labels", "metric_kind", "value_type"):
-                if key not in metric_dict:
-                    raise StackdriverMetricsException(
-                        f'Key "{key}" is required for stackdriver\'s metric_extra_data.'
-                    )
+    def map_unit(self, unit):
+        return self.units[unit]
 
-            if metric_dict["metric_kind"] not in self.metric_kinds:
-                raise StackdriverMetricsException(
-                    f"Wrong metric kind: \"{metric_dict['metric_kind']}\", "
-                    f"should be one of {list(self.metric_kinds.keys())}"
-                )
-
-            if metric_dict["value_type"] not in self.value_types:
-                raise StackdriverMetricsException(
-                    f"Wrong value type: \"{metric_dict['value_type']}\", "
-                    f"should be one of {list(self.value_types.keys())}"
-                )
-
-            if "unit" in metric_dict and metric_dict["unit"] not in self.units:
-                raise StackdriverMetricsException(
-                    f"Wrong unit: \"{metric_dict['unit']}\", "
-                    f"should be one of {self.units}"
-                )
+    def map_type(self, value_type):
+        return self.value_types[value_type]
 
     def prepare_metric_registry(self, metric_registry: MetricsRegistry):
         """
@@ -90,14 +76,13 @@ class StackdriverMetrics(Metrics):
         """
         prepared_metrics = metric_registry.metrics.copy()
 
-        for metric_dict in prepared_metrics.values():
+        for metric_name, metric_dict in prepared_metrics.items():
 
-            metric_dict["metric_kind"] = self.metric_kinds[
-                metric_dict["metric_kind"]
+            metric_dict["metric_kind"] = self.metric_name_to_kind_map[
+                metric_name
             ]
-            metric_dict["value_type"] = self.value_types[
-                metric_dict["value_type"]
-            ]
+            metric_dict["value_type"] = self.map_type(metric_dict.pop("type"))
+            metric_dict["unit"] = self.map_unit(metric_dict["unit"])
 
         metric_registry.prepared_metrics = prepared_metrics
 
@@ -129,7 +114,7 @@ class StackdriverMetrics(Metrics):
     def _initialize_base_metrics_message(
         self,
         metric_name: str,
-        labels: dict,
+        labels: dict = None,
         metric_kind=MetricDescriptor.GAUGE,
         value_type=MetricDescriptor.INT64,
         unit=None,
@@ -157,7 +142,8 @@ class StackdriverMetrics(Metrics):
 
         series.resource.type = "global"
         series.metric.type = f"custom.googleapis.com/{metric_name}"
-        series.metric.labels.update(labels)
+        if labels:
+            series.metric.labels.update(labels)
         return series
 
     def _add_data_points_to_metric_message(self, message: TimeSeries, value):
@@ -196,24 +182,21 @@ class StackdriverMetrics(Metrics):
         """
         time_series_list = []
 
-        for metrics_registry in self.metrics_registry_set:
-            for (
-                metric_name,
-                metric_dict,
-            ) in metrics_registry.prepared_metrics.items():
-                metric_dict_copy = metric_dict.copy()
+        for (
+            metric_name,
+            metric_dict,
+        ) in self.metrics_registry.prepared_metrics.items():
+            metric_dict_copy = metric_dict.copy()
+            value = metric_dict_copy.pop("value")
 
-                metric_dict_copy.pop("type")
-                value = metric_dict_copy.pop("value")
+            base_metrics = self._initialize_base_metrics_message(
+                metric_name=metric_name, **metric_dict_copy
+            )
+            time_series = self._add_data_points_to_metric_message(
+                base_metrics, value
+            )
 
-                base_metrics = self._initialize_base_metrics_message(
-                    metric_name=metric_name, **metric_dict_copy
-                )
-                time_series = self._add_data_points_to_metric_message(
-                    base_metrics, value
-                )
-
-                time_series_list.append(time_series)
+            time_series_list.append(time_series)
 
         self.metrics_client.create_time_series(
             self.monitoring_project_path, time_series_list

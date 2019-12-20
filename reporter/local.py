@@ -101,30 +101,34 @@ def get_logger(
 
 
 class LocalMetrics(Metrics):
-    TYPES_STRING_REPR = {int: "int", str: "str", float: "float"}
+    types_string_repr = {int: "int", str: "str", float: "float"}
 
-    def __init__(self, metrics_file: str):
-        super().__init__()
-        self.metrics_file = metrics_file
+    def __init__(self, args):
+        self.metrics_file = None
+
+        super().__init__(args)
+
+    def process_args(self, args):
+        self.metrics_file = args.metrics_file
+
+    def map_type(self, value_type):
+        return self.types_string_repr[value_type]
+
+    def map_unit(self, unit):
+        return unit
 
     def send_metrics(self):
         with open(self.metrics_file, "w") as metrics_file:
-            for metrics_registry in self.metrics_registry_set:
-                for metric_json in metrics_registry.prepared_metrics.values():
-                    metrics_file.write(metric_json)
-                    metrics_file.write("\n")
-
-    def validate_metric_registry(self, metric_registry: MetricsRegistry):
-        """
-        For local metrics reporting we don't need any validation.
-        """
+            for metric_json in self.metrics_registry.prepared_metrics.values():
+                metrics_file.write(metric_json)
+                metrics_file.write("\n")
 
     def prepare_metric_registry(self, metric_registry: MetricsRegistry):
         for metric_name, metric_dict in metric_registry.metrics.items():
             prepared_metric_dict = metric_dict.copy()
-            prepared_metric_dict["type"] = self.TYPES_STRING_REPR[
+            prepared_metric_dict["type"] = self.map_type(
                 prepared_metric_dict["type"]
-            ]
+            )
             prepared_metric_dict["metric_name"] = metric_name
 
             metric_registry.prepared_metrics[metric_name] = json.dumps(
