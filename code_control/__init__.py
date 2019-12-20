@@ -179,6 +179,10 @@ def configure_project_data(config_file, **kwargs):
     """
     with open(config_file, "r") as settings_file:
         data_dict = json.loads(settings_file.read())
+
+    if data_dict.get("folder_id") and data_dict["folder_id"] != "MISSING":
+        kwargs.pop("folder_id")
+
     data_dict.update(**kwargs)
     return json.dumps(data_dict, indent=2)
 
