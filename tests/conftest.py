@@ -299,7 +299,7 @@ def state_of_deleted_project():
     }
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def google_credentials(working_directory, monkeypatch):
     filename = "gcp_key.json"
     credentials = json.dumps(
