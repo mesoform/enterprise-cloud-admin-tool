@@ -61,21 +61,12 @@ HIGHLY_PROTECTED_BRANCH = {
 }
 LOCAL_FILES = {
     "readme_file": MODULE_ROOT_DIR / "resources/templates/README.md",
-    "apis_file": MODULE_ROOT_DIR
-    / "resources/templates/enabled_apis.auto.tfvars.json",
     "project_settings_file": MODULE_ROOT_DIR
     / "resources/templates/project_settings.auto.tfvars.json",
-    "iam_file": MODULE_ROOT_DIR
-    / "resources/templates/iam.auto.tfvars.json",
-    "service_accounts_file": MODULE_ROOT_DIR
-    / "resources/templates/service_accounts.auto.tfvars.json",
 }
 REMOTE_FILES = {
     "readme_file": "README.md",
-    "apis_file": "gcp/enabled_apis.auto.tfvars.json",
     "project_settings_file": "gcp/project_settings.auto.tfvars.json",
-    "iam_file": "gcp/iam.auto.tfvars.json",
-    "service_accounts_file": "gcp/service_accounts.auto.tfvars.json",
 }
 
 
