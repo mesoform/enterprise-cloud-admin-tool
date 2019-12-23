@@ -83,3 +83,7 @@ class Metrics:
         Maps native python type to platform-specific type.
         """
         raise NotImplementedError
+
+    @property
+    def app_runtime(self):
+        return self.end_time - self.start_time
