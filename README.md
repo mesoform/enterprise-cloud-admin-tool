@@ -130,9 +130,10 @@ variable files.
 
 In order to perform test deployment, you should fork these repos to your organization, and customize config repo:
 
-* `example-ecat-project-config/gcp/project_settings.auto.tfvars.json` — In this file, you should set unique `project_id` ([project creation docs](https://cloud.google.com/resource-manager/docs/creating-managing-projects)).
-Be aware, that it's unique across whole GCP platform, even six month after deletion. So, if someone already have project with your id, you will receive unclear error.
-* Also add a valid `billing_id` also mandatory ([billing docs](https://cloud.google.com/billing/docs/how-to/modify-project)).
+* `example-ecat-project-config/gcp/project_settings.auto.tfvars.json` — In this file, you should set unique `project_id` ([project creation docs](https://cloud.google.com/resource-manager/docs/creating-managing-projects)),
+set or remove any remaining key value pair according your requirements.
+Be aware, that `project_id` unique across whole GCP platform, even six month after deletion. So, if someone already have project with your id, you will receive unclear error.
+* Also add a valid `billing_id`, it's mandatory ([billing docs](https://cloud.google.com/billing/docs/how-to/modify-project)).
 
 ### Create config repo with eCat from template
 
