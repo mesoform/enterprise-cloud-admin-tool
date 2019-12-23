@@ -194,7 +194,7 @@ After that, you should receive success message in console, and metrics in your G
 ### Google Cloud Platform and Stackdriver
 
 Sometimes it's really hard to interpret immediately what GCP error means, so terraform community members
-created curated list of common problems: [link](https://github.com/terraform-google-modules/terraform-google-project-factory/blob/master/docs/TROUBLESHOOTING.md#missing-rolesbillinguser-role).
+created curated list of common problems: [TROUBLESHOOTING.md](https://github.com/terraform-google-modules/terraform-google-project-factory/blob/master/docs/TROUBLESHOOTING.md).
 
 ## Contributing
 
