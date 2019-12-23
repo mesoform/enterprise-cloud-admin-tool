@@ -201,7 +201,3 @@ class StackdriverMetrics(Metrics):
         self.metrics_client.create_time_series(
             self.monitoring_project_path, time_series_list
         )
-
-    @property
-    def app_runtime(self):
-        return self.end_time - self.start_time
