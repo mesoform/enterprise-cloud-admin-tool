@@ -73,6 +73,11 @@ More details about [here](https://cloud.google.com/iam/docs/creating-managing-se
     cp ~/Downloads/gcp_service_account_key.json $(pwd)/resources/gcp_service_account_key.json
     ```
 
+1. Point `gcloud` to service account token file via `GOOGLE_CREDENTIALS` environment variable:
+    ```
+    export GOOGLE_CREDENTIALS=$(pwd)/resources/gcp_service_account_key.json
+    ```
+
 ## Running the tests
 
 ```shell
@@ -125,10 +130,11 @@ variable files.
 
 In order to perform test deployment, you should fork these repos to your organization, and customize config repo:
 
-* `example-ecat-project-config/gcp/project_settings.auto.tfvars.json` — In this file, you should set unique `project_id` ([project creation docs](https://cloud.google.com/resource-manager/docs/creating-managing-projects)).
-Be aware, that it's unique across whole GCP platform, even six month after deletion. So, if someone already have project with your id, you will receive unclear error.
-* Also add a valid `billing_id` also mandatory ([billing docs](https://cloud.google.com/billing/docs/how-to/modify-project)).
-
+* `example-ecat-project-config/gcp/project_settings.auto.tfvars.json` — In this file, you should set unique `project_id` ([project creation docs](https://cloud.google.com/resource-manager/docs/creating-managing-projects)),
+set or remove any remaining key value pair according your requirements.
+Be aware, that `project_id` unique across whole GCP platform, even six month after deletion. So, if someone already have project with your id, you will receive unclear error.
+* Also add a valid `billing_id`, it's mandatory ([billing docs](https://cloud.google.com/billing/docs/how-to/modify-project)).
+* `folder_id` means folder numeric ID, [more information about how it can be obtained](https://cloud.google.com/resource-manager/docs/creating-managing-folders).
 ### Create config repo with eCat from template
 
 ```shell
@@ -151,6 +157,13 @@ Where:
 - `monitoring project id` — id of existing monitoring project. You should have one if followed prerequisites section.
 - `config repo` — name of repo, that will contain terraform variables files.
 
+#### Updating of config repo
+If you want to override config files, you can just run again the same command as for creation.
+If you see this:
+```
+{'message': 'Could not update file: At least 1 approving review is required by reviewers with write access.', 'documentation_url': 'https://help.github.com/articles/about-protected-branches'}
+```
+then, try to pass `--bypass-branch-protection` option to `config` subcommand.
 
 ### Test deployment using created code and config
 When you created/forked example code and config repos, you can perform test deployment:
@@ -177,6 +190,12 @@ Where:
 
 After that, you should receive success message in console, and metrics in your GCP monitoring project workspace.
 
+## Troubleshooting
+
+### Google Cloud Platform and Stackdriver
+
+Sometimes it's really hard to interpret immediately what GCP error means, so terraform community members
+created curated list of common problems: [TROUBLESHOOTING.md](https://github.com/terraform-google-modules/terraform-google-project-factory/blob/master/docs/TROUBLESHOOTING.md).
 
 ## Contributing
 

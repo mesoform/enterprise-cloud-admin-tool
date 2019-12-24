@@ -179,6 +179,7 @@ def configure_project_data(config_file, **kwargs):
     """
     with open(config_file, "r") as settings_file:
         data_dict = json.loads(settings_file.read())
+
     data_dict.update(**kwargs)
     return json.dumps(data_dict, indent=2)
 
@@ -288,7 +289,6 @@ def setup(parsed_args):
                 parsed_args.change_files[config_file],
                 project_id=parsed_args.project_id,
                 project_name=parsed_args.project_id,
-                folder_id=environment + "-Environment",
             )
         else:
             config = __file_content(parsed_args.change_files[config_file])
