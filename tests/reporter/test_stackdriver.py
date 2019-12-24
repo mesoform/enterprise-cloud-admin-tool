@@ -6,8 +6,6 @@ from unittest.mock import Mock
 
 import pytest
 
-from common import GcpAuth
-
 from reporter.base import MetricsRegistry
 from reporter.stackdriver import StackdriverMetrics
 
@@ -20,11 +18,7 @@ def test_stackdriver_send_metrics(command_line_args):
     This test ensures, that Stackdriver reporting class constructs
     correct protobuf messages.
     """
-    auth = GcpAuth()
-
-    reporter = StackdriverMetrics(
-        command_line_args.monitoring_namespace, auth.credentials
-    )
+    reporter = StackdriverMetrics(command_line_args)
     reporter.end_time = datetime.now()
 
     # mocking metric_client's methods, that accept built protobuf messages
@@ -40,6 +34,8 @@ def test_stackdriver_send_metrics(command_line_args):
     reporter.add_metric_registry(stackdriver_metrics)
 
     reporter.send_metrics()
+
+    assert stackdriver_metrics.metrics != stackdriver_metrics.prepared_metrics
 
     # calculating start and end time in protobuf format
     start_seconds = calendar.timegm(reporter.start_time.utctimetuple())
