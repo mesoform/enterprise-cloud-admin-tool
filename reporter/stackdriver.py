@@ -8,7 +8,7 @@ from google.cloud.monitoring_v3.types import TimeSeries
 
 from common import GcpAuth
 
-from .base import MetricsRegistry, Metrics
+from .base import MetricsRegistry, Metrics, Gauge, Counter
 
 
 class StackdriverMetricsException(Exception):
@@ -29,11 +29,11 @@ class StackdriverMetrics(Metrics):
         str: MetricDescriptor.STRING,
     }
 
-    units = {"second": "s", "minute": "min", "hour": "h", "day": "d"}
+    units = {"seconds": "s", "minutes": "min", "hours": "h", "days": "d"}
 
-    metric_name_to_kind_map = {
-        "deployment_time": MetricDescriptor.GAUGE,
-        "deployments_rate": MetricDescriptor.CUMULATIVE,
+    metric_types = {
+        Gauge: MetricDescriptor.GAUGE,
+        Counter: MetricDescriptor.CUMULATIVE,
     }
 
     def __init__(self, args):
@@ -64,8 +64,11 @@ class StackdriverMetrics(Metrics):
     def map_unit(self, unit):
         return self.units[unit]
 
-    def map_type(self, value_type):
+    def map_value_type(self, value_type):
         return self.value_types[value_type]
+
+    def map_metric_type(self, metric_type):
+        return self.metric_types[metric_type]
 
     def prepare_metric_registry(self, metric_registry: MetricsRegistry):
         """
@@ -75,11 +78,11 @@ class StackdriverMetrics(Metrics):
         for metric_name, metric_dict in metric_registry.metrics.items():
             prepared_metric_dict = metric_dict.copy()
 
-            prepared_metric_dict["metric_kind"] = self.metric_name_to_kind_map[
-                metric_name
-            ]
-            prepared_metric_dict["value_type"] = self.map_type(
-                prepared_metric_dict.pop("type")
+            prepared_metric_dict["metric_kind"] = self.map_metric_type(
+                prepared_metric_dict.pop("metric_type")
+            )
+            prepared_metric_dict["value_type"] = self.map_value_type(
+                prepared_metric_dict.pop("value_type")
             )
             prepared_metric_dict["unit"] = self.map_unit(
                 prepared_metric_dict["unit"]

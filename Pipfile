@@ -13,6 +13,7 @@ httplib2 = "*"
 google-cloud-monitoring = "*"
 python-terraform = "*"
 structlog = "*"
+prometheus-metrics-proto = "*"
 
 [requires]
 python_version = "3.6"

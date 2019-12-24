@@ -144,7 +144,8 @@ Be aware, that `project_id` unique across whole GCP platform, even six month aft
   --vcs-token <github token> \
   --key-file resources/gcp_service_account_key.json \
   --monitoring-namespace <monitoring project id> \
-  --debug true config create \
+  --debug true \
+  config create \
   --config-repo <config repo> \
   --force
 ```
@@ -174,7 +175,9 @@ When you created/forked example code and config repos, you can perform test depl
   -O <github organization name> \
   --vcs-token <github token> \
   --key-file resources/gcp_service_account_key.json \
-  --monitoring-namespace <monitoring project id> deploy --cloud gcp \
+  --monitoring-namespace <monitoring project id> \
+  deploy \
+  --cloud gcp \
   --code-repo <code repo> \
   --config-repo <config repo>
 ```

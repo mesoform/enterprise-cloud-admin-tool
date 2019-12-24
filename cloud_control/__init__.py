@@ -47,14 +47,15 @@ class ArgumentsParser:
 
         self.root_parser.add_argument(
             "--monitoring-system",
-            help="monitoring system for metrics, such as GCP Stackdriver, AWS CloudWatch, Zabbix, etc.",
+            help="monitoring system for metrics, such as GCP Stackdriver, AWS CloudWatch, "
+                 "Zabbix, etc.",
             action=MonitoringSystemArgAction,
             choices=["stackdriver", "cloudwatch", "zabbix"],
         )
 
         self.management_parser = self.root_parser.add_subparsers(
             help="manage infrastructure deployment or infrastructure"
-            " configuration",
+                 " configuration",
             dest="command",
         )
         self._setup_deploy_parser()
@@ -110,7 +111,7 @@ class ArgumentsParser:
         config_parser.add_argument(
             "--bypass-branch-protection",
             help="Bypasses branch protection when updating files"
-            " which already exist in the repository",
+                 " which already exist in the repository",
             default=False,
             action="store_true",
         )
@@ -132,6 +133,8 @@ class CloudControl:
         self.args = args
 
         self._setup_logger()
+        self.metrics_registry = MetricsRegistry(args.command)
+        self.metrics_registry.add_metric("total", 1)
         self._setup_app_metrics()
         self._setup_local_metrics()
 
@@ -152,21 +155,18 @@ class CloudControl:
     def _log_and_send_metrics(self, command):
         self._log.info("finished " + command + " run")
 
-        metrics_registry = MetricsRegistry()
-        metrics_registry.add_metric("deployments_rate", 1)
-
         if self._app_metrics is not None:
             self._app_metrics.end_time = datetime.utcnow()
 
-            metrics_registry.add_metric(
-                "deployment_time", self._app_metrics.app_runtime.total_seconds()
+            self.metrics_registry.add_metric(
+                "time", self._app_metrics.app_runtime.total_seconds()
             )
 
-            self._app_metrics.add_metric_registry(metrics_registry)
+            self._app_metrics.add_metric_registry(self.metrics_registry)
             self._app_metrics.send_metrics()
 
         if not self.args.disable_local_reporter:
-            self._local_metrics.add_metric_registry(metrics_registry)
+            self._local_metrics.add_metric_registry(self.metrics_registry)
             self._local_metrics.send_metrics()
 
     def perform_command(self):

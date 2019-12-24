@@ -1,4 +1,5 @@
 from datetime import datetime
+from prometheus_metrics_proto import Counter, Gauge
 
 
 class MetricsRegistry:
@@ -6,24 +7,61 @@ class MetricsRegistry:
     Instances of this class contain original and prepared metrics data
     """
 
-    def __init__(self):
+    def __init__(self, metric_set: str):
+        self._metric_set = metric_set
         self._metrics = {
-            "deployment_time": {"type": float, "value": 0, "unit": "second"},
-            "deployments_rate": {"type": int, "value": 1, "unit": "hour"},
+            "deploy": {
+                "time": {"metric_type": Gauge, "value_type": float, "value": None,
+                         "unit": "seconds"},
+                "total": {"metric_type": Counter, "value_type": int, "value": None,
+                          "unit": None},
+                "successful": {"metric_type": Counter, "value_type": int, "value": None,
+                               "unit": None},
+                "failed": {"metric_type": Counter, "value_type": int, "value": None,
+                           "unit": None}
+            },
+            "config": {
+                "time": {"metric_type": Gauge, "value_type": float, "value": None,
+                         "unit": "seconds"},
+                "total": {"metric_type": Counter, "value_type": int, "value": None,
+                          "unit": None},
+                "successful": {"metric_type": Counter, "value_type": int, "value": None,
+                               "unit": None},
+                "failed": {"metric_type": Counter, "value_type": int, "value": None,
+                           "unit": None}
+            },
+            "check": {
+                "time": {"metric_type": Gauge, "value_type": float, "value": None,
+                         "unit": "seconds"},
+                "total": {"metric_type": Counter, "value_type": int, "value": None,
+                          "unit": None},
+                "successful": {"metric_type": Counter, "value_type": int, "value": None,
+                               "unit": None},
+                "failed": {"metric_type": Counter, "value_type": int, "value": None,
+                           "unit": None}
+            }
         }
         self.prepared_metrics = {}
+
+    @property
+    def metric_set(self) -> str:
+        return self._metric_set
+
+    @metric_set.setter
+    def metric_set(self, value: str):
+        self._metric_set = value
 
     @property
     def metrics(self):
         return self._metrics
 
-    def add_metric(self, metric_name, metric_value):
-        if metric_name not in self._metrics:
+    def add_metric(self, metric_name: str, metric_value: any):
+        if metric_name not in self.metrics[self.metric_set][metric_name]:
             raise ValueError
 
-        metric = self._metrics[metric_name]
+        metric = self._metrics[self.metric_set][metric_name]
 
-        if not isinstance(metric_value, metric["type"]):
+        if not isinstance(metric_value, metric["value_type"]):
             raise ValueError
 
         metric["value"] = metric_value
@@ -78,9 +116,15 @@ class Metrics:
         """
         raise NotImplementedError
 
-    def map_type(self, value_type):
+    def map_value_type(self, value_type):
         """
-        Maps native python type to platform-specific type.
+        Maps native python type to platform-specific type for metric value.
+        """
+        raise NotImplementedError
+
+    def map_metric_type(self, metric_type):
+        """
+        Maps primitive metric type to platform-specific metric type.
         """
         raise NotImplementedError
 

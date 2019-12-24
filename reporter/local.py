@@ -111,7 +111,7 @@ class LocalMetrics(Metrics):
     def process_args(self, args):
         self.metrics_file = args.metrics_file
 
-    def map_type(self, value_type):
+    def map_value_type(self, value_type):
         return self.types_string_repr[value_type]
 
     def map_unit(self, unit):
@@ -126,7 +126,7 @@ class LocalMetrics(Metrics):
     def prepare_metric_registry(self, metric_registry: MetricsRegistry):
         for metric_name, metric_dict in metric_registry.metrics.items():
             prepared_metric_dict = metric_dict.copy()
-            prepared_metric_dict["type"] = self.map_type(
+            prepared_metric_dict["type"] = self.map_value_type(
                 prepared_metric_dict["type"]
             )
             prepared_metric_dict["metric_name"] = metric_name
