@@ -114,12 +114,12 @@ def test_local_metrics_reporter(command_line_args):
     reporter.add_metric_registry(metrics)
     reporter.send_metrics()
 
-    with open(command_line_args.metrics_file, "r") as log_file:
-        log_entries = log_file.read().split("\n")
+    with open(command_line_args.metrics_file, "r") as metrics_file:
+        metrics_entries = metrics_file.read().split("\n")
 
-    log_entries.sort()
+    metrics_entries.sort()
 
-    first_entry, second_entry = log_entries[1], log_entries[2]
+    first_entry, second_entry = metrics_entries[1], metrics_entries[2]
 
     assert json.loads(first_entry) == {
         "metric_name": "deployment_time",
