@@ -47,9 +47,9 @@ class ArgumentsParser:
 
         self.root_parser.add_argument(
             "--monitoring-system",
-            help="monitoring system for metrics, such as GCP, AWS, Zabbix, etc.",
+            help="monitoring system for metrics, such as GCP Stackdriver, AWS CloudWatch, Zabbix, etc.",
             action=MonitoringSystemArgAction,
-            choices=["stackdriver", "aws", "zabbix"],
+            choices=["stackdriver", "cloudwatch", "zabbix"],
         )
 
         self.management_parser = self.root_parser.add_subparsers(
