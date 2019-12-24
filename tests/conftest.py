@@ -28,6 +28,8 @@ def command_line_args(working_directory):
             default_log_file,
             "--metrics-file",
             default_metrics_file,
+            "--monitoring-system",
+            "stackdriver",
             "deploy",
             "--cloud",
             "gcp",
@@ -299,7 +301,7 @@ def state_of_deleted_project():
     }
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def google_credentials(working_directory, monkeypatch):
     filename = "gcp_key.json"
     credentials = json.dumps(

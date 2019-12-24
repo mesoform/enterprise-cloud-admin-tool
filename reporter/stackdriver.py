@@ -74,17 +74,20 @@ class StackdriverMetrics(Metrics):
         Fulfills `prepared_record` of metric registry with implementation-specific
         metrics data, like protobuf descriptors.
         """
-        prepared_metrics = metric_registry.metrics.copy()
+        for metric_name, metric_dict in metric_registry.metrics.items():
+            prepared_metric_dict = metric_dict.copy()
 
-        for metric_name, metric_dict in prepared_metrics.items():
-
-            metric_dict["metric_kind"] = self.metric_name_to_kind_map[
+            prepared_metric_dict["metric_kind"] = self.metric_name_to_kind_map[
                 metric_name
             ]
-            metric_dict["value_type"] = self.map_type(metric_dict.pop("type"))
-            metric_dict["unit"] = self.map_unit(metric_dict["unit"])
+            prepared_metric_dict["value_type"] = self.map_type(
+                prepared_metric_dict.pop("type")
+            )
+            prepared_metric_dict["unit"] = self.map_unit(
+                prepared_metric_dict["unit"]
+            )
 
-        metric_registry.prepared_metrics = prepared_metrics
+            metric_registry.prepared_metrics[metric_name] = prepared_metric_dict
 
     def _create_metric_descriptor(
         self, metric_kind, value_type, metric_name, unit

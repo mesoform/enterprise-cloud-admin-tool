@@ -1,61 +1,56 @@
 from uuid import uuid4
+from unittest.mock import Mock
 
 import pytest
 
 from cloud_control import ArgumentsParser, CloudControl, CloudControlException
+from reporter.stackdriver import StackdriverMetrics
 
 
 @pytest.fixture
-@pytest.mark.usefixtures("google_credentials")
-def stackdriver_mock(mocker):
-    mocker.patch("cloud_control.common.GcpAuth")
-    metrics = mocker.patch("cloud_control.StackdriverMetrics")
-
-    # some random value
-    metrics.return_value.app_runtime.total_seconds.return_value = 450.45
-    return metrics
+def cli_args_with_mocked_metrics(command_line_args):
+    command_line_args.monitoring_system = Mock()
+    command_line_args.monitoring_system.return_value.app_runtime.total_seconds.return_value = (
+        450.45
+    )
+    return command_line_args
 
 
 def test_deploy(
-    mocker,
-    command_line_args,
-    sha256_hash,
-    short_code_config_hash,
-    stackdriver_mock,
+    mocker, cli_args_with_mocked_metrics, sha256_hash, short_code_config_hash
 ):
     deploy = mocker.patch("cloud_control.deploy")
     common = mocker.patch("cloud_control.common")
     common.get_hash_of_latest_commit.return_value = sha256_hash
 
-    cloud_control = CloudControl(command_line_args)
+    cloud_control = CloudControl(cli_args_with_mocked_metrics)
 
     cloud_control.perform_command()
     deploy.assert_called_once_with(
-        command_line_args,
+        cli_args_with_mocked_metrics,
         common.get_files(),
         common.get_files(),
         short_code_config_hash,
     )
-    stackdriver_mock.return_value.send_metrics.assert_called_once()
+    cli_args_with_mocked_metrics.monitoring_system.return_value.send_metrics.assert_called_once()
 
 
-def test_config(mocker, command_line_args, stackdriver_mock):
+def test_config(mocker, cli_args_with_mocked_metrics):
     setup = mocker.patch("cloud_control.setup")
 
-    command_line_args.command = "config"
+    cli_args_with_mocked_metrics.command = "config"
 
-    cloud_control = CloudControl(command_line_args)
+    cloud_control = CloudControl(cli_args_with_mocked_metrics)
 
     cloud_control.perform_command()
     setup.assert_called_once()
-    stackdriver_mock.return_value.send_metrics.assert_called_once()
+    cli_args_with_mocked_metrics.monitoring_system.return_value.send_metrics.assert_called_once()
 
 
-@pytest.mark.usefixtures("stackdriver_mock")
-def test_perform_command_exception(command_line_args):
-    command_line_args.command = str(uuid4())
+def test_perform_command_exception(cli_args_with_mocked_metrics):
+    cli_args_with_mocked_metrics.command = str(uuid4())
 
-    cloud_control = CloudControl(command_line_args)
+    cloud_control = CloudControl(cli_args_with_mocked_metrics)
 
     with pytest.raises(CloudControlException):
         cloud_control.perform_command()
@@ -79,6 +74,8 @@ def test_argument_parser_defaults(tmpdir):
             "e750dcf1c15273dfc687049f6dfcb38d970e0547",
             "--monitoring-namespace",
             "random-monitoring-project",
+            "--monitoring-system",
+            "stackdriver",
             "--disable-local-reporter",
             "--json-logging",
             "deploy",
@@ -110,7 +107,7 @@ def test_argument_parser_defaults(tmpdir):
         "disable_local_reporter": True,
         "json_logging": True,
         "monitoring_namespace": "random-monitoring-project",
-        "monitoring_system": "stackdriver",
+        "monitoring_system": StackdriverMetrics,
         "log_file": "/var/log/enterprise_cloud_admin.log",
         "metrics_file": "/var/log/enterprise_cloud_admin_metrics.log",
         "debug": False,

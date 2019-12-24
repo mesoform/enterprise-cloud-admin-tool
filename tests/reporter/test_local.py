@@ -104,8 +104,8 @@ def test_get_logger_file_json(log_file_path):
     }
 
 
-def test_local_metrics_reporter(log_file_path):
-    reporter = LocalMetrics(metrics_file=log_file_path)
+def test_local_metrics_reporter(command_line_args):
+    reporter = LocalMetrics(command_line_args)
 
     metrics = MetricsRegistry()
     metrics.add_metric("deployment_time", 123.34)
@@ -114,7 +114,7 @@ def test_local_metrics_reporter(log_file_path):
     reporter.add_metric_registry(metrics)
     reporter.send_metrics()
 
-    with open(log_file_path, "r") as log_file:
+    with open(command_line_args.metrics_file, "r") as log_file:
         log_entries = log_file.read().split("\n")
 
     log_entries.sort()

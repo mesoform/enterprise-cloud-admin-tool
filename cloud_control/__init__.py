@@ -152,16 +152,18 @@ class CloudControl:
     def _log_and_send_metrics(self, command):
         self._log.info("finished " + command + " run")
 
-        self._app_metrics.end_time = datetime.utcnow()
-
         metrics_registry = MetricsRegistry()
-        metrics_registry.add_metric(
-            "deployment_time", self._app_metrics.app_runtime.total_seconds()
-        )
         metrics_registry.add_metric("deployments_rate", 1)
 
-        self._app_metrics.add_metric_registry(metrics_registry)
-        self._app_metrics.send_metrics()
+        if self._app_metrics is not None:
+            self._app_metrics.end_time = datetime.utcnow()
+
+            metrics_registry.add_metric(
+                "deployment_time", self._app_metrics.app_runtime.total_seconds()
+            )
+
+            self._app_metrics.add_metric_registry(metrics_registry)
+            self._app_metrics.send_metrics()
 
         if not self.args.disable_local_reporter:
             self._local_metrics.add_metric_registry(metrics_registry)
