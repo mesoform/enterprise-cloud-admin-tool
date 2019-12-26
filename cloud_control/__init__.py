@@ -195,10 +195,10 @@ class CloudControl:
         )
 
         config_hash = common.get_hash_of_latest_commit(
-            config_org, self.args.project_id, self.args.config_version
+            config_org, self.args.config_repo, self.args.config_version
         )
         code_hash = common.get_hash_of_latest_commit(
-            code_org, self.args.project_id, self.args.config_version
+            code_org, self.args.code_repo, self.args.code_version
         )
         testing_ending = f"{config_hash[:7]}-{code_hash[:7]}"
 
