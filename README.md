@@ -12,7 +12,7 @@ These instructions will get you an environment, ready for `enterprise-cloud-admi
 
 ### Prerequisites
 
-1. This tool designed to work with Python of version `3.6`.
+1. This tool designed to work with Python of version `3.6`, and Terraform of version `12`.
 
 1. You should have [terraform](https://www.terraform.io/downloads.html) in your `PATH` environment variable.
 For example, you can download terraform and extract it to `/usr/local/bin`.
