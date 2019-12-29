@@ -67,8 +67,8 @@ class MetricsRegistry:
         metric["value"] = metric_value
 
     def __getattr__(self, item):
-        if item in self.metrics:
-            return self.metrics.get(item)
+        if item in self.metrics[self.metric_set]:
+            return self.metrics[self.metric_set].get(item)
 
         raise AttributeError
 
