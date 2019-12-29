@@ -53,7 +53,7 @@ class MetricsRegistry:
 
     @property
     def metrics(self):
-        return self._metrics
+        return self._metrics[self.metric_set]
 
     def add_metric(self, metric_name: str, metric_value: any):
         if metric_name not in self.metrics[self.metric_set][metric_name]:
