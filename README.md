@@ -1,4 +1,4 @@
-# Enterprise Cloud Admin
+# Enterprise Cloud Admin Tool
 
 This application pulls [Terraform](https://www.terraform.io/intro/index.html) code for deploying
 cloud infrastructure, security defined policies, and environment configuration (currently from Github).
@@ -8,11 +8,13 @@ Afterwards it will log the changes and report stats to a monitoring system (curr
 
 ## Getting Started
 
-These instructions will get you an environment, ready for `enterprise-cloud-admin` development. 
+These instructions will get you an environment, ready for `enterprise-cloud-admin-tool` development. 
 
 ### Prerequisites
 
-1. This tool designed to work with Python of version `3.6`, and Terraform of version `12`.
+1. This tool has been tested to work with:
+ - Python version `>=3.6,<=3.7.4`
+ - Terraform version `>=0.12.0,<=0.12.1`
 
 1. You should have [terraform](https://www.terraform.io/downloads.html) in your `PATH` environment variable.
 For example, you can download terraform and extract it to `/usr/local/bin`.
@@ -46,7 +48,7 @@ More details about [here](https://cloud.google.com/iam/docs/creating-managing-se
 1. Clone this repo:
 
     ```
-    git clone https://github.com/mesoform/enterprise-cloud-admin.git && cd enterprise-cloud-admin
+    git clone https://github.com/mesoform/enterprise-cloud-admin-tool.git && cd enterprise-cloud-admin-tool
     ```
 
 1. Install all dependencies:
@@ -199,7 +201,7 @@ created curated list of common problems: [TROUBLESHOOTING.md](https://github.com
 
 ## Contributing
 
-Please read [CONTRIBUTING.md](https://github.com/mesoform/enterprise-cloud-admin/blob/master/CONTRIBUTING.md) for the process for submitting pull requests.
+Please read [CONTRIBUTING.md](https://github.com/mesoform/enterprise-cloud-admin-tool/blob/master/CONTRIBUTING.md) for the process for submitting pull requests.
 
 ## License
 
