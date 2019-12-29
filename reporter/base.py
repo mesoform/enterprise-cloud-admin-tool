@@ -97,7 +97,8 @@ class Metrics:
     def metrics_registry(self):
         return self._metrics_registry
 
-    def add_metric_registry(self, metric_registry: MetricsRegistry):
+    @metrics_registry.setter
+    def metrics_registry(self, metric_registry: MetricsRegistry):
         self._metrics_registry = metric_registry
         self.prepare_metric_registry(metric_registry)
 

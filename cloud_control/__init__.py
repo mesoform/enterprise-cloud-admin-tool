@@ -162,11 +162,11 @@ class CloudControl:
                 "time", self._app_metrics.app_runtime.total_seconds()
             )
 
-            self._app_metrics.add_metric_registry(self.metrics_registry)
+            self._app_metrics.metrics_registry = self.metrics_registry
             self._app_metrics.send_metrics()
 
         if not self.args.disable_local_reporter:
-            self._local_metrics.add_metric_registry(self.metrics_registry)
+            self._local_metrics.metrics_registry(self.metrics_registry)
             self._local_metrics.send_metrics()
 
     def perform_command(self):

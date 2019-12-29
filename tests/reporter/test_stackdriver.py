@@ -27,11 +27,11 @@ def test_stackdriver_send_metrics(command_line_args):
     reporter.metrics_client.create_time_series = create_time_series
     reporter.metrics_client.create_metric_descriptor = create_metric_descriptor
 
-    stackdriver_metrics = MetricsRegistry()
-    stackdriver_metrics.add_metric("deployment_time", 453.77329)
-    stackdriver_metrics.add_metric("deployments_rate", 1)
+    stackdriver_metrics = MetricsRegistry("deploy")
+    stackdriver_metrics.add_metric("time", 453.77329)
+    stackdriver_metrics.add_metric("success", 1)
 
-    reporter.add_metric_registry(stackdriver_metrics)
+    reporter.metrics_registry(stackdriver_metrics)
 
     reporter.send_metrics()
 

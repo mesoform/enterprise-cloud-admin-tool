@@ -107,11 +107,11 @@ def test_get_logger_file_json(log_file_path):
 def test_local_metrics_reporter(command_line_args):
     reporter = LocalMetrics(command_line_args)
 
-    metrics = MetricsRegistry()
-    metrics.add_metric("deployment_time", 123.34)
-    metrics.add_metric("deployments_rate", 1)
+    metrics = MetricsRegistry("deploy")
+    metrics.add_metric("time", 123.34)
+    metrics.add_metric("success", 1)
 
-    reporter.add_metric_registry(metrics)
+    reporter.metrics_registry(metrics)
     reporter.send_metrics()
 
     with open(command_line_args.metrics_file, "r") as metrics_file:
