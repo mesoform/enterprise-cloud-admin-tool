@@ -49,12 +49,12 @@ class ArgumentsParser:
         )
         deploy_parser.add_argument(
             "--code-repo",
-            help="Name of the repository with terraform infrastructure code. If not specified, defaults to project id.",
+            help="Name of the repository with terraform infrastructure code",
             required=True,
         )
         deploy_parser.add_argument(
             "--config-repo",
-            help="Name of the repository with terraform variables files",
+            help="Name of the repository with terraform variables files. If not specified, defaults to project id.",
         )
 
     def _setup_config_parser(self):
