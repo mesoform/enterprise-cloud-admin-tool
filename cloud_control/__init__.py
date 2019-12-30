@@ -33,6 +33,9 @@ class ArgumentsParser:
 
         self.args = self.root_parser.parse_args(args)
 
+        if not self.args.config_repo:
+            self.args.config_repo = self.args.project_id
+
     def _setup_deploy_parser(self):
         """
         Setup specific to deploy command arguments
@@ -46,13 +49,12 @@ class ArgumentsParser:
         )
         deploy_parser.add_argument(
             "--code-repo",
-            help="Name of the repository with terraform infrastructure code",
+            help="Name of the repository with terraform infrastructure code. If not specified, defaults to project id.",
             required=True,
         )
         deploy_parser.add_argument(
             "--config-repo",
             help="Name of the repository with terraform variables files",
-            required=True,
         )
 
     def _setup_config_parser(self):
@@ -75,8 +77,7 @@ class ArgumentsParser:
         )
         config_parser.add_argument(
             "--config-repo",
-            help="Name of the repository with terraform variables files",
-            required=True,
+            help="Name of the repository with terraform variables files. If not specified, defaults to project id.",
         )
         config_parser.add_argument(
             "--bypass-branch-protection",
