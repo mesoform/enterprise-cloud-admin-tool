@@ -54,7 +54,12 @@ class ArgumentsParser:
         )
         deploy_parser.add_argument(
             "--config-repo",
-            help="Name of the repository with terraform variables files. If not specified, defaults to project id.",
+            help="Name of the repository with terraform variables files. "
+            "Overrides project-id for the name of the repository where "
+            "to store the project's infrastructure configuration. "
+            "We recommend using project-id for the name of the config "
+            "repository as well to maintain consistent naming but if "
+            "you need to call it something else, use this argument",
         )
 
     def _setup_config_parser(self):
@@ -77,7 +82,12 @@ class ArgumentsParser:
         )
         config_parser.add_argument(
             "--config-repo",
-            help="Name of the repository with terraform variables files. If not specified, defaults to project id.",
+            help="Name of the repository with terraform variables files. "
+            "Overrides project-id for the name of the repository where "
+            "to store the project's infrastructure configuration. "
+            "We recommend using project-id for the name of the config "
+            "repository as well to maintain consistent naming but if "
+            "you need to call it something else, use this argument",
         )
         config_parser.add_argument(
             "--bypass-branch-protection",
