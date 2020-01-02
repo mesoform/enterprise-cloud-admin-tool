@@ -15,9 +15,9 @@ class MetricsRegistry:
                          "unit": "seconds"},
                 "total": {"metric_type": Counter, "value_type": int, "value": None,
                           "unit": None},
-                "successful": {"metric_type": Counter, "value_type": int, "value": None,
+                "successes": {"metric_type": Counter, "value_type": int, "value": None,
                                "unit": None},
-                "failed": {"metric_type": Counter, "value_type": int, "value": None,
+                "failures": {"metric_type": Counter, "value_type": int, "value": None,
                            "unit": None}
             },
             "config": {
@@ -25,9 +25,9 @@ class MetricsRegistry:
                          "unit": "seconds"},
                 "total": {"metric_type": Counter, "value_type": int, "value": None,
                           "unit": None},
-                "successful": {"metric_type": Counter, "value_type": int, "value": None,
+                "successes": {"metric_type": Counter, "value_type": int, "value": None,
                                "unit": None},
-                "failed": {"metric_type": Counter, "value_type": int, "value": None,
+                "failures": {"metric_type": Counter, "value_type": int, "value": None,
                            "unit": None}
             },
             "check": {
@@ -35,12 +35,13 @@ class MetricsRegistry:
                          "unit": "seconds"},
                 "total": {"metric_type": Counter, "value_type": int, "value": None,
                           "unit": None},
-                "successful": {"metric_type": Counter, "value_type": int, "value": None,
+                "successes": {"metric_type": Counter, "value_type": int, "value": None,
                                "unit": None},
-                "failed": {"metric_type": Counter, "value_type": int, "value": None,
+                "failures": {"metric_type": Counter, "value_type": int, "value": None,
                            "unit": None}
             }
         }
+        self.add_metric("total", 1)
 
     @property
     def metric_set(self) -> str:
@@ -82,18 +83,19 @@ class Metrics:
         self.start_time = datetime.utcnow()
         self.end_time = None
         self._prepared_metrics = {}
-        self._value_types = {
+        self.value_types_map = {
             int: NotImplemented,
             bool: NotImplemented,
             float: NotImplemented,
             str: NotImplemented,
         }
-        self._units = {
+        self.units_map = {
             "seconds": NotImplemented,
             "minutes": NotImplemented,
             "hours": NotImplemented,
-            "days": NotImplemented}
-        self._metric_types = {
+            "days": NotImplemented
+        }
+        self.metric_types_map = {
             Gauge: NotImplemented,
             Counter: NotImplemented
         }
@@ -102,20 +104,60 @@ class Metrics:
             self.process_args(args)
 
     @property
-    def prepared_metrics(self):
+    def app_runtime(self) -> float:
+        return self.end_time - self.start_time
+
+    @property
+    def prepared_metrics(self) -> dict:
         return self._prepared_metrics
 
     @prepared_metrics.setter
-    def prepared_metrics(self, value):
+    def prepared_metrics(self, value: dict):
         self._prepared_metrics = value
 
     @property
-    def metrics_registry(self):
+    def metrics_registry(self) -> MetricsRegistry:
         return self._metrics_registry
 
     @metrics_registry.setter
     def metrics_registry(self, metric_registry: MetricsRegistry):
         self._metrics_registry = metric_registry
+
+    @property
+    def units_map(self) -> dict:
+        return self._units_map
+
+    @units_map.setter
+    def units_map(self, values: dict):
+        """
+        Maps generic units stored, but unimplemented in self.units_map to platform-specific units of
+        the monitoring system we're sending metrics to.
+        """
+        self._units_map = values
+
+    @property
+    def value_types_map(self) -> dict:
+        return self._value_types_map
+
+    @value_types_map.setter
+    def value_types_map(self, values: dict):
+        """
+        Maps native python types stored, but unimplemented in self.value_types_map to
+        platform-specific value types for the monitoring system we're sending metrics to.
+        """
+        self._value_types_map = values
+
+    @property
+    def metric_types_map(self):
+        return self._metric_types_map
+
+    @metric_types_map.setter
+    def metric_types_map(self, values: dict):
+        """
+        Maps primitive metric types stored, but unimplemented in self.metric_types_map to
+        platform-specific metric types for the monitoring system we're sending metrics to.
+        """
+        self._metric_types_map = values
 
     def process_args(self, args):
         """
@@ -137,25 +179,3 @@ class Metrics:
         monitoring server and stores it in self.prepared_metrics
         """
         raise NotImplementedError
-
-    def map_unit(self, unit):
-        """
-        Maps generic unit to platform-specific unit.
-        """
-        raise NotImplementedError
-
-    def map_value_type(self, value_type):
-        """
-        Maps native python type to platform-specific type for metric value.
-        """
-        raise NotImplementedError
-
-    def map_metric_type(self, metric_type):
-        """
-        Maps primitive metric type to platform-specific metric type.
-        """
-        raise NotImplementedError
-
-    @property
-    def app_runtime(self):
-        return self.end_time - self.start_time

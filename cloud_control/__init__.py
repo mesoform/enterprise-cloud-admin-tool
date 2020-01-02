@@ -7,7 +7,8 @@ from code_control import setup
 from deployer import deploy
 
 from reporter.local import get_logger, LocalMetrics
-from reporter.stackdriver import MetricsRegistry, StackdriverMetrics
+from reporter.base import MetricsRegistry
+from reporter.stackdriver import StackdriverMetrics
 
 from settings import SETTINGS
 

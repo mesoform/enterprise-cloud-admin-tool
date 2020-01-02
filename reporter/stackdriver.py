@@ -8,7 +8,7 @@ from google.cloud.monitoring_v3.types import TimeSeries
 
 from common import GcpAuth
 
-from .base import MetricsRegistry, Metrics, Gauge, Counter
+from .base import Metrics, Gauge, Counter
 
 
 class StackdriverMetricsException(Exception):
@@ -21,20 +21,6 @@ class StackdriverMetrics(Metrics):
     """
     Implementation of metrics reporter, that sends metrics to Google Stackdriver.
     """
-
-    value_types = {
-        int: MetricDescriptor.INT64,
-        bool: MetricDescriptor.BOOL,
-        float: MetricDescriptor.DOUBLE,
-        str: MetricDescriptor.STRING,
-    }
-
-    units = {"seconds": "s", "minutes": "min", "hours": "h", "days": "d"}
-
-    metric_types = {
-        Gauge: MetricDescriptor.GAUGE,
-        Counter: MetricDescriptor.CUMULATIVE,
-    }
 
     def __init__(self, args):
         self.monitoring_credentials = None
@@ -59,49 +45,57 @@ class StackdriverMetrics(Metrics):
 
     @property
     def monitoring_project_path(self):
+        # noinspection PyDeprecation
         return self.metrics_client.project_path(self.monitoring_project)
 
-    def map_unit(self, unit):
-        return self.units[unit]
-
-    def map_value_type(self, value_type):
-        return self.value_types[value_type]
-
-    def map_metric_type(self, metric_type):
-        return self.metric_types[metric_type]
-
-    def prepare_metric_registry(self, metric_registry: MetricsRegistry):
+    def prepare_metrics(self):
         """
         Fulfills `prepared_record` of metric registry with implementation-specific
         metrics data, like protobuf descriptors.
         """
-        for metric_name, metric_dict in metric_registry.metrics.items():
+        self.units_map = {
+            "seconds": "s",
+            "minutes": "min",
+            "hours": "h",
+            "days": "d",
+            None: None
+        }
+        self.value_types_map = {
+            int: MetricDescriptor.INT64,
+            bool: MetricDescriptor.BOOL,
+            float: MetricDescriptor.DOUBLE,
+            str: MetricDescriptor.STRING,
+        }
+        self.metric_types_map = {
+            Gauge: MetricDescriptor.GAUGE,
+            Counter: MetricDescriptor.CUMULATIVE,
+        }
+        for metric_name, metric_dict in self.metrics_registry.metrics.items():
             prepared_metric_dict = metric_dict.copy()
 
-            prepared_metric_dict["metric_kind"] = self.map_metric_type(
+            prepared_metric_dict["metric_kind"] = self.metric_types_map[
                 prepared_metric_dict.pop("metric_type")
-            )
-            prepared_metric_dict["value_type"] = self.map_value_type(
-                prepared_metric_dict.pop("value_type")
-            )
-            prepared_metric_dict["unit"] = self.map_unit(
-                prepared_metric_dict["unit"]
-            )
+            ]
+            prepared_metric_dict["value_type"] = self.value_types_map[
+                prepared_metric_dict.pop("value_type")]
 
-            metric_registry.prepared_metrics[metric_name] = prepared_metric_dict
+            prepared_metric_dict["unit"] = self.units_map[
+                prepared_metric_dict["unit"]]
+
+            self.prepared_metrics[metric_name] = prepared_metric_dict
 
     def _create_metric_descriptor(
-        self, metric_kind, value_type, metric_name, unit
+            self, metric_kind, value_type, metric_name, unit
     ):
         """
         Creates metric descriptor.
-        We need this because `TimeSeries` protobuf message doesn't allow to specify units, so we need
-        to create metric descriptor with separate request.
+        We need this because `TimeSeries` protobuf message doesn't allow to specify units, so we
+        need to create metric descriptor with separate request.
         """
         metric_descriptor_values = {
             "metric_kind": metric_kind,
             "value_type": value_type,
-            "type": f"custom.googleapis.com/{metric_name}",
+            "type": f"custom.googleapis.com/{self.metrics_registry.metric_set}_{metric_name}",
         }
         if unit is not None:
             metric_descriptor_values["unit"] = unit
@@ -111,17 +105,17 @@ class StackdriverMetrics(Metrics):
             metric_descriptor=MetricDescriptor(**metric_descriptor_values),
         )
 
-        # is we send requests through metrics_client one after another, we are receiving unclear error 500,
-        # probably due to google's requests throttling
+        # is we send requests through metrics_client one after another, we are receiving unclear
+        # error 500, probably due to google's requests throttling
         sleep(1)
 
     def _initialize_base_metrics_message(
-        self,
-        metric_name: str,
-        labels: dict = None,
-        metric_kind=MetricDescriptor.GAUGE,
-        value_type=MetricDescriptor.INT64,
-        unit=None,
+            self,
+            metric_name: str,
+            labels: dict = None,
+            metric_kind=MetricDescriptor.GAUGE,
+            value_type=MetricDescriptor.INT64,
+            unit=None,
     ) -> TimeSeries:
         """
         creates an TimeSeries metrics object called metric_name and with labels
@@ -136,8 +130,8 @@ class StackdriverMetrics(Metrics):
             metric_kind, value_type, metric_name, unit
         )
 
-        # if we send requests through metrics_client one after another, we receive unclear error 500,
-        # probably due to google's requests throttling
+        # if we send requests through metrics_client one after another, we receive unclear error
+        # 500, probably due to google's requests throttling
         sleep(1)
 
         series = self.metrics_type(
@@ -145,7 +139,8 @@ class StackdriverMetrics(Metrics):
         )
 
         series.resource.type = "global"
-        series.metric.type = f"custom.googleapis.com/{metric_name}"
+        series.metric.type = \
+            f"custom.googleapis.com/{self.metrics_registry.metric_set}_{metric_name}"
         if labels:
             series.metric.labels.update(labels)
         return series
@@ -185,11 +180,12 @@ class StackdriverMetrics(Metrics):
         Constructs protobuf messages and sends them through client.
         """
         time_series_list = []
+        self.prepare_metrics()
 
         for (
-            metric_name,
-            metric_dict,
-        ) in self.metrics_registry.prepared_metrics.items():
+                metric_name,
+                metric_dict,
+        ) in self.prepared_metrics.items():
             metric_dict_copy = metric_dict.copy()
             value = metric_dict_copy.pop("value")
 
