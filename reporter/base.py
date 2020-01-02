@@ -41,7 +41,6 @@ class MetricsRegistry:
                            "unit": None}
             }
         }
-        self.prepared_metrics = {}
 
     @property
     def metric_set(self) -> str:
@@ -56,10 +55,10 @@ class MetricsRegistry:
         return self._metrics[self.metric_set]
 
     def add_metric(self, metric_name: str, metric_value: any):
-        if metric_name not in self.metrics[self.metric_set][metric_name]:
-            raise ValueError
+        if metric_name not in self.metrics:
+            raise KeyError
 
-        metric = self._metrics[self.metric_set][metric_name]
+        metric = self.metrics[metric_name]
 
         if not isinstance(metric_value, metric["value_type"]):
             raise ValueError
@@ -67,8 +66,8 @@ class MetricsRegistry:
         metric["value"] = metric_value
 
     def __getattr__(self, item):
-        if item in self.metrics[self.metric_set]:
-            return self.metrics[self.metric_set].get(item)
+        if item in self.metrics:
+            return self.metrics.get(item)
 
         raise AttributeError
 
@@ -82,16 +81,33 @@ class Metrics:
         self._metrics_registry = None
         self.start_time = datetime.utcnow()
         self.end_time = None
+        self._prepared_metrics = {}
+        self._value_types = {
+            int: NotImplemented,
+            bool: NotImplemented,
+            float: NotImplemented,
+            str: NotImplemented,
+        }
+        self._units = {
+            "seconds": NotImplemented,
+            "minutes": NotImplemented,
+            "hours": NotImplemented,
+            "days": NotImplemented}
+        self._metric_types = {
+            Gauge: NotImplemented,
+            Counter: NotImplemented
+        }
 
         if args is not None:
             self.process_args(args)
 
-    def process_args(self, args):
-        """
-        Method for processing info, that came from cli, such as
-        credentials data or platform-specific arguments
-        """
-        raise NotImplementedError
+    @property
+    def prepared_metrics(self):
+        return self._prepared_metrics
+
+    @prepared_metrics.setter
+    def prepared_metrics(self, value):
+        self._prepared_metrics = value
 
     @property
     def metrics_registry(self):
@@ -100,14 +116,25 @@ class Metrics:
     @metrics_registry.setter
     def metrics_registry(self, metric_registry: MetricsRegistry):
         self._metrics_registry = metric_registry
-        self.prepare_metric_registry(metric_registry)
 
-    def send_metrics(self):
+    def process_args(self, args):
+        """
+        Method for processing info, that came from cli, such as
+        credentials data or platform-specific arguments
+        """
         raise NotImplementedError
 
-    def prepare_metric_registry(self, metric_registry: MetricsRegistry):
+    def send_metrics(self):
         """
-        Enriches MetricsRegistry.metrics content and stores it in MetricsRegistry.prepared_metrics
+        Sends self.prepared_metrics to monitoring system
+        :return:
+        """
+        raise NotImplementedError
+
+    def prepare_metrics(self):
+        """
+        Enriches MetricsRegistry.metrics content and processes data to meet requirements of
+        monitoring server and stores it in self.prepared_metrics
         """
         raise NotImplementedError
 

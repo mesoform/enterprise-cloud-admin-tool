@@ -109,9 +109,9 @@ def test_local_metrics_reporter(command_line_args):
 
     metrics = MetricsRegistry("deploy")
     metrics.add_metric("time", 123.34)
-    metrics.add_metric("success", 1)
+    metrics.add_metric("successful", 1)
 
-    reporter.metrics_registry(metrics)
+    reporter.metrics_registry = metrics
     reporter.send_metrics()
 
     with open(command_line_args.metrics_file, "r") as metrics_file:
@@ -122,15 +122,15 @@ def test_local_metrics_reporter(command_line_args):
     first_entry, second_entry = metrics_entries[1], metrics_entries[2]
 
     assert json.loads(first_entry) == {
-        "metric_name": "deployment_time",
+        "metric_name": "time",
         "value": 123.34,
         "type": "float",
-        "unit": "second",
+        "unit": "seconds",
     }
 
     assert json.loads(second_entry) == {
-        "metric_name": "deployments_rate",
+        "metric_name": "successful",
         "value": 1,
         "type": "int",
-        "unit": "hour",
+        "unit": "hours",
     }
