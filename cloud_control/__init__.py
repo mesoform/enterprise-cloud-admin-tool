@@ -136,8 +136,9 @@ class CloudControl:
         self._setup_logger()
         self.metrics_registry = MetricsRegistry(args.command)
         self.metrics_registry.add_metric("total", 1)
-        self._setup_app_metrics()
         self._setup_local_metrics()
+        if self.args.monitoring_system:
+            self._setup_remote_metrics()
 
     def _setup_logger(self):
         self._log = get_logger(
@@ -147,8 +148,8 @@ class CloudControl:
             json_formatter=self.args.json_logging,
         )
 
-    def _setup_app_metrics(self):
-        self._app_metrics = self.args.monitoring_system(self.args)
+    def _setup_remote_metrics(self):
+        self._remote_metrics = self.args.monitoring_system(self.args)
 
     def _setup_local_metrics(self):
         self._local_metrics = LocalMetrics(self.args)
@@ -156,15 +157,15 @@ class CloudControl:
     def _log_and_send_metrics(self, command):
         self._log.info("finished " + command + " run")
 
-        if self._app_metrics is not None:
-            self._app_metrics.end_time = datetime.utcnow()
+        if self._remote_metrics is not None:
+            self._remote_metrics.end_time = datetime.utcnow()
 
             self.metrics_registry.add_metric(
-                "time", self._app_metrics.app_runtime.total_seconds()
+                "time", self._remote_metrics.app_runtime.total_seconds()
             )
 
-            self._app_metrics.metrics_registry = self.metrics_registry
-            self._app_metrics.send_metrics()
+            self._remote_metrics.metrics_registry = self.metrics_registry
+            self._remote_metrics.send_metrics()
 
         if not self.args.disable_local_reporter:
             self._local_metrics.metrics_registry = self.metrics_registry
