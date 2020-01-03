@@ -132,6 +132,7 @@ def test_stackdriver_send_metrics(command_line_args):
         """\
         metric_kind: CUMULATIVE
         value_type: INT64
+        unit: "d"
         type: "custom.googleapis.com/deploy/total"
         """
     )

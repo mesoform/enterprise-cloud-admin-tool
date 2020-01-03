@@ -167,7 +167,7 @@ class CloudControl:
             self._app_metrics.send_metrics()
 
         if not self.args.disable_local_reporter:
-            self._local_metrics.metrics_registry(self.metrics_registry)
+            self._local_metrics.metrics_registry = self.metrics_registry
             self._local_metrics.send_metrics()
 
     def perform_command(self):

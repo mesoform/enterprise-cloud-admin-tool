@@ -73,6 +73,9 @@ class StackdriverMetrics(Metrics):
         for metric_name, metric_dict in self.metrics_registry.metrics.items():
             prepared_metric_dict = metric_dict.copy()
 
+            if metric_name in ("total", "successes", "failures"):
+                prepared_metric_dict["unit"] = "days"
+
             prepared_metric_dict["metric_kind"] = self.metric_types_map[
                 prepared_metric_dict.pop("metric_type")
             ]
