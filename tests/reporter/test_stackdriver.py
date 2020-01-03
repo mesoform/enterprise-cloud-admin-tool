@@ -17,6 +17,8 @@ def test_stackdriver_send_metrics(command_line_args):
     """
     This test ensures, that Stackdriver reporting class constructs
     correct protobuf messages.
+    ToDo: needs splitting into separate unit tests for each function, rather than all functions in
+        one
     """
     stackdriver_reporter = StackdriverMetrics(command_line_args)
     stackdriver_reporter.end_time = datetime.now()
@@ -30,6 +32,7 @@ def test_stackdriver_send_metrics(command_line_args):
     metrics_registry = MetricsRegistry("deploy")
     metrics_registry.add_metric("time", 453.77329)
     metrics_registry.add_metric("successes", 1)
+    metrics_registry.add_metric("failures", 1)
 
     stackdriver_reporter.metrics_registry = metrics_registry
 
@@ -44,14 +47,16 @@ def test_stackdriver_send_metrics(command_line_args):
     end_nanos = stackdriver_reporter.end_time.microsecond * NANOS_PER_MICROSECOND
 
     # retrieving protobuf messages
-    time_series1 = str(create_time_series.mock_calls[0][1][1][0])
-    time_series2 = str(create_time_series.mock_calls[0][1][1][1])
+    time_timeseries = str(create_time_series.mock_calls[0][1][1][0])
+    total_timeseries = str(create_time_series.mock_calls[0][1][1][1])
+    successes_timeseries = str(create_time_series.mock_calls[0][1][1][2])
+    failures_timeseries = str(create_time_series.mock_calls[0][1][1][3])
 
     # fmt: off
-    expected_time_series1 = textwrap.dedent(
+    expected_time_timeseries = textwrap.dedent(
         """\
         metric {
-          type: "custom.googleapis.com/deploy_time"
+          type: "custom.googleapis.com/deploy/time"
         }
         resource {
           type: "global"
@@ -73,13 +78,13 @@ def test_stackdriver_send_metrics(command_line_args):
     ) % (end_seconds, end_nanos)
     # fmt: on
 
-    assert time_series1 == expected_time_series1
+    assert time_timeseries == expected_time_timeseries
 
     # fmt: off
-    expected_time_series2 = textwrap.dedent(
+    expected_total_timeseries = textwrap.dedent(
         """\
         metric {
-          type: "custom.googleapis.com/deploy_successes"
+          type: "custom.googleapis.com/deploy/total"
         }
         resource {
           type: "global"
@@ -105,29 +110,28 @@ def test_stackdriver_send_metrics(command_line_args):
     ) % (start_seconds, start_nanos, end_seconds, end_nanos)
     # fmt: on
 
-    assert time_series2 == expected_time_series2
+    assert total_timeseries == expected_total_timeseries
 
-    metric_descriptor_1 = str(
+    time_metric_descriptor = str(
         create_metric_descriptor.mock_calls[0][2]["metric_descriptor"]
     )
-    metric_descriptor_2 = str(
+    total_metric_descriptor = str(
         create_metric_descriptor.mock_calls[1][2]["metric_descriptor"]
     )
 
-    assert metric_descriptor_1 == textwrap.dedent(
+    assert time_metric_descriptor == textwrap.dedent(
         """\
         metric_kind: GAUGE
         value_type: DOUBLE
         unit: "s"
-        type: "custom.googleapis.com/deploy_time"
+        type: "custom.googleapis.com/deploy/time"
         """
     )
 
-    assert metric_descriptor_2 == textwrap.dedent(
+    assert total_metric_descriptor == textwrap.dedent(
         """\
         metric_kind: CUMULATIVE
         value_type: INT64
-        unit: "h"
-        type: "custom.googleapis.com/deploy_successes"
+        type: "custom.googleapis.com/deploy/total"
         """
     )

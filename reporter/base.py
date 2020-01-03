@@ -16,9 +16,9 @@ class MetricsRegistry:
                 "total": {"metric_type": Counter, "value_type": int, "value": None,
                           "unit": None},
                 "successes": {"metric_type": Counter, "value_type": int, "value": None,
-                               "unit": None},
+                              "unit": None},
                 "failures": {"metric_type": Counter, "value_type": int, "value": None,
-                           "unit": None}
+                             "unit": None}
             },
             "config": {
                 "time": {"metric_type": Gauge, "value_type": float, "value": None,
@@ -26,9 +26,9 @@ class MetricsRegistry:
                 "total": {"metric_type": Counter, "value_type": int, "value": None,
                           "unit": None},
                 "successes": {"metric_type": Counter, "value_type": int, "value": None,
-                               "unit": None},
+                              "unit": None},
                 "failures": {"metric_type": Counter, "value_type": int, "value": None,
-                           "unit": None}
+                             "unit": None}
             },
             "check": {
                 "time": {"metric_type": Gauge, "value_type": float, "value": None,
@@ -36,9 +36,9 @@ class MetricsRegistry:
                 "total": {"metric_type": Counter, "value_type": int, "value": None,
                           "unit": None},
                 "successes": {"metric_type": Counter, "value_type": int, "value": None,
-                               "unit": None},
+                              "unit": None},
                 "failures": {"metric_type": Counter, "value_type": int, "value": None,
-                           "unit": None}
+                             "unit": None}
             }
         }
         self.add_metric("total", 1)

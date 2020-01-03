@@ -92,17 +92,18 @@ class StackdriverMetrics(Metrics):
         We need this because `TimeSeries` protobuf message doesn't allow to specify units, so we
         need to create metric descriptor with separate request.
         """
-        metric_descriptor_values = {
-            "metric_kind": metric_kind,
-            "value_type": value_type,
-            "type": f"custom.googleapis.com/{self.metrics_registry.metric_set}_{metric_name}",
-        }
+
+        metric_descriptor = MetricDescriptor()
+        metric_descriptor.type = f"custom.googleapis.com/" \
+            f"{self.metrics_registry.metric_set}/{metric_name}"
+        metric_descriptor.metric_kind = metric_kind
+        metric_descriptor.value_type = value_type
         if unit is not None:
-            metric_descriptor_values["unit"] = unit
+            metric_descriptor.unit = unit
 
         self.metrics_client.create_metric_descriptor(
             name=self.monitoring_project_path,
-            metric_descriptor=MetricDescriptor(**metric_descriptor_values),
+            metric_descriptor=metric_descriptor,
         )
 
         # is we send requests through metrics_client one after another, we are receiving unclear
@@ -140,7 +141,7 @@ class StackdriverMetrics(Metrics):
 
         series.resource.type = "global"
         series.metric.type = \
-            f"custom.googleapis.com/{self.metrics_registry.metric_set}_{metric_name}"
+            f"custom.googleapis.com/{self.metrics_registry.metric_set}/{metric_name}"
         if labels:
             series.metric.labels.update(labels)
         return series

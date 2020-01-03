@@ -110,6 +110,7 @@ def test_local_metrics_reporter(command_line_args):
     metrics = MetricsRegistry("deploy")
     metrics.add_metric("time", 123.34)
     metrics.add_metric("successes", 1)
+    metrics.add_metric("failures", 0)
 
     reporter.metrics_registry = metrics
     reporter.send_metrics()
@@ -127,7 +128,7 @@ def test_local_metrics_reporter(command_line_args):
             "unit": None
         },
         "failures": {
-            "value": None,
+            "value": 0,
             "unit": None
         }
     }
