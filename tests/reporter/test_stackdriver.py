@@ -17,8 +17,8 @@ def test_stackdriver_send_metrics(command_line_args):
     """
     This test ensures, that Stackdriver reporting class constructs
     correct protobuf messages.
-    ToDo: needs splitting into separate unit tests for each function, rather than all functions in
-        one
+    ToDo: There is a lot going on in this test and really needs splitting into separate unit tests
+     for each function, rather than all functions in one
     """
     stackdriver_reporter = StackdriverMetrics(command_line_args)
     stackdriver_reporter.end_time = datetime.now()

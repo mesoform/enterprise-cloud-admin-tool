@@ -82,7 +82,10 @@ class StackdriverMetrics(Metrics):
             prepared_metric_dict["unit"] = self.units_map[
                 prepared_metric_dict["unit"]]
 
-            self.prepared_metrics[metric_name] = prepared_metric_dict
+            stackdriver_metric_name = f"custom.googleapis.com/" \
+                f"{self.metrics_registry.metric_set}/{metric_name}"
+
+            self.prepared_metrics[stackdriver_metric_name] = prepared_metric_dict
 
     def _create_metric_descriptor(
             self, metric_kind, value_type, metric_name, unit
@@ -94,8 +97,7 @@ class StackdriverMetrics(Metrics):
         """
 
         metric_descriptor = MetricDescriptor()
-        metric_descriptor.type = f"custom.googleapis.com/" \
-            f"{self.metrics_registry.metric_set}/{metric_name}"
+        metric_descriptor.type = metric_name
         metric_descriptor.metric_kind = metric_kind
         metric_descriptor.value_type = value_type
         if unit is not None:
@@ -140,8 +142,7 @@ class StackdriverMetrics(Metrics):
         )
 
         series.resource.type = "global"
-        series.metric.type = \
-            f"custom.googleapis.com/{self.metrics_registry.metric_set}/{metric_name}"
+        series.metric.type = metric_name
         if labels:
             series.metric.labels.update(labels)
         return series
