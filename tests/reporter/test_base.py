@@ -61,13 +61,13 @@ def test_metrics_reporter():
     """
     Todo: document what this is testing
     """
-    # metrics_registry = MetricsRegistry("deploy")
-    # reporter = Metrics()
-    #
-    # prepare_metrics = Mock()
-    # reporter.prepare_metrics = prepare_metrics
-    #
-    # reporter.metrics_registry = metrics_registry
-    #
-    # assert reporter.metrics_registry == metrics_registry
-    # prepare_metrics.assert_called_once_with(metrics_registry)
+    metrics_registry = MetricsRegistry("deploy")
+    reporter = Metrics()
+
+    prepare_metrics = Mock()
+    reporter.prepare_metrics = prepare_metrics
+
+    reporter.metrics_registry = metrics_registry
+
+    assert reporter.metrics_registry == metrics_registry
+    prepare_metrics.assert_called_once_with(metrics_registry)
