@@ -29,7 +29,13 @@ class ContextFilter(logging.Filter):
         return True
 
 
-def _add_hostname_and_application(event_dict):
+def _add_hostname_and_application(logger, method_name, event_dict):
+    """
+    Adds additional info to event_dict.
+
+    logger and method_name arguments not used intentionally, because
+    all structlog's processors should have same signature
+    """
     event_dict["hostname"] = socket.gethostname()
     event_dict["application"] = APPLICATION
     return event_dict
