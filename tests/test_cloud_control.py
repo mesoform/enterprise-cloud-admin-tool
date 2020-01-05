@@ -1,4 +1,5 @@
-from uuid import uuid4
+import copy
+
 from unittest.mock import Mock
 
 import pytest
@@ -9,11 +10,12 @@ from reporter.stackdriver import StackdriverMetrics
 
 @pytest.fixture
 def cli_args_with_mocked_metrics(command_line_args):
-    command_line_args.monitoring_system = Mock()
-    command_line_args.monitoring_system.return_value.app_runtime.total_seconds.return_value = (
+    args = copy.copy(command_line_args)
+    args.monitoring_system = Mock()
+    args.monitoring_system.return_value.app_runtime.total_seconds.return_value = (
         450.45
     )
-    return command_line_args
+    return args
 
 
 def test_deploy(
@@ -48,7 +50,7 @@ def test_config(mocker, cli_args_with_mocked_metrics):
 
 
 def test_perform_command_exception(cli_args_with_mocked_metrics):
-    cli_args_with_mocked_metrics.command = str(uuid4())
+    cli_args_with_mocked_metrics.command = "check"
 
     cloud_control = CloudControl(cli_args_with_mocked_metrics)
 
@@ -109,7 +111,7 @@ def test_argument_parser_defaults(tmpdir):
         "monitoring_namespace": "random-monitoring-project",
         "monitoring_system": StackdriverMetrics,
         "log_file": "/var/log/enterprise_cloud_admin.log",
-        "metrics_file": "/var/log/enterprise_cloud_admin_metrics.log",
+        "metrics_file": "/var/log/enterprise_cloud_admin_metrics",
         "debug": False,
         "command": "deploy",
         "force": False,
