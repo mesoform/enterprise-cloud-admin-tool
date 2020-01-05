@@ -59,7 +59,12 @@ def test_metric_registry():
 
 def test_metrics_reporter():
     """
-    Todo: document what this is testing
+    Tests, that:
+    1) Metrics.metrics_registry setter sets given metrics_registry
+    instance correctly
+
+    2) Metrics.metrics_registry setter calls Metrics.prepare_metrics method
+    after _metrics_registry set
     """
     metrics_registry = MetricsRegistry("deploy")
     reporter = Metrics()
@@ -70,4 +75,5 @@ def test_metrics_reporter():
     reporter.metrics_registry = metrics_registry
 
     assert reporter.metrics_registry == metrics_registry
-    prepare_metrics.assert_called_once_with(metrics_registry)
+
+    prepare_metrics.assert_called_once()

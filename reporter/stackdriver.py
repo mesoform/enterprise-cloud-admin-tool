@@ -185,7 +185,6 @@ class StackdriverMetrics(Metrics):
         Constructs protobuf messages and sends them through client.
         """
         time_series_list = []
-        self.prepare_metrics()
 
         for (
                 metric_name,
