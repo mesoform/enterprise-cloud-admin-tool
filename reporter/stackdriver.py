@@ -136,10 +136,6 @@ class StackdriverMetrics(Metrics):
             metric_kind, value_type, metric_name, unit
         )
 
-        # if we send requests through metrics_client one after another, we receive unclear error
-        # 500, probably due to google's requests throttling
-        sleep(1)
-
         series = self.metrics_type(
             metric_kind=metric_kind, value_type=value_type
         )
