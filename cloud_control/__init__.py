@@ -137,6 +137,8 @@ class CloudControl:
         self.metrics_registry = MetricsRegistry(args.command)
         self.metrics_registry.add_metric("total", 1)
         self._setup_local_metrics()
+
+        self._remote_metrics = None
         if self.args.monitoring_system:
             self._setup_remote_metrics()
 
