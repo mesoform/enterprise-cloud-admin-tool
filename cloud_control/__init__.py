@@ -7,7 +7,7 @@ import reporter.local
 from deployer import deploy
 
 # from checker import check
-from code_control import setup, TemplatesArgAction
+from code_control import setup, BranchProtectArgAction
 
 from settings import SETTINGS
 
@@ -77,6 +77,17 @@ class ArgumentsParser:
             "--config-repo",
             help="Name of the repository with terraform variables files",
             required=True,
+        )
+        config_parser.add_argument(
+            '--branch-protection',
+            choices=('standard', 'high'),
+            help='\nThe level to which the branch will be '
+                 'protected\n'
+                 'standard: adds review requirements, stale reviews'
+                 ' and admin enforcement\n'
+                 'high: also code owner reviews and review count',
+            default='standard',
+            action=BranchProtectArgAction
         )
         config_parser.add_argument(
             "--bypass-branch-protection",
