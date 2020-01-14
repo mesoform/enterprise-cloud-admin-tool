@@ -171,7 +171,7 @@ def project_state1():
                             "policy_data": None,
                             "policy_etag": None,
                             "project_id": "testing-billing-test-123456789",
-                            "skip_delete": None,
+                            "skip_delete": True,
                             "timeouts": None,
                         },
                         "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2Jj"
@@ -242,7 +242,7 @@ def project_state2():
                             "policy_data": None,
                             "policy_etag": None,
                             "project_id": "billing-test-123456789",
-                            "skip_delete": None,
+                            "skip_delete": False,
                             "timeouts": None,
                         },
                         "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2Jj"

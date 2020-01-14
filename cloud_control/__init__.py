@@ -7,7 +7,7 @@ import reporter.local
 from deployer import deploy
 
 # from checker import check
-from code_control import setup, TemplatesArgAction
+from code_control import setup, BranchProtectArgAction
 
 from settings import SETTINGS
 
@@ -88,6 +88,17 @@ class ArgumentsParser:
             "We recommend using project-id for the name of the config "
             "repository as well to maintain consistent naming but if "
             "you need to call it something else, use this argument",
+        )
+        config_parser.add_argument(
+            '--branch-protection',
+            choices=('standard', 'high'),
+            help='\nThe level to which the branch will be '
+                 'protected\n'
+                 'standard: adds review requirements, stale reviews'
+                 ' and admin enforcement\n'
+                 'high: also code owner reviews and review count',
+            default='standard',
+            action=BranchProtectArgAction
         )
         config_parser.add_argument(
             "--bypass-branch-protection",
@@ -206,10 +217,10 @@ class CloudControl:
         )
 
         config_hash = common.get_hash_of_latest_commit(
-            config_org, self.args.project_id, self.args.config_version
+            config_org, self.args.config_repo, self.args.config_version
         )
         code_hash = common.get_hash_of_latest_commit(
-            code_org, self.args.project_id, self.args.config_version
+            code_org, self.args.code_repo, self.args.code_version
         )
         testing_ending = f"{config_hash[:7]}-{code_hash[:7]}"
 
