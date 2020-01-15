@@ -178,8 +178,11 @@ class CloudControl:
     def _setup_local_metrics(self):
         self._local_metrics = LocalMetrics(self.args)
 
-    def _log_and_send_metrics(self, command):
+    def _log_and_send_metrics(self, command, success):
         self._log.info("finished " + command + " run")
+
+        self.metrics_registry.add_metric("successes", int(success))
+        self.metrics_registry.add_metric("failures", int(not success))
 
         if self._remote_metrics is not None:
             self._remote_metrics.end_time = datetime.utcnow()
@@ -210,10 +213,11 @@ class CloudControl:
                 "Command {} does not implemented".format(self.args.command)
             )
 
+        success = False
         try:
-            command()
+            success = command()
         finally:
-            self._log_and_send_metrics(self.args.command)
+            self._log_and_send_metrics(self.args.command, success)
 
     def _deploy(self):
         self._log.info("Starting deployment")
