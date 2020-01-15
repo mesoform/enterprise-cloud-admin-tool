@@ -67,9 +67,7 @@ LOCAL_FILES = {
     "readme_file": MODULE_ROOT_DIR / "resources/templates/README.md",
     "project_settings_file": MODULE_ROOT_DIR
     / "resources/templates/project_settings.auto.tfvars.json",
-    "iam_file": MODULE_ROOT_DIR
-    / "resources/templates/iam.auto.tfvars.json",
-
+    "iam_file": MODULE_ROOT_DIR / "resources/templates/iam.auto.tfvars.json",
 }
 REMOTE_FILES = {
     "readme_file": "README.md",

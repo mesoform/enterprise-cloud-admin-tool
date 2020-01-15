@@ -156,6 +156,7 @@ def _prepare_state_for_compare(state):
         "number",
         "project_id",
         "project",
+        "skip_delete",
     ]
     for resource in sanitized_state.get("resources", []):
         for instance in resource.get("instances", []):

@@ -3,7 +3,7 @@ from datetime import datetime
 
 import common
 
-from code_control import setup
+from code_control import setup, BranchProtectArgAction
 from deployer import deploy
 
 from reporter.local import get_logger, LocalMetrics
@@ -64,6 +64,9 @@ class ArgumentsParser:
 
         self.args = self.root_parser.parse_args(args)
 
+        if not self.args.config_repo:
+            self.args.config_repo = self.args.project_id
+
     def _setup_deploy_parser(self):
         """
         Setup specific to deploy command arguments
@@ -82,8 +85,12 @@ class ArgumentsParser:
         )
         deploy_parser.add_argument(
             "--config-repo",
-            help="Name of the repository with terraform variables files",
-            required=True,
+            help="Name of the repository with terraform variables files. "
+            "Overrides project-id for the name of the repository where "
+            "to store the project's infrastructure configuration. "
+            "We recommend using project-id for the name of the config "
+            "repository as well to maintain consistent naming but if "
+            "you need to call it something else, use this argument",
         )
 
     def _setup_config_parser(self):
@@ -106,8 +113,23 @@ class ArgumentsParser:
         )
         config_parser.add_argument(
             "--config-repo",
-            help="Name of the repository with terraform variables files",
-            required=True,
+            help="Name of the repository with terraform variables files. "
+            "Overrides project-id for the name of the repository where "
+            "to store the project's infrastructure configuration. "
+            "We recommend using project-id for the name of the config "
+            "repository as well to maintain consistent naming but if "
+            "you need to call it something else, use this argument",
+        )
+        config_parser.add_argument(
+            '--branch-protection',
+            choices=('standard', 'high'),
+            help='\nThe level to which the branch will be '
+                 'protected\n'
+                 'standard: adds review requirements, stale reviews'
+                 ' and admin enforcement\n'
+                 'high: also code owner reviews and review count',
+            default='standard',
+            action=BranchProtectArgAction
         )
         config_parser.add_argument(
             "--bypass-branch-protection",
@@ -216,10 +238,10 @@ class CloudControl:
         )
 
         config_hash = common.get_hash_of_latest_commit(
-            config_org, self.args.project_id, self.args.config_version
+            config_org, self.args.config_repo, self.args.config_version
         )
         code_hash = common.get_hash_of_latest_commit(
-            code_org, self.args.project_id, self.args.config_version
+            code_org, self.args.code_repo, self.args.code_version
         )
         testing_ending = f"{config_hash[:7]}-{code_hash[:7]}"
 
