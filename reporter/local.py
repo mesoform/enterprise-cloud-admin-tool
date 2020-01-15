@@ -116,6 +116,7 @@ class LocalMetrics(Metrics):
 
     def send_metrics(self):
         self.metrics_file = "{}.{}".format(self.metrics_file, self.metrics_registry.metric_set)
+        self.prepare_metrics()
         with open(self.metrics_file, "w") as f:
             json.dump(self.prepared_metrics, f, indent=2)
 

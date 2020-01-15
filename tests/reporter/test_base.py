@@ -55,25 +55,3 @@ def test_metric_registry():
 
     assert deploy_registry.time
     assert deploy_registry.successes
-
-
-def test_metrics_reporter():
-    """
-    Tests, that:
-    1) Metrics.metrics_registry setter sets given metrics_registry
-    instance correctly
-
-    2) Metrics.metrics_registry setter calls Metrics.prepare_metrics method
-    after _metrics_registry set
-    """
-    metrics_registry = MetricsRegistry("deploy")
-    reporter = Metrics()
-
-    prepare_metrics = Mock()
-    reporter.prepare_metrics = prepare_metrics
-
-    reporter.metrics_registry = metrics_registry
-
-    assert reporter.metrics_registry == metrics_registry
-
-    prepare_metrics.assert_called_once()

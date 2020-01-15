@@ -122,7 +122,6 @@ class Metrics:
     @metrics_registry.setter
     def metrics_registry(self, metric_registry: MetricsRegistry):
         self._metrics_registry = metric_registry
-        self.prepare_metrics()
 
     @property
     def units_map(self) -> dict:
