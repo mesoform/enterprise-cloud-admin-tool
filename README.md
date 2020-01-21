@@ -50,7 +50,12 @@ More details about [here](https://cloud.google.com/iam/docs/creating-managing-se
     ```
     git clone https://github.com/mesoform/enterprise-cloud-admin-tool.git && cd enterprise-cloud-admin-tool
     ```
-    
+
+1. Update pipfile with current version of python
+
+    ```
+    vi $(pwd)/Pipfile
+    ```    
 1. Install all dependencies:
 
     ```
