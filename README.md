@@ -33,7 +33,17 @@ This token needs permissions for 'repo', 'admin:org', and 'delete_repo'.
 You can find how to create it [here](https://cloud.google.com/iam/docs/creating-managing-service-accounts).
 It doesn't matter for which project you will create service account, you will be able to use it for any API activity.
 
-1. You must have existing project on google cloud platform, that will used as monitoring namespace.
+1. You must have a service account on Google Cloud Platform with the following minimum permissions:
+
+    - "Billing Account User" role set at the organization level or on the specified billing account by a billing admin. (Check billing access control documentation [here](https://cloud.google.com/billing/docs/how-to/billing-access).
+    - "Project Creator" role set minimum at the folder level.
+
+    You can find how to create a service account [here](https://cloud.google.com/iam/docs/creating-managing-service-accounts).
+    It doesn't matter for which project you will create service account, you will be able to use it for any API activity.
+    
+    - "Cloud Resource Manager" and "Cloud Billing" APIs needs to be enabled on the project owning the service account which is used for the deployment.
+    
+1. You must have an existing project on Google Cloud Platform that will used as monitoring namespace.
 This project must have service account attached, with `Monitoring Metric Writer` role assigned to this profile.
 So, just switch to your monitoring project, go to `IAM` menu, and add service account as a member with this role. 
 Once created go to 'Monitoring' and if it doesn't already exist, create a monitoring space in Stackdriver.
@@ -218,6 +228,45 @@ After that, you should receive success message in console, and metrics in your G
 
 Sometimes it's really hard to interpret immediately what GCP error means, so terraform community members
 created curated list of common problems: [TROUBLESHOOTING.md](https://github.com/terraform-google-modules/terraform-google-project-factory/blob/master/docs/TROUBLESHOOTING.md).
+
+### Other known issues ###
+
+1) If a "testing*" project has already been created but the deployment failed to complete, retrying the deployment will throw the "requested entity already exists" error due to an already existing "testing*" project. To bypass this issue the name of the project needs to be changed. E.g: xyz-eca-test01 to xyz-eca-test02
+
+```
+STDERR:
+Error: error creating project testing-123456a-123456b (testing-123456a-123456b): googleapi: Error 409: Requested entity already exists, alreadyExists. If you received a 403 error, make sure you have the `roles/resourcemanager.projectCreator` permission
+  on project.tf line 9, in resource "google_project" "project":
+   9: resource "google_project" "project" {
+```
+
+2) Check that the service account has the minimum required billing permissions granted. More: https://cloud.google.com/billing/docs/how-to/billing-access
+
+```
+STDERR:
+Error: Error setting billing account "01234A-12345B-23456C" for project "projects/testing-123456a-123456b": googleapi: Error 403: The caller does not have permission, forbidden
+  on project.tf line 9, in resource "google_project" "project":
+   9: resource "google_project" "project" {
+```
+
+3) Check whether Cloud Resource Manager API is enabled on the project owning the service account which is used for the deployment.
+
+```
+STDERR:
+Error: error creating project testing-123456a-123456b (testing-123456a-123456b): googleapi: Error 403: Cloud Resource Manager API has not been used in project 123456789101 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/cloudresourcemanager.googleapis.com/overview?project=123456789101 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry., accessNotConfigured. If you received a 403 error, make sure you have the `roles/resourcemanager.projectCreator` permission
+  on project.tf line 9, in resource "google_project" "project":
+   9: resource "google_project" "project" {
+```   
+
+
+4) If the limit of projects associated with the billing account has been reached a "precodition check failed" error will be shown. Try removing some projects from that billing account.
+
+```
+STDERR:
+Error: Error setting billing account "01234A-12345B-23456C" for project "projects/xyz-eca-test07": googleapi: Error 400: Precondition check failed., failedPrecondition
+  on project.tf line 9, in resource "google_project" "project":
+   9: resource "google_project" "project" {
+```
 
 ## Contributing
 
