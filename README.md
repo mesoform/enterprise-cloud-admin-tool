@@ -41,7 +41,7 @@ It doesn't matter for which project you will create service account, you will be
     You can find how to create a service account [here](https://cloud.google.com/iam/docs/creating-managing-service-accounts).
     It doesn't matter for which project you will create service account, you will be able to use it for any API activity.
     
-    - "Cloud Resource Manager" and "Cloud Billing" APIs needs to be enabled on the project owning the service account which is used for the deployment.
+    - "Cloud Resource Manager" and "Cloud Billing" APIs need to be enabled on the project owning the service account which is used for the deployment.
     
 1. You must have an existing project on Google Cloud Platform that will used as monitoring namespace.
 This project must have service account attached, with `Monitoring Metric Writer` role assigned to this profile.
