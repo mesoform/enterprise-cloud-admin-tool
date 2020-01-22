@@ -29,7 +29,7 @@ some Github organization.
 You can generate it here: `Settings` -> `Developer settings` -> `Personal access tokens` -> `Generate new token`.
 This token needs permissions for 'repo', 'admin:org', and 'delete_repo'.
 
-1. You must have service account on google cloud platform, with enabled billing.
+1. You must have service account on google cloud platform, with enabled billing, and role 'BillingAccountUser' at the org level, or on the specified billing account
 You can find how to create it [here](https://cloud.google.com/iam/docs/creating-managing-service-accounts).
 It doesn't matter for which project you will create service account, you will be able to use it for any API activity.
 
@@ -51,6 +51,12 @@ More details about [here](https://cloud.google.com/iam/docs/creating-managing-se
     git clone https://github.com/mesoform/enterprise-cloud-admin-tool.git && cd enterprise-cloud-admin-tool
     ```
 
+1. Update pipfile with current version of python
+
+    ```
+    vi $(pwd)/Pipfile
+    ```    
+    
 1. Install all dependencies:
 
     ```
@@ -124,13 +130,17 @@ here number of parametrize argument is a number after test name.
 
 ## Test deployment
 ### Create config and code using examples
+
+In order to test a deployment we reqire a github repo which will contain the configuration files and another repo for the deployment code.
+
 We prepared two example repos:
 
 1. [example-ecat-project-config](https://github.com/mesoform/example-ecat-project-config) — contains terraform
 variable files.
 1. [example-ecat-deployment-code](https://github.com/mesoform/example-ecat-deployment-code) — contains terraform infrastructure code.
 
-In order to perform test deployment, you should fork these repos to your organization, and customize config repo:
+### Create config repo with eCat from example
+In order to perform test deployment using these examples, you should fork these repos to your organization, and then customise the configuration as per below:
 
 * `example-ecat-project-config/gcp/project_settings.auto.tfvars.json` — In this file, you should set unique `project_id` ([project creation docs](https://cloud.google.com/resource-manager/docs/creating-managing-projects)),
 set or remove any remaining key value pair according your requirements.
@@ -138,6 +148,8 @@ Be aware, that `project_id` unique across whole GCP platform, even six month aft
 * Also add a valid `billing_id`, it's mandatory ([billing docs](https://cloud.google.com/billing/docs/how-to/modify-project)).
 * `folder_id` means folder numeric ID, [more information about how it can be obtained](https://cloud.google.com/resource-manager/docs/creating-managing-folders).
 ### Create config repo with eCat from template
+
+If you wish to create a config repo manually this command will create the required repo and required config files
 
 ```shell
 ./cloudctl -p <project id> \
@@ -159,6 +171,13 @@ Where:
 - `monitoring project id` — id of existing monitoring project. You should have one if followed prerequisites section.
 - `config repo` — name of repo, that will contain terraform variables files.
 
+In the project settings file created within the config repo you shuld ensure a unique `project_id` is set ([project creation docs](https://cloud.google.com/resource-manager/docs/creating-managing-projects)),
+set or remove any remaining key value pair according your requirements.
+Be aware, that `project_id` unique across whole GCP platform, even six month after deletion. So, if someone already have project with your id, you will receive unclear error.
+* Also add a valid `billing_id`, it's mandatory ([billing docs](https://cloud.google.com/billing/docs/how-to/modify-project)).
+* And update the `folder_id` (numeric folderID from GCP), [more information about how it can be obtained](https://cloud.google.com/resource-manager/docs/creating-managing-folders).
+
+
 #### Updating of config repo
 If you want to override config files, you can just run again the same command as for creation.
 If you see this:
@@ -168,7 +187,8 @@ If you see this:
 then, try to pass `--bypass-branch-protection` option to `config` subcommand.
 
 ### Test deployment using created code and config
-When you created/forked example code and config repos, you can perform test deployment:
+Once the created/example config and code repos have been updated, you can perform test deployment woth the following command:
+
 
 ```shell
 ./cloudctl -p <project id> \
