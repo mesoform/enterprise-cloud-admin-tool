@@ -8,7 +8,7 @@ APPLICATION_VERSION = "0.1"
 
 # ############## Common settings #############
 DEFAULT_LOG_FILE = "/var/log/enterprise_cloud_admin.log"
-DEFAULT_METRICS_FILE = "/var/log/enterprise_cloud_admin_metrics.log"
+DEFAULT_METRICS_FILE = "/var/log/enterprise_cloud_admin_metrics"
 MODULE_ROOT_DIR = Path(__file__).resolve().parent.parent
 
 # ############## Builder settings ##############
@@ -67,9 +67,7 @@ LOCAL_FILES = {
     "readme_file": MODULE_ROOT_DIR / "resources/templates/README.md",
     "project_settings_file": MODULE_ROOT_DIR
     / "resources/templates/project_settings.auto.tfvars.json",
-    "iam_file": MODULE_ROOT_DIR
-    / "resources/templates/iam.auto.tfvars.json",
-
+    "iam_file": MODULE_ROOT_DIR / "resources/templates/iam.auto.tfvars.json",
 }
 REMOTE_FILES = {
     "readme_file": "README.md",

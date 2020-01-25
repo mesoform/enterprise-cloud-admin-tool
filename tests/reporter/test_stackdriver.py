@@ -12,46 +12,60 @@ from reporter.stackdriver import StackdriverMetrics
 NANOS_PER_MICROSECOND = 1000
 
 
-@pytest.mark.usefixtures("google_credentials")
-def test_stackdriver_send_metrics(command_line_args):
-    """
-    This test ensures, that Stackdriver reporting class constructs
-    correct protobuf messages.
-    """
-    reporter = StackdriverMetrics(command_line_args)
-    reporter.end_time = datetime.now()
+@pytest.fixture
+def metrics_registry():
+    metrics_registry = MetricsRegistry("deploy")
+    metrics_registry.add_metric("time", 453.77329)
+    metrics_registry.add_metric("successes", 1)
+    metrics_registry.add_metric("failures", 1)
+    return metrics_registry
+
+
+@pytest.fixture
+def stackdriver_reporter(command_line_args):
+    stackdriver_reporter = StackdriverMetrics(command_line_args)
+    stackdriver_reporter.end_time = datetime.now()
 
     # mocking metric_client's methods, that accept built protobuf messages
-    create_time_series = Mock()
-    create_metric_descriptor = Mock()
-    reporter.metrics_client.create_time_series = create_time_series
-    reporter.metrics_client.create_metric_descriptor = create_metric_descriptor
+    stackdriver_reporter.metrics_client.create_time_series = Mock()
+    stackdriver_reporter.metrics_client.create_metric_descriptor = Mock()
+    return stackdriver_reporter
 
-    stackdriver_metrics = MetricsRegistry()
-    stackdriver_metrics.add_metric("deployment_time", 453.77329)
-    stackdriver_metrics.add_metric("deployments_rate", 1)
 
-    reporter.add_metric_registry(stackdriver_metrics)
+@pytest.mark.usefixtures("google_credentials")
+def test_create_time_series_generate_correct_pb2_code(
+    stackdriver_reporter, metrics_registry
+):
+    """
+    Tests, that `StackdriverMetrics._initialize_base_metrics_message` generates correct
+    protobuf code of TimeSeries objects.
 
-    reporter.send_metrics()
+    Also tests, that appropriate metric client's method was called.
+    """
+    create_time_series = stackdriver_reporter.metrics_client.create_time_series
 
-    assert stackdriver_metrics.metrics != stackdriver_metrics.prepared_metrics
+    stackdriver_reporter.metrics_registry = metrics_registry
+    stackdriver_reporter.send_metrics()
+
+    assert metrics_registry.metrics != stackdriver_reporter.prepared_metrics
 
     # calculating start and end time in protobuf format
-    start_seconds = calendar.timegm(reporter.start_time.utctimetuple())
-    start_nanos = reporter.start_time.microsecond * NANOS_PER_MICROSECOND
-    end_seconds = calendar.timegm(reporter.end_time.utctimetuple())
-    end_nanos = reporter.end_time.microsecond * NANOS_PER_MICROSECOND
+    start_seconds = calendar.timegm(stackdriver_reporter.start_time.utctimetuple())
+    start_nanos = stackdriver_reporter.start_time.microsecond * NANOS_PER_MICROSECOND
+    end_seconds = calendar.timegm(stackdriver_reporter.end_time.utctimetuple())
+    end_nanos = stackdriver_reporter.end_time.microsecond * NANOS_PER_MICROSECOND
 
     # retrieving protobuf messages
-    time_series1 = str(create_time_series.mock_calls[0][1][1][0])
-    time_series2 = str(create_time_series.mock_calls[0][1][1][1])
+    time_timeseries = str(create_time_series.mock_calls[0][1][1][0])
+    total_timeseries = str(create_time_series.mock_calls[0][1][1][1])
+    successes_timeseries = str(create_time_series.mock_calls[0][1][1][2])
+    failures_timeseries = str(create_time_series.mock_calls[0][1][1][3])
 
     # fmt: off
-    expected_time_series1 = textwrap.dedent(
+    expected_time_timeseries = textwrap.dedent(
         """\
         metric {
-          type: "custom.googleapis.com/deployment_time"
+          type: "custom.googleapis.com/deploy/time"
         }
         resource {
           type: "global"
@@ -73,13 +87,13 @@ def test_stackdriver_send_metrics(command_line_args):
     ) % (end_seconds, end_nanos)
     # fmt: on
 
-    assert time_series1 == expected_time_series1
+    assert time_timeseries == expected_time_timeseries
 
     # fmt: off
-    expected_time_series2 = textwrap.dedent(
+    counter_timeseries_pb2_code = textwrap.dedent(
         """\
         metric {
-          type: "custom.googleapis.com/deployments_rate"
+          type: "custom.googleapis.com/deploy/%s"
         }
         resource {
           type: "global"
@@ -102,32 +116,84 @@ def test_stackdriver_send_metrics(command_line_args):
           }
         }
         """
-    ) % (start_seconds, start_nanos, end_seconds, end_nanos)
+    )
     # fmt: on
 
-    assert time_series2 == expected_time_series2
+    expected_total_timeseries = counter_timeseries_pb2_code % (
+        "total",
+        start_seconds,
+        start_nanos,
+        end_seconds,
+        end_nanos,
+    )
+    assert total_timeseries == expected_total_timeseries
 
-    metric_descriptor_1 = str(
+    expected_successes_timeseries = counter_timeseries_pb2_code % (
+        "successes",
+        start_seconds,
+        start_nanos,
+        end_seconds,
+        end_nanos,
+    )
+    assert successes_timeseries == expected_successes_timeseries
+
+    expected_failures_timeseries = counter_timeseries_pb2_code % (
+        "failures",
+        start_seconds,
+        start_nanos,
+        end_seconds,
+        end_nanos,
+    )
+    assert failures_timeseries == expected_failures_timeseries
+
+
+def test_create_metric_descriptor_generate_correct_pb2_code(
+    stackdriver_reporter, metrics_registry
+):
+    """
+    Tests, that `StackdriverMetrics._create_metric_descriptor` method generates correct
+    protobuf code, that describes metrics types.
+
+    Also tests, that appropriate metric client's method was called.
+    """
+    create_metric_descriptor = (
+        stackdriver_reporter.metrics_client.create_metric_descriptor
+    )
+
+    stackdriver_reporter.metrics_registry = metrics_registry
+    stackdriver_reporter.send_metrics()
+
+    time_metric_descriptor = str(
         create_metric_descriptor.mock_calls[0][2]["metric_descriptor"]
     )
-    metric_descriptor_2 = str(
+    total_metric_descriptor = str(
         create_metric_descriptor.mock_calls[1][2]["metric_descriptor"]
     )
+    successes_metric_descriptor = str(
+        create_metric_descriptor.mock_calls[2][2]["metric_descriptor"]
+    )
+    failures_metric_descriptor = str(
+        create_metric_descriptor.mock_calls[3][2]["metric_descriptor"]
+    )
 
-    assert metric_descriptor_1 == textwrap.dedent(
+    assert time_metric_descriptor == textwrap.dedent(
         """\
         metric_kind: GAUGE
         value_type: DOUBLE
         unit: "s"
-        type: "custom.googleapis.com/deployment_time"
+        type: "custom.googleapis.com/deploy/time"
         """
     )
 
-    assert metric_descriptor_2 == textwrap.dedent(
+    counter_metric_descriptor_pb2_code = textwrap.dedent(
         """\
         metric_kind: CUMULATIVE
         value_type: INT64
-        unit: "h"
-        type: "custom.googleapis.com/deployments_rate"
+        unit: "d"
+        type: "custom.googleapis.com/deploy/%s"
         """
     )
+
+    assert total_metric_descriptor == counter_metric_descriptor_pb2_code % "total"
+    assert successes_metric_descriptor == counter_metric_descriptor_pb2_code % "successes"
+    assert failures_metric_descriptor == counter_metric_descriptor_pb2_code % "failures"

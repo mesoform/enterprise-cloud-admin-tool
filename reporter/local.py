@@ -7,7 +7,7 @@ import structlog
 
 from settings import SETTINGS
 
-from .base import MetricsRegistry, Metrics
+from .base import Metrics
 
 APPLICATION = f"{SETTINGS.APPLICATION_NAME}-{SETTINGS.APPLICATION_VERSION}"
 
@@ -30,6 +30,12 @@ class ContextFilter(logging.Filter):
 
 
 def _add_hostname_and_application(logger, method_name, event_dict):
+    """
+    Adds additional info to event_dict.
+
+    logger and method_name arguments not used intentionally, because
+    all structlog's processors should have same signature
+    """
     event_dict["hostname"] = socket.gethostname()
     event_dict["application"] = APPLICATION
     return event_dict
@@ -54,12 +60,12 @@ _BASIC_FORMATTER = logging.Formatter(
 
 
 def get_logger(
-    module_name: str,
-    log_file: str = None,
-    syslog: str = None,
-    stream_logger: bool = True,
-    debug: bool = False,
-    json_formatter: bool = False,
+        module_name: str,
+        log_file: str = None,
+        syslog: str = None,
+        stream_logger: bool = True,
+        debug: bool = False,
+        json_formatter: bool = False,
 ) -> logging.Logger:
     """
     Helper method, that allows to setup logger instance with arbitrary combination of logging
@@ -101,36 +107,24 @@ def get_logger(
 
 
 class LocalMetrics(Metrics):
-    types_string_repr = {int: "int", str: "str", float: "float"}
-
     def __init__(self, args):
         self.metrics_file = None
-
         super().__init__(args)
 
     def process_args(self, args):
         self.metrics_file = args.metrics_file
 
-    def map_type(self, value_type):
-        return self.types_string_repr[value_type]
-
-    def map_unit(self, unit):
-        return unit
-
     def send_metrics(self):
-        with open(self.metrics_file, "w") as metrics_file:
-            for metric_json in self.metrics_registry.prepared_metrics.values():
-                metrics_file.write(metric_json)
-                metrics_file.write("\n")
+        self.metrics_file = "{}.{}".format(self.metrics_file, self.metrics_registry.metric_set)
+        self.prepare_metrics()
+        with open(self.metrics_file, "w") as f:
+            json.dump(self.prepared_metrics, f, indent=2)
 
-    def prepare_metric_registry(self, metric_registry: MetricsRegistry):
-        for metric_name, metric_dict in metric_registry.metrics.items():
+    def prepare_metrics(self):
+        for metric_name, metric_dict in self.metrics_registry.metrics.items():
             prepared_metric_dict = metric_dict.copy()
-            prepared_metric_dict["type"] = self.map_type(
-                prepared_metric_dict["type"]
-            )
-            prepared_metric_dict["metric_name"] = metric_name
 
-            metric_registry.prepared_metrics[metric_name] = json.dumps(
-                prepared_metric_dict
-            )
+            prepared_metric_dict.pop("metric_type")
+            prepared_metric_dict.pop("value_type")
+
+            self.prepared_metrics[metric_name] = prepared_metric_dict

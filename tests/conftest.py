@@ -18,7 +18,7 @@ def working_directory(tmpdir_factory):
 def command_line_args(working_directory):
     default_log_file = f"{working_directory.strpath}/enterprise_cloud_admin.log"
     default_metrics_file = (
-        f"{working_directory.strpath}/enterprise_cloud_admin_metrics.log"
+        f"{working_directory.strpath}/enterprise_cloud_admin_metrics"
     )
 
     return ArgumentsParser(
@@ -179,7 +179,7 @@ def project_state1():
                             "policy_data": None,
                             "policy_etag": None,
                             "project_id": "testing-billing-test-123456789",
-                            "skip_delete": None,
+                            "skip_delete": True,
                             "timeouts": None,
                         },
                         "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2Jj"
@@ -250,7 +250,7 @@ def project_state2():
                             "policy_data": None,
                             "policy_etag": None,
                             "project_id": "billing-test-123456789",
-                            "skip_delete": None,
+                            "skip_delete": False,
                             "timeouts": None,
                         },
                         "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2Jj"

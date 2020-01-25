@@ -1,4 +1,4 @@
-# Enterprise Cloud Admin
+# Enterprise Cloud Admin Tool
 
 This application pulls [Terraform](https://www.terraform.io/intro/index.html) code for deploying
 cloud infrastructure, security defined policies, and environment configuration (currently from Github).
@@ -8,11 +8,13 @@ Afterwards it will log the changes and report stats to a monitoring system (curr
 
 ## Getting Started
 
-These instructions will get you an environment, ready for `enterprise-cloud-admin` development. 
+These instructions will get you an environment, ready for `enterprise-cloud-admin-tool` development. 
 
 ### Prerequisites
 
-1. This tool designed to work with Python of version `3.6`.
+1. This tool has been tested to work with:
+ - Python version `>=3.6,<=3.7.4`
+ - Terraform version `>=0.12.0,<=0.12.1`
 
 1. You should have [terraform](https://www.terraform.io/downloads.html) in your `PATH` environment variable.
 For example, you can download terraform and extract it to `/usr/local/bin`.
@@ -27,15 +29,20 @@ some Github organization.
 You can generate it here: `Settings` -> `Developer settings` -> `Personal access tokens` -> `Generate new token`.
 This token needs permissions for 'repo', 'admin:org', and 'delete_repo'.
 
-1. You must have service account on google cloud platform, with enabled billing.
-You can find how to create it [here](https://cloud.google.com/iam/docs/creating-managing-service-accounts).
-It doesn't matter for which project you will create service account, you will be able to use it for any API activity.
+1. You must have a project on Google Cloud Platform that will be used as the build project and as a monitoring namespace.
 
-1. You must have existing project on google cloud platform, that will used as monitoring namespace.
-This project must have service account attached, with `Monitoring Metric Writer` role assigned to this profile.
-So, just switch to your monitoring project, go to `IAM` menu, and add service account as a member with this role. 
-Once created go to 'Monitoring' and if it doesn't already exist, create a monitoring space in Stackdriver.
+    - "Cloud Resource Manager" and "Cloud Billing" APIs need to be enabled on the project.
 
+    As this project will also be used as a monitoring namespace you need to create that namespace. To do so go to 'Monitoring' menu and create a monitoring space in Stackdriver.
+
+1. The build/monitoring project must have a service account. Switch to your project, go to `IAM` menu, and add a service account. Then assign the following permissions to that service account:
+
+    - "Billing Account User" role set at the organization level or on the specified billing account by an org/billing admin. (Check billing access control documentation [here](https://cloud.google.com/billing/docs/how-to/billing-access))
+    - "Project Creator" role set minimum at the folder level.
+    - "Monitoring Metric Writer" role assigned at the project level.
+
+    You can find how to create a service account [here](https://cloud.google.com/iam/docs/creating-managing-service-accounts).
+    It doesn't matter for which project you will create service account, you will be able to use it for any API activity.
 
 1. You must create, export and save your GCP service account private key in `json` format.
 
@@ -46,9 +53,15 @@ More details about [here](https://cloud.google.com/iam/docs/creating-managing-se
 1. Clone this repo:
 
     ```
-    git clone https://github.com/mesoform/enterprise-cloud-admin.git && cd enterprise-cloud-admin
+    git clone https://github.com/mesoform/enterprise-cloud-admin-tool.git && cd enterprise-cloud-admin-tool
     ```
 
+1. Update pipfile with current version of python
+
+    ```
+    vi $(pwd)/Pipfile
+    ```    
+    
 1. Install all dependencies:
 
     ```
@@ -122,13 +135,17 @@ here number of parametrize argument is a number after test name.
 
 ## Test deployment
 ### Create config and code using examples
+
+In order to test a deployment we reqire a github repo which will contain the configuration files and another repo for the deployment code.
+
 We prepared two example repos:
 
 1. [example-ecat-project-config](https://github.com/mesoform/example-ecat-project-config) — contains terraform
 variable files.
 1. [example-ecat-deployment-code](https://github.com/mesoform/example-ecat-deployment-code) — contains terraform infrastructure code.
 
-In order to perform test deployment, you should fork these repos to your organization, and customize config repo:
+### Create config repo with eCat from example
+In order to perform test deployment using these examples, you should fork these repos to your organization, and then customise the configuration as per below:
 
 * `example-ecat-project-config/gcp/project_settings.auto.tfvars.json` — In this file, you should set unique `project_id` ([project creation docs](https://cloud.google.com/resource-manager/docs/creating-managing-projects)),
 set or remove any remaining key value pair according your requirements.
@@ -137,6 +154,8 @@ Be aware, that `project_id` unique across whole GCP platform, even six month aft
 * `folder_id` means folder numeric ID, [more information about how it can be obtained](https://cloud.google.com/resource-manager/docs/creating-managing-folders).
 ### Create config repo with eCat from template
 
+If you wish to create a config repo manually this command will create the required repo and required config files
+
 ```shell
 ./cloudctl -p <project id> \
   -o <github organization name> \
@@ -144,7 +163,8 @@ Be aware, that `project_id` unique across whole GCP platform, even six month aft
   --vcs-token <github token> \
   --key-file resources/gcp_service_account_key.json \
   --monitoring-namespace <monitoring project id> \
-  --debug true config create \
+  --debug true \
+  config create \
   --config-repo <config repo> \
   --force
 ```
@@ -157,6 +177,13 @@ Where:
 - `monitoring project id` — id of existing monitoring project. You should have one if followed prerequisites section.
 - `config repo` — name of repo, that will contain terraform variables files.
 
+In the project settings file created within the config repo you shuld ensure a unique `project_id` is set ([project creation docs](https://cloud.google.com/resource-manager/docs/creating-managing-projects)),
+set or remove any remaining key value pair according your requirements.
+Be aware, that `project_id` unique across whole GCP platform, even six month after deletion. So, if someone already have project with your id, you will receive unclear error.
+* Also add a valid `billing_id`, it's mandatory ([billing docs](https://cloud.google.com/billing/docs/how-to/modify-project)).
+* And update the `folder_id` (numeric folderID from GCP), [more information about how it can be obtained](https://cloud.google.com/resource-manager/docs/creating-managing-folders).
+
+
 #### Updating of config repo
 If you want to override config files, you can just run again the same command as for creation.
 If you see this:
@@ -166,7 +193,8 @@ If you see this:
 then, try to pass `--bypass-branch-protection` option to `config` subcommand.
 
 ### Test deployment using created code and config
-When you created/forked example code and config repos, you can perform test deployment:
+Once the created/example config and code repos have been updated, you can perform test deployment woth the following command:
+
 
 ```shell
 ./cloudctl -p <project id> \
@@ -174,7 +202,9 @@ When you created/forked example code and config repos, you can perform test depl
   -O <github organization name> \
   --vcs-token <github token> \
   --key-file resources/gcp_service_account_key.json \
-  --monitoring-namespace <monitoring project id> deploy --cloud gcp \
+  --monitoring-namespace <monitoring project id> \
+  deploy \
+  --cloud gcp \
   --code-repo <code repo> \
   --config-repo <config repo>
 ```
@@ -223,10 +253,48 @@ chown <user>:<group> /var/log/enterprise_cloud_admin.log
 Sometimes it's really hard to interpret immediately what GCP error means, so terraform community members
 created curated list of common problems: [TROUBLESHOOTING.md](https://github.com/terraform-google-modules/terraform-google-project-factory/blob/master/docs/TROUBLESHOOTING.md).
 
+### Other known issues ###
+
+1) If a "testing*" project has already been created but the deployment failed to complete, retrying the deployment will throw the "requested entity already exists" error due to an already existing "testing*" project. To bypass this issue the name of the project needs to be changed. E.g: xyz-eca-test01 to xyz-eca-test02
+
+```
+STDERR:
+Error: error creating project testing-123456a-123456b (testing-123456a-123456b): googleapi: Error 409: Requested entity already exists, alreadyExists. If you received a 403 error, make sure you have the `roles/resourcemanager.projectCreator` permission
+  on project.tf line 9, in resource "google_project" "project":
+   9: resource "google_project" "project" {
+```
+
+2) Check that the service account has the minimum required billing permissions granted. More: https://cloud.google.com/billing/docs/how-to/billing-access
+
+```
+STDERR:
+Error: Error setting billing account "01234A-12345B-23456C" for project "projects/testing-123456a-123456b": googleapi: Error 403: The caller does not have permission, forbidden
+  on project.tf line 9, in resource "google_project" "project":
+   9: resource "google_project" "project" {
+```
+
+3) Check whether Cloud Resource Manager API is enabled on the project owning the service account which is used for the deployment.
+
+```
+STDERR:
+Error: error creating project testing-123456a-123456b (testing-123456a-123456b): googleapi: Error 403: Cloud Resource Manager API has not been used in project 123456789101 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/cloudresourcemanager.googleapis.com/overview?project=123456789101 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry., accessNotConfigured. If you received a 403 error, make sure you have the `roles/resourcemanager.projectCreator` permission
+  on project.tf line 9, in resource "google_project" "project":
+   9: resource "google_project" "project" {
+```   
+
+
+4) If the limit of projects associated with the billing account has been reached a "precodition check failed" error will be shown. Try removing some projects from that billing account.
+
+```
+STDERR:
+Error: Error setting billing account "01234A-12345B-23456C" for project "projects/xyz-eca-test07": googleapi: Error 400: Precondition check failed., failedPrecondition
+  on project.tf line 9, in resource "google_project" "project":
+   9: resource "google_project" "project" {
+```
 
 ## Contributing
 
-Please read [CONTRIBUTING.md](https://github.com/mesoform/enterprise-cloud-admin/blob/master/CONTRIBUTING.md) for the process for submitting pull requests.
+Please read [CONTRIBUTING.md](https://github.com/mesoform/enterprise-cloud-admin-tool/blob/master/CONTRIBUTING.md) for the process for submitting pull requests.
 
 ## License
 

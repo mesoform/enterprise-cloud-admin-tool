@@ -3,11 +3,12 @@ from datetime import datetime
 
 import common
 
-from code_control import setup
+from code_control import setup, BranchProtectArgAction
 from deployer import deploy
 
 from reporter.local import get_logger, LocalMetrics
-from reporter.stackdriver import MetricsRegistry, StackdriverMetrics
+from reporter.base import MetricsRegistry, Metrics
+from reporter.stackdriver import StackdriverMetrics
 
 from settings import SETTINGS
 
@@ -47,20 +48,24 @@ class ArgumentsParser:
 
         self.root_parser.add_argument(
             "--monitoring-system",
-            help="monitoring system for metrics, such as GCP Stackdriver, AWS CloudWatch, Zabbix, etc.",
+            help="monitoring system for metrics, such as GCP Stackdriver, AWS CloudWatch, "
+                 "Zabbix, etc.",
             action=MonitoringSystemArgAction,
             choices=["stackdriver", "cloudwatch", "zabbix"],
         )
 
         self.management_parser = self.root_parser.add_subparsers(
             help="manage infrastructure deployment or infrastructure"
-            " configuration",
+                 " configuration",
             dest="command",
         )
         self._setup_deploy_parser()
         self._setup_config_parser()
 
         self.args = self.root_parser.parse_args(args)
+
+        if not self.args.config_repo:
+            self.args.config_repo = self.args.project_id
 
     def _setup_deploy_parser(self):
         """
@@ -80,8 +85,12 @@ class ArgumentsParser:
         )
         deploy_parser.add_argument(
             "--config-repo",
-            help="Name of the repository with terraform variables files",
-            required=True,
+            help="Name of the repository with terraform variables files. "
+            "Overrides project-id for the name of the repository where "
+            "to store the project's infrastructure configuration. "
+            "We recommend using project-id for the name of the config "
+            "repository as well to maintain consistent naming but if "
+            "you need to call it something else, use this argument",
         )
 
     def _setup_config_parser(self):
@@ -104,13 +113,28 @@ class ArgumentsParser:
         )
         config_parser.add_argument(
             "--config-repo",
-            help="Name of the repository with terraform variables files",
-            required=True,
+            help="Name of the repository with terraform variables files. "
+            "Overrides project-id for the name of the repository where "
+            "to store the project's infrastructure configuration. "
+            "We recommend using project-id for the name of the config "
+            "repository as well to maintain consistent naming but if "
+            "you need to call it something else, use this argument",
+        )
+        config_parser.add_argument(
+            '--branch-protection',
+            choices=('standard', 'high'),
+            help='\nThe level to which the branch will be '
+                 'protected\n'
+                 'standard: adds review requirements, stale reviews'
+                 ' and admin enforcement\n'
+                 'high: also code owner reviews and review count',
+            default='standard',
+            action=BranchProtectArgAction
         )
         config_parser.add_argument(
             "--bypass-branch-protection",
             help="Bypasses branch protection when updating files"
-            " which already exist in the repository",
+                 " which already exist in the repository",
             default=False,
             action="store_true",
         )
@@ -132,8 +156,14 @@ class CloudControl:
         self.args = args
 
         self._setup_logger()
-        self._setup_app_metrics()
-        self._setup_local_metrics()
+        self.metrics_registry = MetricsRegistry(args.command)
+        self.metrics_registry.add_metric("total", 1)
+        self._local_metrics = None
+        self._remote_metrics = None
+
+        self.local_metrics = LocalMetrics(self.args)
+        if self.args.monitoring_system:
+            self.remote_metrics = self.args.monitoring_system(self.args)
 
     def _setup_logger(self):
         self._log = get_logger(
@@ -143,31 +173,41 @@ class CloudControl:
             json_formatter=self.args.json_logging,
         )
 
-    def _setup_app_metrics(self):
-        self._app_metrics = self.args.monitoring_system(self.args)
+    @property
+    def remote_metrics(self) -> Metrics:
+        return self._remote_metrics
 
-    def _setup_local_metrics(self):
-        self._local_metrics = LocalMetrics(self.args)
+    @remote_metrics.setter
+    def remote_metrics(self, value: Metrics):
+        self._remote_metrics = value
 
-    def _log_and_send_metrics(self, command):
+    @property
+    def local_metrics(self) -> Metrics:
+        return self._local_metrics
+
+    @local_metrics.setter
+    def local_metrics(self, value: Metrics):
+        self._local_metrics = value
+
+    def _log_and_send_metrics(self, command, success):
         self._log.info("finished " + command + " run")
 
-        metrics_registry = MetricsRegistry()
-        metrics_registry.add_metric("deployments_rate", 1)
+        self.metrics_registry.add_metric("successes", int(success))
+        self.metrics_registry.add_metric("failures", int(not success))
 
-        if self._app_metrics is not None:
-            self._app_metrics.end_time = datetime.utcnow()
+        if self.remote_metrics is not None:
+            self.remote_metrics.end_time = datetime.utcnow()
 
-            metrics_registry.add_metric(
-                "deployment_time", self._app_metrics.app_runtime.total_seconds()
+            self.metrics_registry.add_metric(
+                "time", self.remote_metrics.app_runtime.total_seconds()
             )
 
-            self._app_metrics.add_metric_registry(metrics_registry)
-            self._app_metrics.send_metrics()
+            self.remote_metrics.metrics_registry = self.metrics_registry
+            self.remote_metrics.send_metrics()
 
         if not self.args.disable_local_reporter:
-            self._local_metrics.add_metric_registry(metrics_registry)
-            self._local_metrics.send_metrics()
+            self.local_metrics.metrics_registry = self.metrics_registry
+            self.local_metrics.send_metrics()
 
     def perform_command(self):
         """
@@ -184,10 +224,11 @@ class CloudControl:
                 "Command {} does not implemented".format(self.args.command)
             )
 
+        success = False
         try:
-            command()
+            success = command()
         finally:
-            self._log_and_send_metrics(self.args.command)
+            self._log_and_send_metrics(self.args.command, success)
 
     def _deploy(self):
         self._log.info("Starting deployment")
@@ -212,10 +253,10 @@ class CloudControl:
         )
 
         config_hash = common.get_hash_of_latest_commit(
-            config_org, self.args.project_id, self.args.config_version
+            config_org, self.args.config_repo, self.args.config_version
         )
         code_hash = common.get_hash_of_latest_commit(
-            code_org, self.args.project_id, self.args.config_version
+            code_org, self.args.code_repo, self.args.code_version
         )
         testing_ending = f"{config_hash[:7]}-{code_hash[:7]}"
 
