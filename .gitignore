@@ -185,4 +185,4 @@ fabric.properties
 # Editor-based Rest Client
 .idea/httpRequests
 
-/tests/resources/token.json
+**/*token.json

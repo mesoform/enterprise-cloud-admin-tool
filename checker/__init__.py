@@ -1,6 +1,4 @@
-import json
-import terraform_validate
-from builder import SUPPORTED_CLOUDS
+from settings import SETTINGS
 
 
 def check(cloud_checker_fn, config_file_list):
@@ -20,5 +18,5 @@ def triton(config_file_list):
 
 
 def all_(config_file_list):
-    for cloud in SUPPORTED_CLOUDS:
+    for cloud in SETTINGS.SUPPORTED_CLOUDS:
         cloud(config_file_list)

@@ -1,0 +1,18 @@
+#!/usr/bin/env python3
+
+__authors__ = ["Gareth Brown"]
+__email__ = "support@mesoform.com"
+__contact__ = "support@mesoform.com"
+__date__ = "2018"
+__version__ = 0
+__maintainer__ = "Mesoform"
+__status__ = "development"
+
+"""
+Short-hand wrapper for enterprise_cloud_admin.py
+"""
+
+import enterprise_cloud_admin
+
+if __name__ == "__main__":
+    enterprise_cloud_admin.main()

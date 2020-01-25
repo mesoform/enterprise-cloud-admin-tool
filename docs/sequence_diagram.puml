@@ -1,0 +1,146 @@
+@startuml
+
+title Sequence Diagram for typical Enterprise Cloud Administration
+
+actor infra_engineer
+actor compliance_officer
+actor cloud_user
+
+boundary request_system
+boundary ci_system
+
+database policies_repo
+database infra_code_repo
+database user_env_config_repo
+
+control eca
+
+entity cloud_infra_env
+entity test_cloud_infra_env
+entity another_test_cloud_infra_env
+entity logging
+entity monitoring
+boundary notify_system
+
+== Initialization ==
+autonumber 1 1 "<font color=green><b>0 "
+infra_engineer -> infra_code_repo : create infrastructure code defining how to deploy environment (e.g. Terraform)
+infra_engineer <- infra_code_repo : appoved
+compliance_officer -> policies_repo : create compliance policies (in standard format e.g. JSON)
+compliance_officer <- policies_repo : approved
+cloud_user -> request_system : user requests a new cloud environment
+activate request_system
+request_system -> ci_system : webhook to start initial environment deployment process
+activate ci_system
+ci_system -> eca : `cloudctl ~--org-name <org> ~--repo-name <repo> config create repo`
+create user_env_config_repo
+user_env_config_repo <- eca : create repo
+user_env_config_repo <- eca : create team
+user_env_config_repo <- eca : apply branch permissions
+user_env_config_repo <- eca : apply access permissions
+user_env_config_repo <- eca : create skeleton config files
+eca --> logging : log event
+ci_system <- eca : success
+|||
+ci_system -> eca : `cloudctl ~--project <project> deploy cloud <cloud>`
+user_env_config_repo <- eca : get cloud config
+user_env_config_repo -> eca : return repo object
+policies_repo <- eca : get policies
+policies_repo -> eca : return policies
+eca --> eca : compare config files against policies
+eca --> logging : log event
+infra_code_repo <- eca : get infrastructure code
+infra_code_repo -> eca : return infrastructure code
+eca --> eca : setup local workspace environment
+eca --> eca : setup test local workspace environment
+ref over eca : deployment of combined infrastructure\n code and user configuration
+eca --> logging : log event
+group test deployment
+eca --> eca : `terraform plan`
+note left : verify plan matches config
+create test_cloud_infra_env
+eca -> test_cloud_infra_env : `terraform apply`
+eca <- test_cloud_infra_env : created
+end
+eca --> eca : validate test deployment
+group real deployment
+eca --> eca : `terraform plan`
+note left : verify plan matches config
+create cloud_infra_env
+eca -> cloud_infra_env : `terraform apply`
+eca <- cloud_infra_env : created
+end
+eca --> logging : log event
+eca --> eca : validate real deployment
+eca --> test_cloud_infra_env : destroy test deployment
+destroy test_cloud_infra_env
+eca --> logging : log event
+request_system <- eca : mark request as resolved
+eca --> logging : log event
+cloud_user <- request_system : user notified
+deactivate request_system
+eca -> monitoring : report metrics
+eca -> notify_system : send complete message
+ci_system <- eca : end
+deactivate ci_system
+group complete
+    autonumber 36
+    cloud_user <- notify_system : update user's channel
+    autonumber 36
+    infra_engineer <- notify_system : update user's channel
+    autonumber 36
+    compliance_officer <- notify_system : update user's channel
+end
+== ==
+
+== Updates ==
+cloud_user -> user_env_config_repo : merge cloud changes to master
+user_env_config_repo -> ci_system : webhook
+ci_system -> eca : `cloudctl ~--project <project> deploy cloud <cloud>`
+user_env_config_repo <- eca : get repo
+user_env_config_repo -> eca : return repo object
+eca --> logging : log event
+policies_repo <- eca : get policies
+policies_repo -> eca : return policies
+eca --> eca : compare config files against policies
+eca --> logging : log event
+infra_code_repo <- eca : get infrastructure code
+infra_code_repo -> eca : return infrastructure code
+eca --> eca : setup local workspace environment
+eca --> eca : setup test local workspace environment
+ref over eca : deployment of combined infrastructure\n code and user configuration
+eca --> logging : log event
+group test deployment
+eca --> eca : `terraform plan`
+note left : verify plan matches config
+create another_test_cloud_infra_env
+eca -> another_test_cloud_infra_env : `terraform apply`
+eca <- another_test_cloud_infra_env : created
+end
+eca --> eca : validate test deployment
+group real deployment
+eca --> eca : `terraform plan`
+note left : verify plan matches config
+eca -> cloud_infra_env : `terraform apply`
+eca <- cloud_infra_env : created
+end
+eca --> logging : log event
+eca --> eca : validate real deployment
+eca --> another_test_cloud_infra_env : destroy test deployment
+destroy another_test_cloud_infra_env
+eca --> logging : log event
+eca -> monitoring : report metrics
+ci_system <- eca : end
+deactivate ci_system
+group complete
+    autonumber 57
+    cloud_user <- notify_system : update user's channel
+    autonumber 57
+    infra_engineer <- notify_system : update user's channel
+    autonumber 57
+    compliance_officer <- notify_system : update user's channel
+end
+'Tag git?
+== ==
+
+@enduml
