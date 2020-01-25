@@ -7,7 +7,7 @@ from code_control import setup, BranchProtectArgAction
 from deployer import deploy
 
 from reporter.local import get_logger, LocalMetrics
-from reporter.base import MetricsRegistry
+from reporter.base import MetricsRegistry, Metrics
 from reporter.stackdriver import StackdriverMetrics
 
 from settings import SETTINGS
@@ -158,11 +158,12 @@ class CloudControl:
         self._setup_logger()
         self.metrics_registry = MetricsRegistry(args.command)
         self.metrics_registry.add_metric("total", 1)
-        self._setup_local_metrics()
-
+        self._local_metrics = None
         self._remote_metrics = None
+
+        self.local_metrics = LocalMetrics(self.args)
         if self.args.monitoring_system:
-            self._setup_remote_metrics()
+            self.remote_metrics = self.args.monitoring_system(self.args)
 
     def _setup_logger(self):
         self._log = get_logger(
@@ -172,11 +173,21 @@ class CloudControl:
             json_formatter=self.args.json_logging,
         )
 
-    def _setup_remote_metrics(self):
-        self._remote_metrics = self.args.monitoring_system(self.args)
+    @property
+    def remote_metrics(self) -> Metrics:
+        return self._remote_metrics
 
-    def _setup_local_metrics(self):
-        self._local_metrics = LocalMetrics(self.args)
+    @remote_metrics.setter
+    def remote_metrics(self, value: Metrics):
+        self._remote_metrics = value
+
+    @property
+    def local_metrics(self) -> Metrics:
+        return self._local_metrics
+
+    @local_metrics.setter
+    def local_metrics(self, value: Metrics):
+        self._local_metrics = value
 
     def _log_and_send_metrics(self, command, success):
         self._log.info("finished " + command + " run")
@@ -184,19 +195,19 @@ class CloudControl:
         self.metrics_registry.add_metric("successes", int(success))
         self.metrics_registry.add_metric("failures", int(not success))
 
-        if self._remote_metrics is not None:
-            self._remote_metrics.end_time = datetime.utcnow()
+        if self.remote_metrics is not None:
+            self.remote_metrics.end_time = datetime.utcnow()
 
             self.metrics_registry.add_metric(
-                "time", self._remote_metrics.app_runtime.total_seconds()
+                "time", self.remote_metrics.app_runtime.total_seconds()
             )
 
-            self._remote_metrics.metrics_registry = self.metrics_registry
-            self._remote_metrics.send_metrics()
+            self.remote_metrics.metrics_registry = self.metrics_registry
+            self.remote_metrics.send_metrics()
 
         if not self.args.disable_local_reporter:
-            self._local_metrics.metrics_registry = self.metrics_registry
-            self._local_metrics.send_metrics()
+            self.local_metrics.metrics_registry = self.metrics_registry
+            self.local_metrics.send_metrics()
 
     def perform_command(self):
         """
