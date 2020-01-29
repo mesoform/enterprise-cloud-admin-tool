@@ -2,18 +2,40 @@ import argparse
 from datetime import datetime
 
 import common
-import reporter.local
 
+from code_control import setup, BranchProtectArgAction
 from deployer import deploy
 
-# from checker import check
-from code_control import setup, BranchProtectArgAction
+from reporter.local import get_logger, LocalMetrics
+from reporter.base import MetricsRegistry, Metrics
+from reporter.stackdriver import StackdriverMetrics
 
 from settings import SETTINGS
 
 
 class CloudControlException(Exception):
     pass
+
+
+class MonitoringSystemArgAction(argparse.Action):
+    """
+    Converts "monitoring-system" cli argument to instance of Metrics
+    """
+
+    def __init__(self, option_strings, dest, nargs=None, **kwargs):
+        if nargs is not None:
+            raise ValueError("nargs not allowed")
+        super().__init__(option_strings, dest, **kwargs)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        if values == "stackdriver":
+            monitoring_system = StackdriverMetrics
+        else:
+            raise CloudControlException(
+                f"Integration with '{values}' monitoring system is not implemented yet."
+            )
+
+        setattr(namespace, self.dest, monitoring_system)
 
 
 class ArgumentsParser:
@@ -23,9 +45,18 @@ class ArgumentsParser:
 
     def __init__(self, args=None):
         self.root_parser = common.root_parser()
+
+        self.root_parser.add_argument(
+            "--monitoring-system",
+            help="monitoring system for metrics, such as GCP Stackdriver, AWS CloudWatch, "
+                 "Zabbix, etc.",
+            action=MonitoringSystemArgAction,
+            choices=["stackdriver", "cloudwatch", "zabbix"],
+        )
+
         self.management_parser = self.root_parser.add_subparsers(
             help="manage infrastructure deployment or infrastructure"
-            " configuration",
+                 " configuration",
             dest="command",
         )
         self._setup_deploy_parser()
@@ -103,7 +134,7 @@ class ArgumentsParser:
         config_parser.add_argument(
             "--bypass-branch-protection",
             help="Bypasses branch protection when updating files"
-            " which already exist in the repository",
+                 " which already exist in the repository",
             default=False,
             action="store_true",
         )
@@ -125,53 +156,58 @@ class CloudControl:
         self.args = args
 
         self._setup_logger()
-        self._setup_app_metrics()
+        self.metrics_registry = MetricsRegistry(args.command)
+        self.metrics_registry.add_metric("total", 1)
+        self._local_metrics = None
+        self._remote_metrics = None
+
+        self.local_metrics = LocalMetrics(self.args)
+        if self.args.monitoring_system:
+            self.remote_metrics = self.args.monitoring_system(self.args)
 
     def _setup_logger(self):
-        self._log = reporter.local.get_logger(
-            __name__, self.args.log_file, self.args.debug
+        self._log = get_logger(
+            __name__,
+            log_file=self.args.log_file,
+            debug=self.args.debug,
+            json_formatter=self.args.json_logging,
         )
 
-    def _setup_app_metrics(self):
-        if getattr(self.args, "key_file", None):
-            auth = common.GcpAuth(self.args.key_file)
-        else:
-            auth = common.GcpAuth()
+    @property
+    def remote_metrics(self) -> Metrics:
+        return self._remote_metrics
 
-        self._app_metrics = reporter.stackdriver.AppMetrics(
-            monitoring_credentials=auth.credentials,
-            monitoring_project=self.args.monitoring_namespace,
-            metrics_set_list=[],
-        )
+    @remote_metrics.setter
+    def remote_metrics(self, value: Metrics):
+        self._remote_metrics = value
 
-    def _log_and_send_metrics(self, command, command_result):
+    @property
+    def local_metrics(self) -> Metrics:
+        return self._local_metrics
+
+    @local_metrics.setter
+    def local_metrics(self, value: Metrics):
+        self._local_metrics = value
+
+    def _log_and_send_metrics(self, command, success):
         self._log.info("finished " + command + " run")
-        self._app_metrics.end_time = datetime.utcnow()
 
-        self._app_metrics.metrics_set_list = [
-            {
-                "metric_name": "deployment_time",
-                "labels": {
-                    "result": "success" if command_result else "failure",
-                    "command": self.args.command,
-                },
-                "metric_kind": "gauge",
-                "value_type": "double",
-                "value": self._app_metrics.app_runtime.total_seconds(),
-            },
-            {
-                "metric_name": "deployments_rate",
-                "labels": {
-                    "result": "success" if command_result else "failure",
-                    "command": self.args.command,
-                },
-                "metric_kind": "cumulative",
-                "value_type": "int64",
-                "value": 1,
-                "unit": "h",
-            },
-        ]
-        self._app_metrics.send_metrics()
+        self.metrics_registry.add_metric("successes", int(success))
+        self.metrics_registry.add_metric("failures", int(not success))
+
+        if self.remote_metrics is not None:
+            self.remote_metrics.end_time = datetime.utcnow()
+
+            self.metrics_registry.add_metric(
+                "time", self.remote_metrics.app_runtime.total_seconds()
+            )
+
+            self.remote_metrics.metrics_registry = self.metrics_registry
+            self.remote_metrics.send_metrics()
+
+        if not self.args.disable_local_reporter:
+            self.local_metrics.metrics_registry = self.metrics_registry
+            self.local_metrics.send_metrics()
 
     def perform_command(self):
         """
@@ -188,11 +224,11 @@ class CloudControl:
                 "Command {} does not implemented".format(self.args.command)
             )
 
-        result = False
+        success = False
         try:
-            result = command()
+            success = command()
         finally:
-            self._log_and_send_metrics(self.args.command, result)
+            self._log_and_send_metrics(self.args.command, success)
 
     def _deploy(self):
         self._log.info("Starting deployment")

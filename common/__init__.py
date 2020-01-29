@@ -90,13 +90,30 @@ def root_parser():
     )
     parser.add_argument(
         "--log-file",
-        help="path to file, if different from default",
+        help="path to log file, if different from default",
         default=SETTINGS.DEFAULT_LOG_FILE,
+    )
+    parser.add_argument(
+        "--metrics-file",
+        help="path to file containing monitoring metrics, if different from default",
+        default=SETTINGS.DEFAULT_METRICS_FILE,
     )
     parser.add_argument(
         "--debug",
         help="output debug information to help troubleshoot issues",
         default=False,
+    )
+    parser.add_argument(
+        "--disable-local-reporter",
+        help="disable logging and monitoring to local files",
+        default=False,
+        action="store_true",
+    )
+    parser.add_argument(
+        "--json-logging",
+        help="Enable logging in json logging format",
+        default=False,
+        action="store_true",
     )
     return parser
 

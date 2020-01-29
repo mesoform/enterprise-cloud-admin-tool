@@ -6,16 +6,14 @@ verify_ssl = true
 [dev-packages]
 pytest = "*"
 pytest-mock = "*"
-black = "*"
 
 [packages]
 pygithub = "*"
 httplib2 = "*"
 google-cloud-monitoring = "*"
 python-terraform = "*"
+structlog = "*"
+prometheus-metrics-proto = "*"
 
 [requires]
 python_version = "3.6"
-
-[pipenv]
-allow_prereleases = true
