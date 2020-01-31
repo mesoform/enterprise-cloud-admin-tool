@@ -137,6 +137,7 @@ def test_create_time_series_generate_correct_pb2_code(
     assert failures_timeseries == expected_failures_timeseries
 
 
+@pytest.mark.usefixtures("google_credentials")
 def test_create_metric_descriptor_generate_correct_pb2_code(
     stackdriver_reporter, metrics_registry
 ):
