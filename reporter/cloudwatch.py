@@ -12,10 +12,6 @@ class CloudWatchMetrics(Metrics):
         self.metrics_client = boto3.client("cloudwatch")
 
     def process_args(self, args):
-        """
-        Method for processing info, that came from cli, such as
-        credentials data or platform-specific arguments
-        """
         self.namespace = args.monitoring_namespace.upper()
 
     def send_metrics(self):
@@ -24,20 +20,9 @@ class CloudWatchMetrics(Metrics):
         :return:
         """
         self.prepare_metrics()
-
-        metric_data = []
-
-        for metric_name, metric_dict in self.prepared_metrics.items():
-            metric_data.append({
-                "MetricName": metric_name,
-                "Dimensions": metric_dict["dimensions"],
-                "Unit": metric_dict["unit"],
-                "Value": metric_dict["value"]
-            })
-
         self.metrics_client.put_metric_data(
-            MetricData=metric_data,
-            Namespace=self.namespace
+            MetricData=list(self.prepared_metrics.values()),
+            Namespace=self.namespace,
         )
 
     def prepare_metrics(self):
@@ -50,21 +35,20 @@ class CloudWatchMetrics(Metrics):
             "minutes": "Minutes",
             "hours": "Hours",
             "days": "Days",
-            None: "None"
+            None: "None",
         }
 
         for metric_name, metric_dict in self.metrics_registry.metrics.items():
-            prepared_metric_dict = metric_dict.copy()
-
-            prepared_metric_dict["unit"] = self.units_map[
-                prepared_metric_dict["unit"]]
-
-            prepared_metric_dict["dimensions"] = [
-                {
-                    "Name": "metric_set",
-                    "Value": self.metrics_registry.metric_set
-                },
-            ]
-
             cloudwatch_metric_name = metric_name.upper()
-            self.prepared_metrics[cloudwatch_metric_name] = prepared_metric_dict
+
+            self.prepared_metrics[cloudwatch_metric_name] = {
+                "MetricName": cloudwatch_metric_name,
+                "Dimensions": [
+                    {
+                        "Name": "metric_set",
+                        "Value": self.metrics_registry.metric_set,
+                    }
+                ],
+                "Unit": self.units_map[metric_dict["unit"]],
+                "Value": metric_dict["value"],
+            }
