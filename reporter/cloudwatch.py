@@ -15,10 +15,6 @@ class CloudWatchMetrics(Metrics):
         self.namespace = args.monitoring_namespace.upper()
 
     def send_metrics(self):
-        """
-        Sends self.prepared_metrics to monitoring system
-        :return:
-        """
         self.prepare_metrics()
         self.metrics_client.put_metric_data(
             MetricData=list(self.prepared_metrics.values()),
@@ -27,8 +23,7 @@ class CloudWatchMetrics(Metrics):
 
     def prepare_metrics(self):
         """
-        Enriches MetricsRegistry.metrics content and processes data to meet requirements of
-        monitoring server and stores it in self.prepared_metrics
+        Fulfills `self.prepared_metrics` with metrics data in Cloudwatch-specific format.
         """
         self.units_map = {
             "seconds": "Seconds",
