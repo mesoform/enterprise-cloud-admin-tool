@@ -7,6 +7,7 @@ from collections import namedtuple
 import pytest
 
 from cloud_control import ArgumentsParser
+from reporter.base import MetricsRegistry
 
 
 @pytest.fixture(scope="session")
@@ -24,6 +25,8 @@ def command_line_args(working_directory):
     return ArgumentsParser(
         [
             "-ptestproject",
+            "--monitoring-namespace",
+            "monitoring-namespace",
             "--log-file",
             default_log_file,
             "--metrics-file",
@@ -368,3 +371,12 @@ def sha256_hash():
 @pytest.fixture
 def short_code_config_hash(sha256_hash):
     return f"{sha256_hash[:7]}-{sha256_hash[:7]}"
+
+
+@pytest.fixture
+def metrics_registry():
+    metrics_registry = MetricsRegistry("deploy")
+    metrics_registry.add_metric("time", 453.77329)
+    metrics_registry.add_metric("successes", 1)
+    metrics_registry.add_metric("failures", 1)
+    return metrics_registry
