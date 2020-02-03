@@ -1,8 +1,7 @@
-from unittest.mock import Mock
 from prometheus_metrics_proto import Counter, Gauge
 import pytest
 
-from reporter.base import MetricsRegistry, Metrics
+from reporter.base import MetricsRegistry
 
 
 @pytest.mark.parametrize(

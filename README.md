@@ -4,7 +4,8 @@ This application pulls [Terraform](https://www.terraform.io/intro/index.html) co
 cloud infrastructure, security defined policies, and environment configuration (currently from Github).
 Then it compares the configuration against security policies and runs deploys
 with [python-terraform](https://github.com/beelit94/python-terraform).
-Afterwards it will log the changes and report stats to a monitoring system (currently [GCP Stackdriver](https://cloud.google.com/stackdriver/)).
+Afterwards it will log the changes and report stats to a monitoring system
+([GCP Stackdriver](https://cloud.google.com/stackdriver/) or [AWS Cloudwatch](https://aws.amazon.com/cloudwatch/)).
 
 ## Getting Started
 
@@ -90,6 +91,10 @@ More details about [here](https://cloud.google.com/iam/docs/creating-managing-se
     ```
     export GOOGLE_CREDENTIALS=$(pwd)/resources/gcp_service_account_key.json
     ```
+
+1. **[Optional]** In order to use `cloudwatch` monitoring system, you need to setup credentials and default
+    region for `boto3` library. You can do that with [AWS CLI](http://aws.amazon.com/cli/) or manually.
+    [Details](https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html).
 
 ## Running the tests
 

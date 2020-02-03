@@ -6,19 +6,9 @@ from unittest.mock import Mock
 
 import pytest
 
-from reporter.base import MetricsRegistry
 from reporter.stackdriver import StackdriverMetrics
 
 NANOS_PER_MICROSECOND = 1000
-
-
-@pytest.fixture
-def metrics_registry():
-    metrics_registry = MetricsRegistry("deploy")
-    metrics_registry.add_metric("time", 453.77329)
-    metrics_registry.add_metric("successes", 1)
-    metrics_registry.add_metric("failures", 1)
-    return metrics_registry
 
 
 @pytest.fixture
@@ -147,6 +137,7 @@ def test_create_time_series_generate_correct_pb2_code(
     assert failures_timeseries == expected_failures_timeseries
 
 
+@pytest.mark.usefixtures("google_credentials")
 def test_create_metric_descriptor_generate_correct_pb2_code(
     stackdriver_reporter, metrics_registry
 ):

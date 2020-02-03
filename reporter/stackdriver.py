@@ -50,7 +50,7 @@ class StackdriverMetrics(Metrics):
 
     def prepare_metrics(self):
         """
-        Fulfills `prepared_record` of metric registry with implementation-specific
+        Fulfills `self.prepared_metrics` with implementation-specific
         metrics data, like protobuf descriptors.
         """
         self.units_map = {
@@ -116,12 +116,12 @@ class StackdriverMetrics(Metrics):
         sleep(1)
 
     def _initialize_base_metrics_message(
-            self,
-            metric_name: str,
-            labels: dict = None,
-            metric_kind=MetricDescriptor.GAUGE,
-            value_type=MetricDescriptor.INT64,
-            unit=None,
+        self,
+        metric_name: str,
+        labels: dict = None,
+        metric_kind=MetricDescriptor.GAUGE,
+        value_type=MetricDescriptor.INT64,
+        unit=None,
     ) -> TimeSeries:
         """
         creates an TimeSeries metrics object called metric_name and with labels

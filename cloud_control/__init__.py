@@ -9,6 +9,7 @@ from deployer import deploy
 from reporter.local import get_logger, LocalMetrics
 from reporter.base import MetricsRegistry, Metrics
 from reporter.stackdriver import StackdriverMetrics
+from reporter.cloudwatch import CloudWatchMetrics
 
 from settings import SETTINGS
 
@@ -30,6 +31,8 @@ class MonitoringSystemArgAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         if values == "stackdriver":
             monitoring_system = StackdriverMetrics
+        elif values == "cloudwatch":
+            monitoring_system = CloudWatchMetrics
         else:
             raise CloudControlException(
                 f"Integration with '{values}' monitoring system is not implemented yet."
