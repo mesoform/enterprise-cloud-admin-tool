@@ -172,6 +172,7 @@ If you wish to create a config repo manually this command will create the requir
   --vcs-token <github token> \
   --key-file resources/gcp_service_account_key.json \
   --monitoring-namespace <monitoring project id> \
+  --monitoring-system <monitoring system> \
   --debug true \
   config create \
   --config-repo <config repo> \
@@ -184,6 +185,7 @@ Where:
 - `github organization name` — name of organization, that holds repos with code/config.
 - `github token` — you developer's github token, that you have obtained in prerequisites section.
 - `monitoring project id` — id of existing monitoring project. You should have one if followed prerequisites section.
+- `monitoring system` — identifier of monitoring backend, that you want to use for metrics collection
 - `config repo` — name of repo, that will contain terraform variables files.
 
 In the project settings file created within the config repo you should ensure a unique `project_id` is set ([project creation docs](https://cloud.google.com/resource-manager/docs/creating-managing-projects)),
@@ -212,6 +214,7 @@ Once the created/example config and code repos have been updated, you can perfor
   --vcs-token <github token> \
   --key-file resources/gcp_service_account_key.json \
   --monitoring-namespace <monitoring project id> \
+  --monitoring-system <monitoring system> \
   deploy \
   --cloud gcp \
   --code-repo <code repo> \
@@ -226,6 +229,7 @@ Where:
 - `github organization name` — name of organization, that holds repos with code/config.
 - `github token` — you developer's github token, that you have obtained in prerequisites section.
 - `monitoring project id` — id of existing monitoring project. You should have one if followed prerequisites section.
+- `monitoring system` — identifier of monitoring backend, that you want to use for metrics collecting
 
 After that, you should receive success message in console, and metrics in your GCP monitoring project workspace.
 
@@ -255,6 +259,25 @@ chown <user>:<group> /var/log/enterprise_cloud_admin.log
 ```
 Same you should do for `/var/log/enterprise_cloud_admin_metrics` file in case you use `local` reporter (monitoring system).
 
+## Monitoring
+You can choose monitoring backend, that you want to use for metrics collecting with help of `--monitoring-system` argument.
+
+Possible choices for now are:
+- `local` — for dumping metrics data into local files.
+- `stackdriver` — uses [GCP Stackdriver](https://cloud.google.com/stackdriver) as a monitoring backend.
+- `cloudwatch` — uses [AWS Cloudwatch](https://aws.amazon.com/cloudwatch/) as a monitoring backend.
+
+Be aware, that if you're using `local` monitoring system, default metrics file path is `/var/log/enterprise_cloud_admin_metrics.<command>`,
+where `<command>` is either `deploy` or `config`.
+
+You may want to create these files and change ownership for< them:
+```shell script
+touch /var/log/enterprise_cloud_admin_metrics.config
+chown <user>:<group> /var/log/enterprise_cloud_admin_metrics.config
+
+touch /var/log/enterprise_cloud_admin_metrics.deploy
+chown <user>:<group> /var/log/enterprise_cloud_admin_metrics.deploy
+```
 
 ## Troubleshooting
 
