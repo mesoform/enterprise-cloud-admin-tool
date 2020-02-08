@@ -7,6 +7,10 @@ with [python-terraform](https://github.com/beelit94/python-terraform).
 Afterwards it will log the changes and report stats to a monitoring system
 ([GCP Stackdriver](https://cloud.google.com/stackdriver/) or [AWS Cloudwatch](https://aws.amazon.com/cloudwatch/)).
 
+[Here](https://raw.githubusercontent.com/mesoform/enterprise-cloud-admin-tool/dev/docs/sequence_diagram.png)
+is rendered sequence diagram of possible workflow in [PlantUML](plantuml.com) format.
+For diagram code, review `docs` directory.
+
 ## Getting Started
 
 These instructions will get you an environment, ready for `enterprise-cloud-admin-tool` development. 
