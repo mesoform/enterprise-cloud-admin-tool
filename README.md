@@ -186,7 +186,7 @@ Where:
 - `monitoring project id` — id of existing monitoring project. You should have one if followed prerequisites section.
 - `config repo` — name of repo, that will contain terraform variables files.
 
-In the project settings file created within the config repo you shuld ensure a unique `project_id` is set ([project creation docs](https://cloud.google.com/resource-manager/docs/creating-managing-projects)),
+In the project settings file created within the config repo you should ensure a unique `project_id` is set ([project creation docs](https://cloud.google.com/resource-manager/docs/creating-managing-projects)),
 set or remove any remaining key value pair according your requirements.
 Be aware, that `project_id` unique across whole GCP platform, even six month after deletion. So, if someone already have project with your id, you will receive unclear error.
 * Also add a valid `billing_id`, it's mandatory ([billing docs](https://cloud.google.com/billing/docs/how-to/modify-project)).
