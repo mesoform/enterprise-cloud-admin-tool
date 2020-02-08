@@ -253,6 +253,7 @@ so probably you need to create and change ownership of this file:
 touch /var/log/enterprise_cloud_admin.log
 chown <user>:<group> /var/log/enterprise_cloud_admin.log
 ```
+Same you should do for `/var/log/enterprise_cloud_admin_metrics` file in case you use `local` reporter (monitoring system).
 
 
 ## Troubleshooting
