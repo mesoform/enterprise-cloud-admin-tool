@@ -8,7 +8,7 @@ Afterwards it will log the changes and report stats to a monitoring system
 ([GCP Stackdriver](https://cloud.google.com/stackdriver/) or [AWS Cloudwatch](https://aws.amazon.com/cloudwatch/)).
 
 [Here](https://raw.githubusercontent.com/mesoform/enterprise-cloud-admin-tool/dev/docs/sequence_diagram.png)
-is rendered sequence diagram of possible workflow in [PlantUML](plantuml.com) format.
+is rendered sequence diagram of possible workflow in [PlantUML](https://plantuml.com/) format.
 For diagram code, review `docs` directory.
 
 ## Getting Started
