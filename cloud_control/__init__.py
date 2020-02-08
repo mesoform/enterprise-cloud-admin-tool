@@ -148,6 +148,11 @@ class ArgumentsParser:
             default=False,
             action="store_true",
         )
+        config_parser.add_argument(
+            "--output-data",
+            help="Output repo data to files in " + str(SETTINGS.PROJECT_DATA_DIR),
+            action="store_true",
+        )
 
 
 class CloudControl:

@@ -33,11 +33,6 @@ def root_parser():
         default=SETTINGS.DEFAULT_GITHUB_API_URL,
     )
     parser.add_argument(
-        "--output-data",
-        help="Output repo data to files in " + str(SETTINGS.PROJECT_DATA_DIR),
-        action="store_true",
-    )
-    parser.add_argument(
         "-o",
         "--code-org",
         help="ID of the organisation where the Terraform code" "repository is",
