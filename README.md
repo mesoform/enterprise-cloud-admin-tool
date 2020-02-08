@@ -54,7 +54,7 @@ This token needs permissions for 'repo', 'admin:org', and 'delete_repo'.
 
 1. You must create, export and save your GCP service account private key in `json` format.
 
-More details about [here](https://cloud.google.com/iam/docs/creating-managing-service-account-keys).
+    More details about [here](https://cloud.google.com/iam/docs/creating-managing-service-account-keys).
 
 ### Installing
 
@@ -148,7 +148,7 @@ here number of parametrize argument is a number after test name.
 ## Test deployment
 ### Create config and code using examples
 
-In order to test a deployment we reqire a github repo which will contain the configuration files and another repo for the deployment code.
+In order to test a deployment we require a github repo which will contain the configuration files and another repo for the deployment code.
 
 We prepared two example repos:
 
@@ -207,7 +207,7 @@ If you see this:
 then, try to pass `--bypass-branch-protection` option to `config` subcommand.
 
 ### Test deployment using created code and config
-Once the created/example config and code repos have been updated, you can perform test deployment woth the following command:
+Once the created/example config and code repos have been updated, you can perform test deployment with the following command:
 
 
 ```shell
@@ -321,7 +321,7 @@ Error: error creating project testing-123456a-123456b (testing-123456a-123456b):
 ```   
 
 
-4) If the limit of projects associated with the billing account has been reached a "precodition check failed" error will be shown. Try removing some projects from that billing account.
+4) If the limit of projects associated with the billing account has been reached a "precondition check failed" error will be shown. Try removing some projects from that billing account.
 
 ```
 STDERR:
