@@ -263,14 +263,16 @@ Same you should do for `/var/log/enterprise_cloud_admin_metrics` file in case yo
 You can choose monitoring backend, that you want to use for metrics collecting with help of `--monitoring-system` argument.
 
 Possible choices for now are:
-- `local` — for dumping metrics data into local files.
 - `stackdriver` — uses [GCP Stackdriver](https://cloud.google.com/stackdriver) as a monitoring backend.
 - `cloudwatch` — uses [AWS Cloudwatch](https://aws.amazon.com/cloudwatch/) as a monitoring backend.
 
-Be aware, that if you're using `local` monitoring system, default metrics file path is `/var/log/enterprise_cloud_admin_metrics.<command>`,
+Be aware, that there is also `local` monitoring system, that dumps metrics into local files. It's enabled by default, and can be disabled
+by `--disable-local-reporter` argument.
+
+Default metrics file path is `/var/log/enterprise_cloud_admin_metrics.<command>`,
 where `<command>` is either `deploy` or `config`.
 
-You may want to create these files and change ownership for< them:
+You may want to create these files and change ownership for them:
 ```shell script
 touch /var/log/enterprise_cloud_admin_metrics.config
 chown <user>:<group> /var/log/enterprise_cloud_admin_metrics.config
