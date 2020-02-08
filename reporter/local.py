@@ -60,12 +60,12 @@ _BASIC_FORMATTER = logging.Formatter(
 
 
 def get_logger(
-        module_name: str,
-        log_file: str = None,
-        syslog: str = None,
-        stream_logger: bool = True,
-        debug: bool = False,
-        json_formatter: bool = False,
+    module_name: str,
+    log_file: str = None,
+    syslog: str = None,
+    stream_logger: bool = True,
+    debug: bool = False,
+    json_formatter: bool = False,
 ) -> logging.Logger:
     """
     Helper method, that allows to setup logger instance with arbitrary combination of logging
@@ -115,7 +115,9 @@ class LocalMetrics(Metrics):
         self.metrics_file = args.metrics_file
 
     def send_metrics(self):
-        self.metrics_file = "{}.{}".format(self.metrics_file, self.metrics_registry.metric_set)
+        self.metrics_file = "{}.{}".format(
+            self.metrics_file, self.metrics_registry.metric_set
+        )
         with open(self.metrics_file, "w") as f:
             json.dump(self.prepared_metrics, f, indent=2)
 
