@@ -96,7 +96,6 @@ def test_argument_parser_defaults(tmpdir):
 
     assert command_line_args_dict == {
         "api_url": "https://api.github.com",
-        "output_data": False,
         "code_org": "my-code-org",
         "config_org": "my-config-org",
         "code_repo": "testrepo1",
