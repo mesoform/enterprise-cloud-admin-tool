@@ -82,7 +82,6 @@ class Metrics:
         self._metrics_registry = None
         self.start_time = datetime.utcnow()
         self.end_time = None
-        self._prepared_metrics = {}
         self.value_types_map = {
             int: NotImplemented,
             bool: NotImplemented,
@@ -109,11 +108,7 @@ class Metrics:
 
     @property
     def prepared_metrics(self) -> dict:
-        return self._prepared_metrics
-
-    @prepared_metrics.setter
-    def prepared_metrics(self, value: dict):
-        self._prepared_metrics = value
+        return self.prepare_metrics()
 
     @property
     def metrics_registry(self) -> MetricsRegistry:
@@ -173,9 +168,9 @@ class Metrics:
         """
         raise NotImplementedError
 
-    def prepare_metrics(self):
+    def prepare_metrics(self) -> dict:
         """
         Enriches MetricsRegistry.metrics content and processes data to meet requirements of
-        monitoring server and stores it in self.prepared_metrics
+        monitoring server and stores it in self.prepared_metrics, then returns enriched metrics
         """
         raise NotImplementedError
