@@ -167,8 +167,8 @@ If you wish to create a config repo manually this command will create the requir
 
 ```shell
 ./cloudctl -p <project id> \
-  -o <github organization name> \
-  -O <github organization name> \
+  --code-org <github organization name> \
+  --config-org <github organization name> \
   --vcs-token <github token> \
   --key-file resources/gcp_service_account_key.json \
   --monitoring-namespace <monitoring project id> \
@@ -207,8 +207,8 @@ Once the created/example config and code repos have been updated, you can perfor
 
 ```shell
 ./cloudctl -p <project id> \
-  -o <github organization name> \
-  -O <github organization name> \
+  --code-org <github organization name> \
+  --config-org <github organization name> \
   --vcs-token <github token> \
   --key-file resources/gcp_service_account_key.json \
   --monitoring-namespace <monitoring project id> \
@@ -238,7 +238,7 @@ There is some command line arguments for logging setup:
 Both arguments related to root cli parser, so you can pass them this way:
 ```shell script
 ./cloudctl -p <project id> \
-  -o <github organization name> \
+  --code-org <github organization name> \
   ...
   --json-logging \
   --disable-local-reporter \
