@@ -116,15 +116,18 @@ class LocalMetrics(Metrics):
 
     def send_metrics(self):
         self.metrics_file = "{}.{}".format(self.metrics_file, self.metrics_registry.metric_set)
-        self.prepare_metrics()
         with open(self.metrics_file, "w") as f:
             json.dump(self.prepared_metrics, f, indent=2)
 
     def prepare_metrics(self):
+        prepared_metrics = {}
+
         for metric_name, metric_dict in self.metrics_registry.metrics.items():
             prepared_metric_dict = metric_dict.copy()
 
             prepared_metric_dict.pop("metric_type")
             prepared_metric_dict.pop("value_type")
 
-            self.prepared_metrics[metric_name] = prepared_metric_dict
+            prepared_metrics[metric_name] = prepared_metric_dict
+
+        return prepared_metrics
