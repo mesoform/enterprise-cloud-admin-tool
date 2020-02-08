@@ -50,15 +50,15 @@ class StackdriverMetrics(Metrics):
 
     def prepare_metrics(self):
         """
-        Fulfills `self.prepared_metrics` with implementation-specific
-        metrics data, like protobuf descriptors.
+        Returns metrics registry data fulfilled with implementation-specific
+        metrics data, like protobuf descriptor.
         """
         self.units_map = {
             "seconds": "s",
             "minutes": "min",
             "hours": "h",
             "days": "d",
-            None: None
+            None: None,
         }
         self.value_types_map = {
             int: MetricDescriptor.INT64,
@@ -70,6 +70,9 @@ class StackdriverMetrics(Metrics):
             Gauge: MetricDescriptor.GAUGE,
             Counter: MetricDescriptor.CUMULATIVE,
         }
+
+        prepared_metrics = {}
+
         for metric_name, metric_dict in self.metrics_registry.metrics.items():
             prepared_metric_dict = metric_dict.copy()
 
@@ -80,18 +83,24 @@ class StackdriverMetrics(Metrics):
                 prepared_metric_dict.pop("metric_type")
             ]
             prepared_metric_dict["value_type"] = self.value_types_map[
-                prepared_metric_dict.pop("value_type")]
+                prepared_metric_dict.pop("value_type")
+            ]
 
             prepared_metric_dict["unit"] = self.units_map[
-                prepared_metric_dict["unit"]]
+                prepared_metric_dict["unit"]
+            ]
 
-            stackdriver_metric_name = f"custom.googleapis.com/" \
+            stackdriver_metric_name = (
+                f"custom.googleapis.com/"
                 f"{self.metrics_registry.metric_set}/{metric_name}"
+            )
 
-            self.prepared_metrics[stackdriver_metric_name] = prepared_metric_dict
+            prepared_metrics[stackdriver_metric_name] = prepared_metric_dict
+
+        return prepared_metrics
 
     def _create_metric_descriptor(
-            self, metric_kind, value_type, metric_name, unit
+        self, metric_kind, value_type, metric_name, unit
     ):
         """
         Creates metric descriptor.
@@ -181,12 +190,8 @@ class StackdriverMetrics(Metrics):
         Constructs protobuf messages and sends them through client.
         """
         time_series_list = []
-        self.prepare_metrics()
 
-        for (
-                metric_name,
-                metric_dict,
-        ) in self.prepared_metrics.items():
+        for metric_name, metric_dict in self.prepared_metrics.items():
             metric_dict_copy = metric_dict.copy()
             value = metric_dict_copy.pop("value")
 
