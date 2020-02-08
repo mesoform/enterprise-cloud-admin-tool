@@ -15,7 +15,6 @@ class CloudWatchMetrics(Metrics):
         self.namespace = args.monitoring_namespace.upper()
 
     def send_metrics(self):
-        self.prepare_metrics()
         self.metrics_client.put_metric_data(
             MetricData=list(self.prepared_metrics.values()),
             Namespace=self.namespace,
@@ -23,7 +22,7 @@ class CloudWatchMetrics(Metrics):
 
     def prepare_metrics(self):
         """
-        Fulfills `self.prepared_metrics` with metrics data in Cloudwatch-specific format.
+        Returns metrics registry data fulfilled with metrics data in Cloudwatch-specific format.
         """
         self.units_map = {
             "seconds": "Seconds",
@@ -33,10 +32,12 @@ class CloudWatchMetrics(Metrics):
             None: "None",
         }
 
+        prepared_metrics = {}
+
         for metric_name, metric_dict in self.metrics_registry.metrics.items():
             cloudwatch_metric_name = metric_name.upper()
 
-            self.prepared_metrics[cloudwatch_metric_name] = {
+            prepared_metrics[cloudwatch_metric_name] = {
                 "MetricName": cloudwatch_metric_name,
                 "Dimensions": [
                     {
@@ -47,3 +48,5 @@ class CloudWatchMetrics(Metrics):
                 "Unit": self.units_map[metric_dict["unit"]],
                 "Value": metric_dict["value"],
             }
+
+        return prepared_metrics
