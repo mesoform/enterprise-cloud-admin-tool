@@ -7,6 +7,13 @@ with [python-terraform](https://github.com/beelit94/python-terraform).
 Afterwards it will log the changes and report stats to a monitoring system
 ([GCP Stackdriver](https://cloud.google.com/stackdriver/) or [AWS Cloudwatch](https://aws.amazon.com/cloudwatch/)).
 
+
+## Sequence diagram
+Here is rendered sequence diagram of possible workflow in [PlantUML](https://plantuml.com/) format.
+For diagram code, review `docs` directory.
+
+![sequence diagram](https://raw.githubusercontent.com/mesoform/enterprise-cloud-admin-tool/dev/docs/sequence_diagram.png "Sequence Diagram")
+
 ## Getting Started
 
 These instructions will get you an environment, ready for `enterprise-cloud-admin-tool` development. 
@@ -47,7 +54,7 @@ This token needs permissions for 'repo', 'admin:org', and 'delete_repo'.
 
 1. You must create, export and save your GCP service account private key in `json` format.
 
-More details about [here](https://cloud.google.com/iam/docs/creating-managing-service-account-keys).
+    More details about [here](https://cloud.google.com/iam/docs/creating-managing-service-account-keys).
 
 ### Installing
 
@@ -141,7 +148,7 @@ here number of parametrize argument is a number after test name.
 ## Test deployment
 ### Create config and code using examples
 
-In order to test a deployment we reqire a github repo which will contain the configuration files and another repo for the deployment code.
+In order to test a deployment we require a github repo which will contain the configuration files and another repo for the deployment code.
 
 We prepared two example repos:
 
@@ -163,11 +170,12 @@ If you wish to create a config repo manually this command will create the requir
 
 ```shell
 ./cloudctl -p <project id> \
-  -o <github organization name> \
-  -O <github organization name> \
+  --code-org <github organization name> \
+  --config-org <github organization name> \
   --vcs-token <github token> \
   --key-file resources/gcp_service_account_key.json \
   --monitoring-namespace <monitoring project id> \
+  --monitoring-system <monitoring system> \
   --debug true \
   config create \
   --config-repo <config repo> \
@@ -180,9 +188,10 @@ Where:
 - `github organization name` — name of organization, that holds repos with code/config.
 - `github token` — you developer's github token, that you have obtained in prerequisites section.
 - `monitoring project id` — id of existing monitoring project. You should have one if followed prerequisites section.
+- `monitoring system` — identifier of monitoring backend, that you want to use for metrics collection
 - `config repo` — name of repo, that will contain terraform variables files.
 
-In the project settings file created within the config repo you shuld ensure a unique `project_id` is set ([project creation docs](https://cloud.google.com/resource-manager/docs/creating-managing-projects)),
+In the project settings file created within the config repo you should ensure a unique `project_id` is set ([project creation docs](https://cloud.google.com/resource-manager/docs/creating-managing-projects)),
 set or remove any remaining key value pair according your requirements.
 Be aware, that `project_id` unique across whole GCP platform, even six month after deletion. So, if someone already have project with your id, you will receive unclear error.
 * Also add a valid `billing_id`, it's mandatory ([billing docs](https://cloud.google.com/billing/docs/how-to/modify-project)).
@@ -198,16 +207,17 @@ If you see this:
 then, try to pass `--bypass-branch-protection` option to `config` subcommand.
 
 ### Test deployment using created code and config
-Once the created/example config and code repos have been updated, you can perform test deployment woth the following command:
+Once the created/example config and code repos have been updated, you can perform test deployment with the following command:
 
 
 ```shell
 ./cloudctl -p <project id> \
-  -o <github organization name> \
-  -O <github organization name> \
+  --code-org <github organization name> \
+  --config-org <github organization name> \
   --vcs-token <github token> \
   --key-file resources/gcp_service_account_key.json \
   --monitoring-namespace <monitoring project id> \
+  --monitoring-system <monitoring system> \
   deploy \
   --cloud gcp \
   --code-repo <code repo> \
@@ -222,6 +232,7 @@ Where:
 - `github organization name` — name of organization, that holds repos with code/config.
 - `github token` — you developer's github token, that you have obtained in prerequisites section.
 - `monitoring project id` — id of existing monitoring project. You should have one if followed prerequisites section.
+- `monitoring system` — identifier of monitoring backend, that you want to use for metrics collecting
 
 After that, you should receive success message in console, and metrics in your GCP monitoring project workspace.
 
@@ -234,7 +245,7 @@ There is some command line arguments for logging setup:
 Both arguments related to root cli parser, so you can pass them this way:
 ```shell script
 ./cloudctl -p <project id> \
-  -o <github organization name> \
+  --code-org <github organization name> \
   ...
   --json-logging \
   --disable-local-reporter \
@@ -249,7 +260,29 @@ so probably you need to create and change ownership of this file:
 touch /var/log/enterprise_cloud_admin.log
 chown <user>:<group> /var/log/enterprise_cloud_admin.log
 ```
+Same you should do for `/var/log/enterprise_cloud_admin_metrics` file in case you use `local` reporter (monitoring system).
 
+## Monitoring
+You can choose monitoring backend, that you want to use for metrics collecting with help of `--monitoring-system` argument.
+
+Possible choices for now are:
+- `stackdriver` — uses [GCP Stackdriver](https://cloud.google.com/stackdriver) as a monitoring backend.
+- `cloudwatch` — uses [AWS Cloudwatch](https://aws.amazon.com/cloudwatch/) as a monitoring backend.
+
+Be aware, that there is also `local` monitoring system, that dumps metrics into local files. It's enabled by default, and can be disabled
+by `--disable-local-reporter` argument.
+
+Default metrics file path is `/var/log/enterprise_cloud_admin_metrics.<command>`,
+where `<command>` is either `deploy` or `config`.
+
+You may want to create these files and change ownership for them:
+```shell script
+touch /var/log/enterprise_cloud_admin_metrics.config
+chown <user>:<group> /var/log/enterprise_cloud_admin_metrics.config
+
+touch /var/log/enterprise_cloud_admin_metrics.deploy
+chown <user>:<group> /var/log/enterprise_cloud_admin_metrics.deploy
+```
 
 ## Troubleshooting
 
@@ -288,7 +321,7 @@ Error: error creating project testing-123456a-123456b (testing-123456a-123456b):
 ```   
 
 
-4) If the limit of projects associated with the billing account has been reached a "precodition check failed" error will be shown. Try removing some projects from that billing account.
+4) If the limit of projects associated with the billing account has been reached a "precondition check failed" error will be shown. Try removing some projects from that billing account.
 
 ```
 STDERR:

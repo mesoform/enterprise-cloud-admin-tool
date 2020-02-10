@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from prometheus_metrics_proto import Counter, Gauge
 
 
@@ -103,7 +103,7 @@ class Metrics:
             self.process_args(args)
 
     @property
-    def app_runtime(self) -> float:
+    def app_runtime(self) -> timedelta:
         return self.end_time - self.start_time
 
     @property
