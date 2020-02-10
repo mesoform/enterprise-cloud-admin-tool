@@ -15,6 +15,7 @@ python-terraform = "*"
 structlog = "*"
 prometheus-metrics-proto = "*"
 boto3 = "*"
+slackclient = "*"
 
 [requires]
 python_version = "3.6"
