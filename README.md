@@ -156,6 +156,10 @@ We prepared two example repos:
 variable files.
 1. [example-ecat-deployment-code](https://github.com/mesoform/example-ecat-deployment-code) — contains terraform infrastructure code.
 
+Please note, that both config and code repos require certain structure to be valid:
+* top-level directories must be named like: `gcp`, `aws`, or `azure`.
+* each top-level directory must contain it's own set of config or code files.
+
 ### Create config repo with eCat from example
 In order to perform test deployment using these examples, you should fork these repos to your organization, and then customise the configuration as per below:
 
