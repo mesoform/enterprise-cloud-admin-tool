@@ -100,7 +100,7 @@ class Metrics:
         }
 
         if args is not None:
-            self.process_args(args)
+            self._process_args(args)
 
     @property
     def app_runtime(self) -> timedelta:
@@ -154,7 +154,7 @@ class Metrics:
         """
         self._metric_types_map = values
 
-    def process_args(self, args):
+    def _process_args(self, args):
         """
         Method for processing info, that came from cli, such as
         credentials data or platform-specific arguments

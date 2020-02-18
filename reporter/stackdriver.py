@@ -33,7 +33,7 @@ class StackdriverMetrics(Metrics):
         )
         self.metrics_type = TimeSeries
 
-    def process_args(self, args):
+    def _process_args(self, args):
         auth = (
             GcpAuth(args.key_file)
             if getattr(args, "key_file", None)
