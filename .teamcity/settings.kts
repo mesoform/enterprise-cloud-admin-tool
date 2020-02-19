@@ -34,11 +34,9 @@ To debug in IntelliJ Idea, open the 'Maven Projects' tool window (View
 
 version = "2018.2"
 
-object GithubCloudAdminToolVcs : GitVcsRoot({
-    println("Evaluating the Git VCS root!\n${System.getenv()
-            .entries
-            .joinToString(separator = "\n", transform = { "${it.key}=${it.value}" })}\n\nEND!!!")
-    name = "github-enterprise-cloud-admin-tool"
+object GithubEcatVcs : GitVcsRoot({
+    println("Evaluating the Git VCS root!\n")
+    name = "GithubEcatVcs"
     url = "git@github.com:mesoform/enterprise-cloud-admin-tool.git"
     branch = "refs/heads/dev"
     branchSpec = """
@@ -55,9 +53,7 @@ object GithubCloudAdminToolVcs : GitVcsRoot({
 project {
     buildType(Build)
 
-    println("Evaluating the project!\n${System.getenv()
-            .entries
-            .joinToString(separator = "\n", transform = { "${it.key}=${it.value}" })}\n\nEND!!!")
+    println("Evaluating the project!\n")
 
     features {
         feature {
@@ -77,7 +73,7 @@ project {
         }
     }
 
-    roots.add(GithubCloudAdminToolVcs)
+    roots.add(GithubEcatVcs)
 }
 
 
