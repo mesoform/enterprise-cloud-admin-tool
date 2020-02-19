@@ -67,10 +67,6 @@ project {
             param("type", "BitBucketIssues")
             param("username", "cicd@mesoform.com")
         }
-        feature {
-            id = "MYVCS"
-            type = ""
-        }
     }
 
     roots.add(GithubEcatVcs)
