@@ -51,6 +51,7 @@ object GithubEcatVcs : GitVcsRoot({
 })
 
 project {
+    vcsRoot(GithubEcatVcs)
     buildType(Build)
 
     println("Evaluating the project!\n")
@@ -68,8 +69,6 @@ project {
             param("username", "cicd@mesoform.com")
         }
     }
-
-    roots.add(GithubEcatVcs)
 }
 
 
@@ -82,7 +81,7 @@ object Build : BuildType({
     }
 
     vcs {
-        root(DslContext.settingsRoot)
+        root(GithubEcatVcs)
 
         cleanCheckout = true
     }
