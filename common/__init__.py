@@ -97,6 +97,14 @@ def root_parser():
         default=False,
         action="store_true",
     )
+    parser.add_argument(
+        "-st", "--slack-token", help="Slack bot user OAuth access token"
+    )
+    parser.add_argument(
+        "-sc",
+        "--slack-channel",
+        help="Name of channel, where notifications will go",
+    )
     return parser
 
 

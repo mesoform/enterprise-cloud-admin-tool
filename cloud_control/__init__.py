@@ -8,6 +8,9 @@ from deployer import deploy
 
 from reporter.local import get_logger, LocalMetrics
 from reporter.base import MetricsRegistry, Metrics
+
+from reporter.slack import SlackLogger
+
 from reporter.stackdriver import StackdriverMetrics
 from reporter.cloudwatch import CloudWatchMetrics
 
@@ -16,6 +19,27 @@ from settings import SETTINGS
 
 class CloudControlException(Exception):
     pass
+
+
+class LoggingSystemArgAction(argparse.Action):
+    """
+    Converts "monitoring-system" cli argument to instance of Metrics
+    """
+
+    def __init__(self, option_strings, dest, nargs=None, **kwargs):
+        if nargs is not None:
+            raise ValueError("nargs not allowed")
+        super().__init__(option_strings, dest, **kwargs)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        if values == "slack":
+            logging_system = SlackLogger
+        else:
+            raise CloudControlException(
+                f"Integration with '{values}' logging system is not implemented yet."
+            )
+
+        setattr(namespace, self.dest, logging_system)
 
 
 class MonitoringSystemArgAction(argparse.Action):
@@ -49,6 +73,12 @@ class ArgumentsParser:
     def __init__(self, args=None):
         self.root_parser = common.root_parser()
 
+        self.root_parser.add_argument(
+            "--logging-system",
+            help="logging system, such as GCP Stackdriver, AWS CloudWatch, or Slack",
+            action=LoggingSystemArgAction,
+            choices=["slack"],
+        )
         self.root_parser.add_argument(
             "--monitoring-system",
             help="monitoring system for metrics, such as GCP Stackdriver, AWS CloudWatch, "
@@ -194,6 +224,10 @@ class CloudControl:
             json_formatter=self.args.json_logging,
         )
 
+        self._remote_log = None
+        if self.args.logging_system:
+            self._remote_log = self.args.logging_system(self.args)
+
     @property
     def remote_metrics(self) -> Metrics:
         return self._remote_metrics
@@ -230,6 +264,20 @@ class CloudControl:
             self.local_metrics.metrics_registry = self.metrics_registry
             self.local_metrics.send_metrics()
 
+        if self._remote_log:
+            deployment_on = (
+                "GCP Stackdriver" if self.args.command == "deploy" else "Github"
+            )
+            result = "success" if success else "failure"
+
+            self._remote_log.send_message(
+                "*Finished new run.*\n"
+                f"Run type: `{self.args.command}`\n"
+                f"Project ID: `{self.args.project_id}`\n"
+                f"Deployment on: `{deployment_on}`\n"
+                f"Result: `{result}`"
+            )
+
     def perform_command(self):
         """
         Checks that passed command implemented in entry point class,
@@ -243,6 +291,18 @@ class CloudControl:
         else:
             raise CloudControlException(
                 "Command {} does not implemented".format(self.args.command)
+            )
+
+        if self._remote_log:
+            deployment_on = (
+                "GCP Stackdriver" if self.args.command == "deploy" else "Github"
+            )
+
+            self._remote_log.send_message(
+                "*Started new run.*\n"
+                f"Run type: `{self.args.command}`\n"
+                f"Project ID: `{self.args.project_id}`\n"
+                f"Deployment on: `{deployment_on}`"
             )
 
         success = False

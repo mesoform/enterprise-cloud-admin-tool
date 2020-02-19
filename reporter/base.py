@@ -92,12 +92,9 @@ class Metrics:
             "seconds": NotImplemented,
             "minutes": NotImplemented,
             "hours": NotImplemented,
-            "days": NotImplemented
+            "days": NotImplemented,
         }
-        self.metric_types_map = {
-            Gauge: NotImplemented,
-            Counter: NotImplemented
-        }
+        self.metric_types_map = {Gauge: NotImplemented, Counter: NotImplemented}
 
         if args is not None:
             self._process_args(args)
@@ -172,5 +169,30 @@ class Metrics:
         """
         Enriches MetricsRegistry.metrics content and processes data to meet requirements of
         monitoring server and stores it in self.prepared_metrics, then returns enriched metrics
+        """
+        raise NotImplementedError
+
+
+class Logger:
+    """
+    Base class for logging backends
+    """
+
+    def __init__(self, args):
+        self.logging_client = None
+
+        if args is not None:
+            self._process_args(args)
+
+    def _process_args(self, args):
+        """
+        Method for processing info, that came from cli, such as
+        credentials data or platform-specific arguments
+        """
+        raise NotImplementedError
+
+    def send_message(self, message: str):
+        """
+        Sends given string to logging backend through client
         """
         raise NotImplementedError
