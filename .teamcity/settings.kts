@@ -1,10 +1,14 @@
-import jetbrains.buildServer.configs.kotlin.v2018_2.*
+import jetbrains.buildServer.configs.kotlin.v2018_2.BuildType
+import jetbrains.buildServer.configs.kotlin.v2018_2.DslContext
 import jetbrains.buildServer.configs.kotlin.v2018_2.buildFeatures.commitStatusPublisher
 import jetbrains.buildServer.configs.kotlin.v2018_2.buildFeatures.freeDiskSpace
 import jetbrains.buildServer.configs.kotlin.v2018_2.buildFeatures.swabra
 import jetbrains.buildServer.configs.kotlin.v2018_2.buildSteps.dockerCommand
 import jetbrains.buildServer.configs.kotlin.v2018_2.buildSteps.script
+import jetbrains.buildServer.configs.kotlin.v2018_2.project
 import jetbrains.buildServer.configs.kotlin.v2018_2.triggers.vcs
+import jetbrains.buildServer.configs.kotlin.v2018_2.vcs.GitVcsRoot
+import jetbrains.buildServer.configs.kotlin.v2018_2.version
 
 /*
 The settings script is an entry point for defining a TeamCity
@@ -30,9 +34,30 @@ To debug in IntelliJ Idea, open the 'Maven Projects' tool window (View
 
 version = "2018.2"
 
-project {
+object GithubCloudAdminToolVcs : GitVcsRoot({
+    println("Evaluating the Git VCS root!\n${System.getenv()
+            .entries
+            .joinToString(separator = "\n", transform = { "${it.key}=${it.value}" })}\n\nEND!!!")
+    name = "github-enterprise-cloud-admin-tool"
+    url = "git@github.com:mesoform/enterprise-cloud-admin-tool.git"
+    branch = "refs/heads/dev"
+    branchSpec = """
+        +:refs/pull/(*/merge)
+    """.trimIndent()
+    userNameStyle = GitVcsRoot.UserNameStyle.USERID
+    checkoutSubmodules = GitVcsRoot.CheckoutSubmodules.SUBMODULES_CHECKOUT
+    authMethod = uploadedKey {
+        uploadedKey = "TeamCitySSH"
+        userName = "git"
+    }
+})
 
+project {
     buildType(Build)
+
+    println("Evaluating the project!\n${System.getenv()
+            .entries
+            .joinToString(separator = "\n", transform = { "${it.key}=${it.value}" })}\n\nEND!!!")
 
     features {
         feature {
@@ -46,8 +71,15 @@ project {
             param("type", "BitBucketIssues")
             param("username", "cicd@mesoform.com")
         }
+        feature {
+            id = "MYVCS"
+            type = ""
+        }
     }
+
+    roots.add(GithubCloudAdminToolVcs)
 }
+
 
 object Build : BuildType({
     name = "Build"
@@ -93,6 +125,7 @@ object Build : BuildType({
 
     triggers {
         vcs {
+
         }
     }
 
