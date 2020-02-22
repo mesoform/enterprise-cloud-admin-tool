@@ -45,12 +45,6 @@ def root_parser():
         default=SETTINGS.DEFAULT_CONFIG_ORG,
     )
     parser.add_argument(
-        "-p",
-        "--project-id",
-        help="ID of project we're creating a repository for",
-        default=SETTINGS.DEFAULT_PROJECT_NAME,
-    )
-    parser.add_argument(
         "-t", "--vcs-token", help="Authentication for VCS platform"
     )
     parser.add_argument(
