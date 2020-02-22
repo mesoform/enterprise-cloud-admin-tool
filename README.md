@@ -181,7 +181,7 @@ If you wish to create a config repo manually this command will create the requir
   --monitoring-namespace <monitoring project id> \
   --monitoring-system <monitoring system> \
   --debug true \
-  config <project id> create \
+  config create <project id> \
   --config-repo <config repo> \
   --force
 ```

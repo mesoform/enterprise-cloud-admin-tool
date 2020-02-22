@@ -117,14 +117,14 @@ class ArgumentsParser:
         )
         config_parser.formatter_class = argparse.RawTextHelpFormatter
 
+        config_parser.add_argument("--github")
+        config_parser.add_argument(
+            "c_action", choices=("create", "delete", "update")
+        )
         config_parser.add_argument(
             "project_id",
             help="ID of project we're creating a repository for",
             default=SETTINGS.DEFAULT_PROJECT_NAME,
-        )
-        config_parser.add_argument("--github")
-        config_parser.add_argument(
-            "c_action", choices=("create", "delete", "update")
         )
         config_parser.add_argument(
             "--config-repo",
