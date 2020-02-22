@@ -173,7 +173,7 @@ Be aware, that `project_id` unique across whole GCP platform, even six month aft
 If you wish to create a config repo manually this command will create the required repo and required config files
 
 ```shell
-./cloudctl -p <project id> \
+./cloudctl \
   --code-org <github organization name> \
   --config-org <github organization name> \
   --vcs-token <github token> \
@@ -181,7 +181,7 @@ If you wish to create a config repo manually this command will create the requir
   --monitoring-namespace <monitoring project id> \
   --monitoring-system <monitoring system> \
   --debug true \
-  config create \
+  config <project id> create \
   --config-repo <config repo> \
   --force
 ```
@@ -215,14 +215,14 @@ Once the created/example config and code repos have been updated, you can perfor
 
 
 ```shell
-./cloudctl -p <project id> \
+./cloudctl \
   --code-org <github organization name> \
   --config-org <github organization name> \
   --vcs-token <github token> \
   --key-file resources/gcp_service_account_key.json \
   --monitoring-namespace <monitoring project id> \
   --monitoring-system <monitoring system> \
-  deploy \
+  deploy <project id> \
   --cloud gcp \
   --code-repo <code repo> \
   --config-repo <config repo>
@@ -248,13 +248,13 @@ There is some command line arguments for logging setup:
 
 Both arguments related to root cli parser, so you can pass them this way:
 ```shell script
-./cloudctl -p <project id> \
+./cloudctl \
   --code-org <github organization name> \
   ...
   --json-logging \
   --disable-local-reporter \
   ...
-  deploy --cloud gcp \
+  deploy <project id> --cloud gcp \
   ...
 ```
 
