@@ -44,18 +44,11 @@ def root_parser():
         help="ID of the organisation where the configuration" "repository is",
         default=SETTINGS.DEFAULT_CONFIG_ORG,
     )
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument(
+    parser.add_argument(
         "-p",
         "--project-id",
         help="ID of project we're creating a repository for",
         default=SETTINGS.DEFAULT_PROJECT_NAME,
-    )
-    group.add_argument(
-        "-q",
-        "--queued-projects",
-        help="fetch a list of projects from requests queue",
-        action=QueuedProjectsArgAction,
     )
     parser.add_argument(
         "-t", "--vcs-token", help="Authentication for VCS platform"
@@ -173,19 +166,6 @@ class GcpAuth:
     #     """
     #     return storage_class(project=_get_project_id(),
     #                          credentials=get_gcs_credentials())
-
-
-class QueuedProjectsArgAction(argparse.Action):
-    def __init__(self, option_strings, dest, nargs=None, **kwargs):
-        if nargs is not None:
-            raise ValueError("nargs not allowed")
-        super(QueuedProjectsArgAction, self).__init__(
-            option_strings, dest, nargs=0, **kwargs
-        )
-
-    def __call__(self, parser, namespace, values, option_string=None):
-        # ToDo: add function call to get projects list from JIRA
-        setattr(namespace, "projects_list", [])
 
 
 def get_org(parsed_args, org):
