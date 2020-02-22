@@ -64,8 +64,6 @@ def test_argument_parser_defaults(tmpdir):
 
     command_line_args = ArgumentsParser(
         [
-            "-p",
-            "test",
             "-o",
             "my-code-org",
             "-O",
@@ -81,6 +79,7 @@ def test_argument_parser_defaults(tmpdir):
             "--disable-local-reporter",
             "--json-logging",
             "deploy",
+            "test",
             "--cloud",
             "gcp",
             "--code-repo",

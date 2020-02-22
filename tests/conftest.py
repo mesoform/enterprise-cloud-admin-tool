@@ -24,7 +24,6 @@ def command_line_args(working_directory):
 
     return ArgumentsParser(
         [
-            "-ptestproject",
             "--monitoring-namespace",
             "monitoring-namespace",
             "--log-file",
@@ -34,6 +33,7 @@ def command_line_args(working_directory):
             "--monitoring-system",
             "stackdriver",
             "deploy",
+            "testproject",
             "--cloud",
             "gcp",
             "--code-repo",
