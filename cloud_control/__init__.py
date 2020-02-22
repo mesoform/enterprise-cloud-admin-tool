@@ -81,7 +81,7 @@ class ArgumentsParser:
 
         deploy_parser.add_argument(
             "project_id",
-            help="ID of project we're creating a repository for",
+            help="ID of project we're deploying changes for",
             default=SETTINGS.DEFAULT_PROJECT_NAME,
         )
         deploy_parser.add_argument(
