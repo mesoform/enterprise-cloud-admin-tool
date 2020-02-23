@@ -173,13 +173,13 @@ class Metrics:
         raise NotImplementedError
 
 
-class Logger:
+class Notificator:
     """
-    Base class for logging backends
+    Base class for notification backends
     """
 
     def __init__(self, args):
-        self.logging_client = None
+        self.notification_client = None
 
         if args is not None:
             self._process_args(args)
@@ -193,6 +193,6 @@ class Logger:
 
     def send_message(self, message: str):
         """
-        Sends given string to logging backend through client
+        Sends given string to notification backend through client
         """
         raise NotImplementedError

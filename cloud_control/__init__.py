@@ -9,7 +9,7 @@ from deployer import deploy
 from reporter.local import get_logger, LocalMetrics
 from reporter.base import MetricsRegistry, Metrics
 
-from reporter.slack import SlackLogger
+from reporter.slack import SlackNotificator
 
 from reporter.stackdriver import StackdriverMetrics
 from reporter.cloudwatch import CloudWatchMetrics
@@ -33,13 +33,13 @@ class LoggingSystemArgAction(argparse.Action):
 
     def __call__(self, parser, namespace, values, option_string=None):
         if values == "slack":
-            logging_system = SlackLogger
+            notification_system = SlackNotificator
         else:
             raise CloudControlException(
-                f"Integration with '{values}' logging system is not implemented yet."
+                f"Integration with '{values}' notification system is not implemented yet."
             )
 
-        setattr(namespace, self.dest, logging_system)
+        setattr(namespace, self.dest, notification_system)
 
 
 class MonitoringSystemArgAction(argparse.Action):
@@ -74,8 +74,8 @@ class ArgumentsParser:
         self.root_parser = common.root_parser()
 
         self.root_parser.add_argument(
-            "--logging-system",
-            help="logging system, such as GCP Stackdriver, AWS CloudWatch, or Slack",
+            "--notification-system",
+            help="notification system, such as GCP Stackdriver, AWS CloudWatch, or Slack",
             action=LoggingSystemArgAction,
             choices=["slack"],
         )
@@ -225,8 +225,8 @@ class CloudControl:
         )
 
         self._remote_log = None
-        if self.args.logging_system:
-            self._remote_log = self.args.logging_system(self.args)
+        if self.args.notification_system:
+            self._remote_log = self.args.notification_system(self.args)
 
     @property
     def remote_metrics(self) -> Metrics:
