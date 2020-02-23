@@ -180,6 +180,7 @@ If you wish to create a config repo manually this command will create the requir
   --key-file resources/gcp_service_account_key.json \
   --monitoring-namespace <monitoring project id> \
   --monitoring-system <monitoring system> \
+  --notification-system <notification system> \
   --debug true \
   config create <project id> \
   --config-repo <config repo> \
@@ -193,6 +194,7 @@ Where:
 - `github token` — you developer's github token, that you have obtained in prerequisites section.
 - `monitoring project id` — id of existing monitoring project. You should have one if followed prerequisites section.
 - `monitoring system` — identifier of monitoring backend, that you want to use for metrics collection
+- `notification system` - identifier of notification backend, where you want to send notifications
 - `config repo` — name of repo, that will contain terraform variables files.
 
 In the project settings file created within the config repo you should ensure a unique `project_id` is set ([project creation docs](https://cloud.google.com/resource-manager/docs/creating-managing-projects)),
@@ -222,6 +224,7 @@ Once the created/example config and code repos have been updated, you can perfor
   --key-file resources/gcp_service_account_key.json \
   --monitoring-namespace <monitoring project id> \
   --monitoring-system <monitoring system> \
+  --notification-system <notification system> \
   deploy <project id> \
   --cloud gcp \
   --code-repo <code repo> \
@@ -237,6 +240,7 @@ Where:
 - `github token` — you developer's github token, that you have obtained in prerequisites section.
 - `monitoring project id` — id of existing monitoring project. You should have one if followed prerequisites section.
 - `monitoring system` — identifier of monitoring backend, that you want to use for metrics collecting
+- `notification system` - identifier of notification backend, where you want to send notifications
 
 After that, you should receive success message in console, and metrics in your GCP monitoring project workspace.
 
@@ -267,6 +271,8 @@ chown <user>:<group> /var/log/enterprise_cloud_admin.log
 Same you should do for `/var/log/enterprise_cloud_admin_metrics` file in case you use `local` reporter (monitoring system).
 
 ## Monitoring
+
+### Metrics
 You can choose monitoring backend, that you want to use for metrics collecting with help of `--monitoring-system` argument.
 
 Possible choices for now are:
@@ -287,6 +293,32 @@ chown <user>:<group> /var/log/enterprise_cloud_admin_metrics.config
 touch /var/log/enterprise_cloud_admin_metrics.deploy
 chown <user>:<group> /var/log/enterprise_cloud_admin_metrics.deploy
 ```
+
+### Notifications
+
+It is possible to send notifications, that include basic information, such as what `eCat` command has been invoked,
+result of run, etc.
+
+To do that, `--notification-system` cli argument should be specified. For now, available options are:
+- `slack`
+
+#### Slack
+
+In order to use `slack` notification system for your existing `Slack` workspace, `--slack-channel` and `--slack-token` cli arguments must be specified.
+
+`--slack-channel` is channel, where notification will go.
+
+`--slack-token` is your "Bot User OAuth Access Token".
+
+Go through official [Slack App Docs](https://api.slack.com/start/overview) to become comfortable with Bot setup.
+
+In general, steps are:
+1) Create `Slack App` [here](https://api.slack.com/apps). During this step you must choose target workspace.
+2) Then you should go `Features` -> `OAuth & Permissions` -> `Scopes` -> `Add an OAuth Scope`.
+3) You should choose in dropdown `chat:write` scope. It's enough for app to send notifications.
+4) On the same page you should click on `Install App to Workspace` button.
+5) Then, you will be asked to approve permissions request. Confirm it.
+6) You will be redirected on the page with your `Bot User OAuth Access Token`. Copy it and use as `--slack-token`.
 
 ## Troubleshooting
 
