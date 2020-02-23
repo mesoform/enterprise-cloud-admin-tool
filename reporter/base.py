@@ -1,4 +1,6 @@
 from datetime import datetime, timedelta
+from typing import Any
+
 from prometheus_metrics_proto import Counter, Gauge
 
 
@@ -55,7 +57,7 @@ class MetricsRegistry:
     def metrics(self):
         return self._metrics[self.metric_set]
 
-    def add_metric(self, metric_name: str, metric_value: any):
+    def add_metric(self, metric_name: str, metric_value: Any):
         if metric_name not in self.metrics:
             raise KeyError
 
@@ -173,6 +175,26 @@ class Metrics:
         raise NotImplementedError
 
 
+class Notification:
+    """
+    Basic data structure, that holds all necessary notification info
+    """
+
+    def __init__(
+        self,
+        message: str,
+        run_type: str,
+        project_id: str,
+        deployment_target: str,
+        result: str = None,
+    ):
+        self.message = message
+        self.run_type = run_type
+        self.project_id = project_id
+        self.deployment_target = deployment_target
+        self.result = result
+
+
 class Notificator:
     """
     Base class for notification backends
@@ -191,8 +213,17 @@ class Notificator:
         """
         raise NotImplementedError
 
-    def send_message(self, message: str):
+    def _get_notification_text(self, notification: Notification) -> str:
         """
-        Sends given string to notification backend through client
+        Should return text representation of Notification instance.
         """
         raise NotImplementedError
+
+    def _send_notification(self, notification_text: str):
+        """
+        Should use notification client to send notification text
+        """
+        raise NotImplementedError
+
+    def send_notification(self, notification: Notification):
+        self._send_notification(self._get_notification_text(notification))
