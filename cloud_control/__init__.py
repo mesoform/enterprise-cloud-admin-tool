@@ -302,6 +302,10 @@ class CloudControl:
             self._log_and_send_metrics(self.args.command, success)
 
     def _send_notification(self, message, result=None):
+        """
+        If notification system enabled, collects required information and
+        sends notification.
+        """
         if self.notification_system:
             deployment_target = (
                 "GCP Stackdriver" if self.args.command == "deploy" else "Github"
