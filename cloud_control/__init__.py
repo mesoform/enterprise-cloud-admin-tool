@@ -1,5 +1,6 @@
 import argparse
 from datetime import datetime
+from typing import Union
 
 import common
 
@@ -7,7 +8,7 @@ from code_control import setup, BranchProtectArgAction
 from deployer import deploy
 
 from reporter.local import get_logger, LocalMetrics
-from reporter.base import MetricsRegistry, Metrics
+from reporter.base import MetricsRegistry, Metrics, Notification
 
 from reporter.slack import SlackNotificator
 
@@ -211,10 +212,15 @@ class CloudControl:
         self.metrics_registry.add_metric("total", 1)
         self._local_metrics = None
         self._remote_metrics = None
+        self._notification_system = None
 
         self.local_metrics = LocalMetrics(self.args)
+
         if self.args.monitoring_system:
             self.remote_metrics = self.args.monitoring_system(self.args)
+
+        if self.args.notification_system:
+            self.notification_system = self.args.notification_system(self.args)
 
     def _setup_logger(self):
         self._log = get_logger(
@@ -223,10 +229,6 @@ class CloudControl:
             debug=self.args.debug,
             json_formatter=self.args.json_logging,
         )
-
-        self._remote_log = None
-        if self.args.notification_system:
-            self._remote_log = self.args.notification_system(self.args)
 
     @property
     def remote_metrics(self) -> Metrics:
@@ -243,6 +245,14 @@ class CloudControl:
     @local_metrics.setter
     def local_metrics(self, value: Metrics):
         self._local_metrics = value
+
+    @property
+    def notification_system(self):
+        return self._notification_system
+
+    @notification_system.setter
+    def notification_system(self, value: Union[SlackNotificator]):
+        self._notification_system = value
 
     def _log_and_send_metrics(self, command, success):
         self._log.info("finished " + command + " run")
@@ -264,19 +274,9 @@ class CloudControl:
             self.local_metrics.metrics_registry = self.metrics_registry
             self.local_metrics.send_metrics()
 
-        if self._remote_log:
-            deployment_on = (
-                "GCP Stackdriver" if self.args.command == "deploy" else "Github"
-            )
-            result = "success" if success else "failure"
-
-            self._remote_log.send_message(
-                "*Finished new run.*\n"
-                f"Run type: `{self.args.command}`\n"
-                f"Project ID: `{self.args.project_id}`\n"
-                f"Deployment on: `{deployment_on}`\n"
-                f"Result: `{result}`"
-            )
+        self._send_notification(
+            "Finished new run.", "success" if success else "failure"
+        )
 
     def perform_command(self):
         """
@@ -293,23 +293,32 @@ class CloudControl:
                 "Command {} does not implemented".format(self.args.command)
             )
 
-        if self._remote_log:
-            deployment_on = (
-                "GCP Stackdriver" if self.args.command == "deploy" else "Github"
-            )
-
-            self._remote_log.send_message(
-                "*Started new run.*\n"
-                f"Run type: `{self.args.command}`\n"
-                f"Project ID: `{self.args.project_id}`\n"
-                f"Deployment on: `{deployment_on}`"
-            )
+        self._send_notification("Started new run.")
 
         success = False
         try:
             success = command()
         finally:
             self._log_and_send_metrics(self.args.command, success)
+
+    def _send_notification(self, message, result=None):
+        if self.notification_system:
+            deployment_target = (
+                "GCP Stackdriver" if self.args.command == "deploy" else "Github"
+            )
+
+            notification = {
+                "message": message,
+                "run_type": self.args.command,
+                "project_id": self.args.project_id,
+                "deployment_target": deployment_target,
+            }
+            if result is not None:
+                notification["result"] = result
+
+            self.notification_system.send_notification(
+                Notification(**notification)
+            )
 
     def _deploy(self):
         self._log.info("Starting deployment")
