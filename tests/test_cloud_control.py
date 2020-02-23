@@ -64,8 +64,6 @@ def test_argument_parser_defaults(tmpdir):
 
     command_line_args = ArgumentsParser(
         [
-            "-p",
-            "test",
             "-o",
             "my-code-org",
             "-O",
@@ -81,6 +79,7 @@ def test_argument_parser_defaults(tmpdir):
             "--disable-local-reporter",
             "--json-logging",
             "deploy",
+            "test",
             "--cloud",
             "gcp",
             "--code-repo",
@@ -101,7 +100,6 @@ def test_argument_parser_defaults(tmpdir):
         "code_repo": "testrepo1",
         "config_repo": "testrepo2",
         "project_id": "test",
-        "queued_projects": None,
         "vcs_token": "e750dcf1c15273dfc687049f6dfcb38d970e0547",
         "config_version": "master",
         "code_version": "master",

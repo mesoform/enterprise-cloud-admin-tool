@@ -52,14 +52,14 @@ class ArgumentsParser:
         self.root_parser.add_argument(
             "--monitoring-system",
             help="monitoring system for metrics, such as GCP Stackdriver, AWS CloudWatch, "
-                 "Zabbix, etc.",
+            "Zabbix, etc.",
             action=MonitoringSystemArgAction,
             choices=["stackdriver", "cloudwatch", "zabbix"],
         )
 
         self.management_parser = self.root_parser.add_subparsers(
             help="manage infrastructure deployment or infrastructure"
-                 " configuration",
+            " configuration",
             dest="command",
         )
         self._setup_deploy_parser()
@@ -78,6 +78,12 @@ class ArgumentsParser:
             "deploy", help="deploy configuration to the cloud"
         )
         deploy_parser.formatter_class = argparse.RawTextHelpFormatter
+
+        deploy_parser.add_argument(
+            "project_id",
+            help="ID of project we're deploying changes for",
+            default=SETTINGS.DEFAULT_PROJECT_NAME,
+        )
         deploy_parser.add_argument(
             "--cloud", choices=["all"] + SETTINGS.SUPPORTED_CLOUDS
         )
@@ -110,9 +116,15 @@ class ArgumentsParser:
             force=False,
         )
         config_parser.formatter_class = argparse.RawTextHelpFormatter
+
         config_parser.add_argument("--github")
         config_parser.add_argument(
             "c_action", choices=("create", "delete", "update")
+        )
+        config_parser.add_argument(
+            "project_id",
+            help="ID of project we're creating a repository for",
+            default=SETTINGS.DEFAULT_PROJECT_NAME,
         )
         config_parser.add_argument(
             "--config-repo",
@@ -124,20 +136,20 @@ class ArgumentsParser:
             "you need to call it something else, use this argument",
         )
         config_parser.add_argument(
-            '--branch-protection',
-            choices=('standard', 'high'),
-            help='\nThe level to which the branch will be '
-                 'protected\n'
-                 'standard: adds review requirements, stale reviews'
-                 ' and admin enforcement\n'
-                 'high: also code owner reviews and review count',
-            default='standard',
-            action=BranchProtectArgAction
+            "--branch-protection",
+            choices=("standard", "high"),
+            help="\nThe level to which the branch will be "
+            "protected\n"
+            "standard: adds review requirements, stale reviews"
+            " and admin enforcement\n"
+            "high: also code owner reviews and review count",
+            default="standard",
+            action=BranchProtectArgAction,
         )
         config_parser.add_argument(
             "--bypass-branch-protection",
             help="Bypasses branch protection when updating files"
-                 " which already exist in the repository",
+            " which already exist in the repository",
             default=False,
             action="store_true",
         )
@@ -150,7 +162,8 @@ class ArgumentsParser:
         )
         config_parser.add_argument(
             "--output-data",
-            help="Output repo data to files in " + str(SETTINGS.PROJECT_DATA_DIR),
+            help="Output repo data to files in "
+            + str(SETTINGS.PROJECT_DATA_DIR),
             action="store_true",
         )
 
