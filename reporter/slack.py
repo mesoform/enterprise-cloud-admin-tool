@@ -1,6 +1,8 @@
+import textwrap
+
 import slack
 
-from .base import Notificator
+from .base import Notification, Notificator
 
 
 class SlackNotificatorException(Exception):
@@ -28,7 +30,21 @@ class SlackNotificator(Notificator):
         self.token = args.slack_token
         self.channel = args.slack_channel
 
-    def send_message(self, message):
+    def _send_notification(self, notification_text: str):
         self.notification_client.chat_postMessage(
-            channel=f"#{self.channel}", text=message,
+            channel=f"#{self.channel}", text=notification_text,
         )
+
+    def _get_notification_text(self, notification: Notification) -> str:
+        notification_text = textwrap.dedent(
+            f"""\
+            *{notification.message}*
+            Run type: `{notification.run_type}`
+            Project ID: `{notification.project_id}`
+            Deployment on: `{notification.deployment_target}`
+            """
+        )
+        if notification.result is not None:
+            notification_text += f"Result: `{notification.result}`"
+
+        return notification_text
