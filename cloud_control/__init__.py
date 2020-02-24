@@ -22,9 +22,17 @@ class CloudControlException(Exception):
     pass
 
 
-class LoggingSystemArgAction(argparse.Action):
+class NotificationException(CloudControlException):
+    pass
+
+
+class MonitoringException(CloudControlException):
+    pass
+
+
+class NotificationSystemArgAction(argparse.Action):
     """
-    Converts "monitoring-system" cli argument to instance of Metrics
+    Converts "notification-system" cli argument to instance of Metrics
     """
 
     def __init__(self, option_strings, dest, nargs=None, **kwargs):
@@ -36,7 +44,7 @@ class LoggingSystemArgAction(argparse.Action):
         if values == "slack":
             notification_system = SlackNotificator
         else:
-            raise CloudControlException(
+            raise NotificationException(
                 f"Integration with '{values}' notification system is not implemented yet."
             )
 
@@ -59,7 +67,7 @@ class MonitoringSystemArgAction(argparse.Action):
         elif values == "cloudwatch":
             monitoring_system = CloudWatchMetrics
         else:
-            raise CloudControlException(
+            raise MonitoringException(
                 f"Integration with '{values}' monitoring system is not implemented yet."
             )
 
@@ -77,7 +85,7 @@ class ArgumentsParser:
         self.root_parser.add_argument(
             "--notification-system",
             help="notification system, such as GCP Stackdriver, AWS CloudWatch, or Slack",
-            action=LoggingSystemArgAction,
+            action=NotificationSystemArgAction,
             choices=["slack"],
         )
         self.root_parser.add_argument(
@@ -247,7 +255,7 @@ class CloudControl:
         self._local_metrics = value
 
     @property
-    def notification_system(self):
+    def notification_system(self) -> Union[SlackNotificator]:
         return self._notification_system
 
     @notification_system.setter
@@ -308,7 +316,7 @@ class CloudControl:
         """
         if self.notification_system:
             deployment_target = (
-                "GCP Stackdriver" if self.args.command == "deploy" else "Github"
+                "Google Cloud Platform" if self.args.command == "deploy" else "Github"
             )
 
             notification = {
