@@ -226,4 +226,7 @@ class Notifier:
         raise NotImplementedError
 
     def send_notification(self, notification: Notification):
+        """
+        Processes given Notification instance and sends it to notification backend
+        """
         self._send_notification(self._get_notification_text(notification))
