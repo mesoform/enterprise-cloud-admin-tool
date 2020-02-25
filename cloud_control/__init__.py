@@ -212,6 +212,12 @@ class CloudControl:
     Entry point. Calls specific command passed to cli-app.
     """
 
+    CLOUD_NAME_MAP = {
+        "gcp": "Google Cloud Platform",
+        "aws": "Amazon Web Services",
+        "github": "Github",
+    }
+
     def __init__(self, args):
         self.args = args
 
@@ -316,7 +322,9 @@ class CloudControl:
         """
         if self.notification_system:
             deployment_target = (
-                "Google Cloud Platform" if self.args.command == "deploy" else "Github"
+                self.CLOUD_NAME_MAP["gcp"]
+                if self.args.command == "deploy"
+                else self.CLOUD_NAME_MAP["github"]
             )
 
             notification = {
