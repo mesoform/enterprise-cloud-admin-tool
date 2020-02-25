@@ -2,16 +2,16 @@ import textwrap
 
 import slack
 
-from .base import Notification, Notificator
+from .base import Notification, Notifier
 
 
-class SlackNotificatorException(Exception):
+class SlackNotifierException(Exception):
     """
     For an errors occurred during reporting in Slack.
     """
 
 
-class SlackNotificator(Notificator):
+class SlackNotifier(Notifier):
     def __init__(self, args):
         self.token = None
         self.channel = None
@@ -22,10 +22,10 @@ class SlackNotificator(Notificator):
 
     def _process_args(self, args):
         if not args.slack_token:
-            raise SlackNotificatorException("You must provide slack token.")
+            raise SlackNotifierException("You must provide slack token.")
 
         if not args.slack_channel:
-            raise SlackNotificatorException("You must provide slack channel.")
+            raise SlackNotifierException("You must provide slack channel.")
 
         self.token = args.slack_token
         self.channel = args.slack_channel

@@ -10,7 +10,7 @@ from deployer import deploy
 from reporter.local import get_logger, LocalMetrics
 from reporter.base import MetricsRegistry, Metrics, Notification
 
-from reporter.slack import SlackNotificator
+from reporter.slack import SlackNotifier
 
 from reporter.stackdriver import StackdriverMetrics
 from reporter.cloudwatch import CloudWatchMetrics
@@ -42,7 +42,7 @@ class NotificationSystemArgAction(argparse.Action):
 
     def __call__(self, parser, namespace, values, option_string=None):
         if values == "slack":
-            notification_system = SlackNotificator
+            notification_system = SlackNotifier
         else:
             raise NotificationException(
                 f"Integration with '{values}' notification system is not implemented yet."
@@ -255,11 +255,11 @@ class CloudControl:
         self._local_metrics = value
 
     @property
-    def notification_system(self) -> Union[SlackNotificator]:
+    def notification_system(self) -> Union[SlackNotifier]:
         return self._notification_system
 
     @notification_system.setter
-    def notification_system(self, value: Union[SlackNotificator]):
+    def notification_system(self, value: Union[SlackNotifier]):
         self._notification_system = value
 
     def _log_and_send_metrics(self, command, success):

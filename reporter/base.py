@@ -195,7 +195,7 @@ class Notification:
         self.result = result
 
 
-class Notificator:
+class Notifier:
     """
     Base class for notification backends
     """
