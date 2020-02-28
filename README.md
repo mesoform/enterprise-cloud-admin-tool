@@ -319,6 +319,7 @@ In general, steps are:
 4) On the same page you should click on `Install App to Workspace` button.
 5) Then, you will be asked to approve permissions request. Confirm it.
 6) You will be redirected on the page with your `Bot User OAuth Access Token`. Copy it and use as `--slack-token`.
+7) Tag `@ecat` in some channel, invite it, and use that channel as `--slack-channel`.
 
 ## Troubleshooting
 
