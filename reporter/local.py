@@ -111,7 +111,7 @@ class LocalMetrics(Metrics):
         self.metrics_file = None
         super().__init__(args)
 
-    def process_args(self, args):
+    def _process_args(self, args):
         self.metrics_file = args.metrics_file
 
     def send_metrics(self):

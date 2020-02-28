@@ -1,5 +1,6 @@
 import argparse
 from datetime import datetime
+from typing import Union
 
 import common
 
@@ -7,7 +8,10 @@ from code_control import setup, BranchProtectArgAction
 from deployer import deploy
 
 from reporter.local import get_logger, LocalMetrics
-from reporter.base import MetricsRegistry, Metrics
+from reporter.base import MetricsRegistry, Metrics, Notification
+
+from reporter.slack import SlackNotifier
+
 from reporter.stackdriver import StackdriverMetrics
 from reporter.cloudwatch import CloudWatchMetrics
 
@@ -16,6 +20,35 @@ from settings import SETTINGS
 
 class CloudControlException(Exception):
     pass
+
+
+class NotificationException(CloudControlException):
+    pass
+
+
+class MonitoringException(CloudControlException):
+    pass
+
+
+class NotificationSystemArgAction(argparse.Action):
+    """
+    Converts "notification-system" cli argument to instance of Metrics
+    """
+
+    def __init__(self, option_strings, dest, nargs=None, **kwargs):
+        if nargs is not None:
+            raise ValueError("nargs not allowed")
+        super().__init__(option_strings, dest, **kwargs)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        if values == "slack":
+            notification_system = SlackNotifier
+        else:
+            raise NotificationException(
+                f"Integration with '{values}' notification system is not implemented yet."
+            )
+
+        setattr(namespace, self.dest, notification_system)
 
 
 class MonitoringSystemArgAction(argparse.Action):
@@ -34,7 +67,7 @@ class MonitoringSystemArgAction(argparse.Action):
         elif values == "cloudwatch":
             monitoring_system = CloudWatchMetrics
         else:
-            raise CloudControlException(
+            raise MonitoringException(
                 f"Integration with '{values}' monitoring system is not implemented yet."
             )
 
@@ -49,6 +82,12 @@ class ArgumentsParser:
     def __init__(self, args=None):
         self.root_parser = common.root_parser()
 
+        self.root_parser.add_argument(
+            "--notification-system",
+            help="notification system, such as GCP Stackdriver, AWS CloudWatch, or Slack",
+            action=NotificationSystemArgAction,
+            choices=["slack"],
+        )
         self.root_parser.add_argument(
             "--monitoring-system",
             help="monitoring system for metrics, such as GCP Stackdriver, AWS CloudWatch, "
@@ -85,7 +124,9 @@ class ArgumentsParser:
             default=SETTINGS.DEFAULT_PROJECT_NAME,
         )
         deploy_parser.add_argument(
-            "--cloud", choices=["all"] + SETTINGS.SUPPORTED_CLOUDS
+            "--cloud",
+            choices=["all"] + SETTINGS.SUPPORTED_CLOUDS,
+            default="gcp",
         )
         deploy_parser.add_argument(
             "--code-repo",
@@ -173,18 +214,39 @@ class CloudControl:
     Entry point. Calls specific command passed to cli-app.
     """
 
+    CLOUD_NAME_MAP = {
+        "gcp": "Google Cloud Platform",
+        "aws": "Amazon Web Services",
+        "github": "Github",
+    }
+
     def __init__(self, args):
         self.args = args
+
+        if self.args.vcs_platform == "all":
+            raise CloudControlException(
+                "Choosing of all VCS platforms is not implemented currently."
+            )
+
+        if self.args.command == "deploy" and self.args.cloud == "all":
+            raise CloudControlException(
+                "Choosing of all clouds is not implemented currently."
+            )
 
         self._setup_logger()
         self.metrics_registry = MetricsRegistry(args.command)
         self.metrics_registry.add_metric("total", 1)
         self._local_metrics = None
         self._remote_metrics = None
+        self._notification_system = None
 
         self.local_metrics = LocalMetrics(self.args)
+
         if self.args.monitoring_system:
             self.remote_metrics = self.args.monitoring_system(self.args)
+
+        if self.args.notification_system:
+            self.notification_system = self.args.notification_system(self.args)
 
     def _setup_logger(self):
         self._log = get_logger(
@@ -210,6 +272,14 @@ class CloudControl:
     def local_metrics(self, value: Metrics):
         self._local_metrics = value
 
+    @property
+    def notification_system(self) -> Union[SlackNotifier]:
+        return self._notification_system
+
+    @notification_system.setter
+    def notification_system(self, value: Union[SlackNotifier]):
+        self._notification_system = value
+
     def _log_and_send_metrics(self, command, success):
         self._log.info("finished " + command + " run")
 
@@ -230,6 +300,10 @@ class CloudControl:
             self.local_metrics.metrics_registry = self.metrics_registry
             self.local_metrics.send_metrics()
 
+        self._send_notification(
+            "Finished new run.", "success" if success else "failure"
+        )
+
     def perform_command(self):
         """
         Checks that passed command implemented in entry point class,
@@ -245,11 +319,38 @@ class CloudControl:
                 "Command {} does not implemented".format(self.args.command)
             )
 
+        self._send_notification("Started new run.")
+
         success = False
         try:
             success = command()
         finally:
             self._log_and_send_metrics(self.args.command, success)
+
+    def _send_notification(self, message, result=None):
+        """
+        If notification system enabled, collects required information and
+        sends notification.
+        """
+        if self.notification_system:
+            deployment_target = (
+                self.CLOUD_NAME_MAP[self.args.cloud]
+                if self.args.command == "deploy"
+                else self.CLOUD_NAME_MAP[self.args.vcs_platform]
+            )
+
+            notification = {
+                "message": message,
+                "run_type": self.args.command,
+                "project_id": self.args.project_id,
+                "deployment_target": deployment_target,
+            }
+            if result is not None:
+                notification["result"] = result
+
+            self.notification_system.send_notification(
+                Notification(**notification)
+            )
 
     def _deploy(self):
         self._log.info("Starting deployment")

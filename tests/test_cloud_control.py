@@ -5,6 +5,7 @@ from unittest.mock import Mock
 import pytest
 
 from cloud_control import ArgumentsParser, CloudControl, CloudControlException
+from reporter.slack import SlackNotifier
 from reporter.stackdriver import StackdriverMetrics
 
 
@@ -76,6 +77,8 @@ def test_argument_parser_defaults(tmpdir):
             "random-monitoring-project",
             "--monitoring-system",
             "stackdriver",
+            "--notification-system",
+            "slack",
             "--disable-local-reporter",
             "--json-logging",
             "deploy",
@@ -107,10 +110,14 @@ def test_argument_parser_defaults(tmpdir):
         "json_logging": True,
         "monitoring_namespace": "random-monitoring-project",
         "monitoring_system": StackdriverMetrics,
+        "notification_system": SlackNotifier,
+        "slack_channel": None,
+        "slack_token": None,
         "log_file": "/var/log/enterprise_cloud_admin.log",
         "metrics_file": "/var/log/enterprise_cloud_admin_metrics",
         "debug": False,
         "command": "deploy",
         "force": False,
         "cloud": "gcp",
+        "vcs_platform": "github",
     }

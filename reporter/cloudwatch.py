@@ -11,7 +11,7 @@ class CloudWatchMetrics(Metrics):
 
         self.metrics_client = boto3.client("cloudwatch")
 
-    def process_args(self, args):
+    def _process_args(self, args):
         self.namespace = args.monitoring_namespace.upper()
 
     def send_metrics(self):

@@ -1,4 +1,6 @@
 from datetime import datetime, timedelta
+from typing import Any
+
 from prometheus_metrics_proto import Counter, Gauge
 
 
@@ -55,7 +57,7 @@ class MetricsRegistry:
     def metrics(self):
         return self._metrics[self.metric_set]
 
-    def add_metric(self, metric_name: str, metric_value: any):
+    def add_metric(self, metric_name: str, metric_value: Any):
         if metric_name not in self.metrics:
             raise KeyError
 
@@ -92,15 +94,12 @@ class Metrics:
             "seconds": NotImplemented,
             "minutes": NotImplemented,
             "hours": NotImplemented,
-            "days": NotImplemented
+            "days": NotImplemented,
         }
-        self.metric_types_map = {
-            Gauge: NotImplemented,
-            Counter: NotImplemented
-        }
+        self.metric_types_map = {Gauge: NotImplemented, Counter: NotImplemented}
 
         if args is not None:
-            self.process_args(args)
+            self._process_args(args)
 
     @property
     def app_runtime(self) -> timedelta:
@@ -154,7 +153,7 @@ class Metrics:
         """
         self._metric_types_map = values
 
-    def process_args(self, args):
+    def _process_args(self, args):
         """
         Method for processing info, that came from cli, such as
         credentials data or platform-specific arguments
@@ -174,3 +173,60 @@ class Metrics:
         monitoring server and stores it in self.prepared_metrics, then returns enriched metrics
         """
         raise NotImplementedError
+
+
+class Notification:
+    """
+    Basic data structure, that holds all necessary notification info
+    """
+
+    def __init__(
+        self,
+        message: str,
+        run_type: str,
+        project_id: str,
+        deployment_target: str,
+        result: str = None,
+    ):
+        self.message = message
+        self.run_type = run_type
+        self.project_id = project_id
+        self.deployment_target = deployment_target
+        self.result = result
+
+
+class Notifier:
+    """
+    Base class for notification backends
+    """
+
+    def __init__(self, args):
+        self.notification_client = None
+
+        if args is not None:
+            self._process_args(args)
+
+    def _process_args(self, args):
+        """
+        Method for processing info, that came from cli, such as
+        credentials data or platform-specific arguments
+        """
+        raise NotImplementedError
+
+    def _get_notification_text(self, notification: Notification) -> str:
+        """
+        Should return text representation of Notification instance.
+        """
+        raise NotImplementedError
+
+    def _send_notification(self, notification_text: str):
+        """
+        Should use notification client to send notification text
+        """
+        raise NotImplementedError
+
+    def send_notification(self, notification: Notification):
+        """
+        Processes given Notification instance and sends it to notification backend
+        """
+        self._send_notification(self._get_notification_text(notification))
