@@ -119,4 +119,5 @@ def test_argument_parser_defaults(tmpdir):
         "command": "deploy",
         "force": False,
         "cloud": "gcp",
+        "vcs_platform": "github",
     }
