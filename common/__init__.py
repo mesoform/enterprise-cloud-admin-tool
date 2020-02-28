@@ -105,6 +105,11 @@ def root_parser():
         "--slack-channel",
         help="Name of channel, where notifications will go",
     )
+    parser.add_argument(
+        "--vcs-platform",
+        choices=["all"] + SETTINGS.SUPPORTED_VCS_PLATFORMS,
+        default="github"
+    )
     return parser
 
 

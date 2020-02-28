@@ -124,7 +124,9 @@ class ArgumentsParser:
             default=SETTINGS.DEFAULT_PROJECT_NAME,
         )
         deploy_parser.add_argument(
-            "--cloud", choices=["all"] + SETTINGS.SUPPORTED_CLOUDS
+            "--cloud",
+            choices=["all"] + SETTINGS.SUPPORTED_CLOUDS,
+            default="gcp",
         )
         deploy_parser.add_argument(
             "--code-repo",
@@ -220,6 +222,16 @@ class CloudControl:
 
     def __init__(self, args):
         self.args = args
+
+        if self.args.vcs_platform == "all":
+            raise CloudControlException(
+                "Choosing of all VCS platforms is not implemented currently."
+            )
+
+        if self.args.command == "deploy" and self.args.cloud == "all":
+            raise CloudControlException(
+                "Choosing of all clouds is not implemented currently."
+            )
 
         self._setup_logger()
         self.metrics_registry = MetricsRegistry(args.command)
@@ -322,9 +334,9 @@ class CloudControl:
         """
         if self.notification_system:
             deployment_target = (
-                self.CLOUD_NAME_MAP["gcp"]
+                self.CLOUD_NAME_MAP[self.args.cloud]
                 if self.args.command == "deploy"
-                else self.CLOUD_NAME_MAP["github"]
+                else self.CLOUD_NAME_MAP[self.args.vcs_platform]
             )
 
             notification = {
