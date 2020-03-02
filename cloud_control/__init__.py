@@ -286,8 +286,9 @@ class CloudControl:
         self.metrics_registry.add_metric("successes", int(success))
         self.metrics_registry.add_metric("failures", int(not success))
 
+        end_time = datetime.utcnow()
         if self.remote_metrics is not None:
-            self.remote_metrics.end_time = datetime.utcnow()
+            self.remote_metrics.end_time = end_time
 
             self.metrics_registry.add_metric(
                 "time", self.remote_metrics.app_runtime.total_seconds()
@@ -297,6 +298,12 @@ class CloudControl:
             self.remote_metrics.send_metrics()
 
         if not self.args.disable_local_reporter:
+            if self.metrics_registry.metrics["time"]["value"] is None:
+                self.local_metrics.end_time = end_time
+                self.metrics_registry.add_metric(
+                    "time", self.local_metrics.app_runtime.total_seconds()
+                )
+
             self.local_metrics.metrics_registry = self.metrics_registry
             self.local_metrics.send_metrics()
 
