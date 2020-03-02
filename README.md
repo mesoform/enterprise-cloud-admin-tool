@@ -32,6 +32,11 @@ Official Terraform documentation points [here](https://stackoverflow.com/questio
 
 1. Your platform should have installed [pipenv](https://github.com/pypa/pipenv).
 
+    If you're unable to install it through system package manager, you can use `pip`:
+    `pip install --user --upgrade pipenv`.
+
+    Recommended way of installing `pip` is through official `get_pip.py` script. You can find more information [here](https://pip.pypa.io/en/stable/installing/).
+
 1. You must have access token of your Github account, and this account should be admin of
 some Github organization.
 You can generate it here: `Settings` -> `Developer settings` -> `Personal access tokens` -> `Generate new token`.
