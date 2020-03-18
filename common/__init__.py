@@ -27,35 +27,37 @@ def root_parser():
     )
     parser.set_defaults(force=False)
     parser.add_argument(
-        "-a",
         "--api-url",
+        "-a",
         help="URL to GitHub API",
         default=SETTINGS.DEFAULT_GITHUB_API_URL,
     )
     parser.add_argument(
-        "-o",
         "--code-org",
+        "-o",
         help="ID of the organisation where the Terraform code" "repository is",
         default=SETTINGS.DEFAULT_CODE_ORG,
     )
     parser.add_argument(
-        "-O",
         "--config-org",
+        "-O",
         help="ID of the organisation where the configuration" "repository is",
         default=SETTINGS.DEFAULT_CONFIG_ORG,
     )
     parser.add_argument(
-        "-t", "--vcs-token", help="Authentication for VCS platform"
+        "--vcs-token",
+        "-t",
+        help="Authentication for VCS platform"
     )
     parser.add_argument(
-        "-c",
         "--config-version",
+        "-c",
         help="git branch for the configuration",
         default=SETTINGS.DEFAULT_GIT_REF,
     )
     parser.add_argument(
-        "-T",
         "--code-version",
+        "-T",
         help="git branch for the code",
         default=SETTINGS.DEFAULT_GIT_REF,
     )
@@ -98,11 +100,13 @@ def root_parser():
         action="store_true",
     )
     parser.add_argument(
-        "-st", "--slack-token", help="Slack bot user OAuth access token"
+        "--slack-token",
+        "-st",
+        help="Slack bot user OAuth access token"
     )
     parser.add_argument(
-        "-sc",
         "--slack-channel",
+        "-sc",
         help="Name of channel, where notifications will go",
     )
     parser.add_argument(
