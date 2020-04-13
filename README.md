@@ -48,18 +48,23 @@ This token needs permissions for 'repo', 'admin:org', and 'delete_repo'.
 
     As this project will also be used as a monitoring namespace you need to create that namespace. To do so go to 'Monitoring' menu and create a monitoring space in Stackdriver.
 
+1. When building the project Terraform will need to maintain a remote state file. This can be hosted anywhere and the path to this state file will be required in deployment code. We have used an example hosted in Google Cloud Storage (GCS). More information on remote backend is [here](https://www.terraform.io/docs/backends/types/remote.html)
+
 1. The build/monitoring project must have a service account. Switch to your project, go to `IAM` menu, and add a service account. Then assign the following permissions to that service account:
 
     - "Billing Account User" role set at the organization level or on the specified billing account by an org/billing admin. (Check billing access control documentation [here](https://cloud.google.com/billing/docs/how-to/billing-access))
     - "Project Creator" role set minimum at the folder level.
     - "Monitoring Metric Writer" role assigned at the project level.
+    - if using GCS hosted state file "Storage Object Admin" assigned at the storage level
 
     You can find how to create a service account [here](https://cloud.google.com/iam/docs/creating-managing-service-accounts).
     It doesn't matter for which project you will create service account, you will be able to use it for any API activity.
 
-1. You must create, export and save your GCP service account private key in `json` format.
+1. You must create, export and save your GCP service account private key in `json` format. More details about [here](https://cloud.google.com/iam/docs/creating-managing-service-account-keys).
 
-    More details about [here](https://cloud.google.com/iam/docs/creating-managing-service-account-keys).
+
+
+    
 
 ### Installing
 
@@ -160,6 +165,8 @@ We prepared two example repos:
 1. [example-ecat-project-config](https://github.com/mesoform/example-ecat-project-config) — contains terraform
 variable files.
 1. [example-ecat-deployment-code](https://github.com/mesoform/example-ecat-deployment-code) — contains terraform infrastructure code.
+
+* The example-ecat-deployment-code should be updated with path to the remote state bucket and prefix
 
 Please note, that both config and code repos require certain structure to be valid:
 * top-level directories must be named like: `gcp`, `aws`, or `azure`.
