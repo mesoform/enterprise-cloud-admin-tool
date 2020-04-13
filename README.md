@@ -48,11 +48,14 @@ This token needs permissions for 'repo', 'admin:org', and 'delete_repo'.
 
     As this project will also be used as a monitoring namespace you need to create that namespace. To do so go to 'Monitoring' menu and create a monitoring space in Stackdriver.
 
+1. When building the project Terraform will need to maintain a remote state file. This can be hosted anywhere and the path to this state file will be required in deployment code. We have used an example hosted in Google Cloud Storage (GCS). More information on remote backend is [here](https://www.terraform.io/docs/backends/types/remote.html)
+
 1. The build/monitoring project must have a service account. Switch to your project, go to `IAM` menu, and add a service account. Then assign the following permissions to that service account:
 
     - "Billing Account User" role set at the organization level or on the specified billing account by an org/billing admin. (Check billing access control documentation [here](https://cloud.google.com/billing/docs/how-to/billing-access))
     - "Project Creator" role set minimum at the folder level.
     - "Monitoring Metric Writer" role assigned at the project level.
+    - relevant permission to access the state file - if using GCS this is "Storage Object Admin" assigned at the storage level
 
     You can find how to create a service account [here](https://cloud.google.com/iam/docs/creating-managing-service-accounts).
     It doesn't matter for which project you will create service account, you will be able to use it for any API activity.
@@ -164,6 +167,7 @@ variable files.
 Please note, that both config and code repos require certain structure to be valid:
 * top-level directories must be named like: `gcp`, `aws`, or `azure`.
 * each top-level directory must contain it's own set of config or code files.
+* The example-ecat-deployment-code should be updated with path to the remote state bucket and prefix
 
 ### Create config repo with eCat from example
 In order to perform test deployment using these examples, you should fork these repos to your organization, and then customise the configuration as per below:
