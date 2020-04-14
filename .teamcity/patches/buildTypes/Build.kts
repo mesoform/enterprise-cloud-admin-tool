@@ -24,7 +24,6 @@ changeBuildType(RelativeId("Build")) {
             }
         }
         feature1.apply {
-            failBuild = true
         }
     }
 }
