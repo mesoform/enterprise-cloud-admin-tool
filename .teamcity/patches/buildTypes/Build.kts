@@ -1,6 +1,8 @@
 package patches.buildTypes
 
 import jetbrains.buildServer.configs.kotlin.v2018_2.*
+import jetbrains.buildServer.configs.kotlin.v2018_2.buildFeatures.FreeDiskSpace
+import jetbrains.buildServer.configs.kotlin.v2018_2.buildFeatures.freeDiskSpace
 import jetbrains.buildServer.configs.kotlin.v2018_2.ui.*
 
 /*
@@ -13,4 +15,16 @@ changeBuildType(RelativeId("Build")) {
         "Unexpected name: '$name'"
     }
     name = "Unit Testing"
+
+    features {
+        val feature1 = find<FreeDiskSpace> {
+            freeDiskSpace {
+                requiredSpace = "1gb"
+                failBuild = false
+            }
+        }
+        feature1.apply {
+            failBuild = true
+        }
+    }
 }
