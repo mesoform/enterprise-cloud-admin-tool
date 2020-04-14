@@ -2,9 +2,7 @@ package patches.buildTypes
 
 import jetbrains.buildServer.configs.kotlin.v2018_2.*
 import jetbrains.buildServer.configs.kotlin.v2018_2.buildFeatures.FreeDiskSpace
-import jetbrains.buildServer.configs.kotlin.v2018_2.buildFeatures.Swabra
 import jetbrains.buildServer.configs.kotlin.v2018_2.buildFeatures.freeDiskSpace
-import jetbrains.buildServer.configs.kotlin.v2018_2.buildFeatures.swabra
 import jetbrains.buildServer.configs.kotlin.v2018_2.ui.*
 
 /*
@@ -27,14 +25,6 @@ changeBuildType(RelativeId("Build")) {
         }
         feature1.apply {
             failBuild = true
-        }
-        val feature2 = find<Swabra> {
-            swabra {
-                forceCleanCheckout = true
-            }
-        }
-        feature2.apply {
-            filesCleanup = Swabra.FilesCleanup.AFTER_BUILD
         }
     }
 }
