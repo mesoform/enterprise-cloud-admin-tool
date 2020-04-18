@@ -1,8 +1,6 @@
 package patches.buildTypes
 
 import jetbrains.buildServer.configs.kotlin.v2018_2.*
-import jetbrains.buildServer.configs.kotlin.v2018_2.buildFeatures.FreeDiskSpace
-import jetbrains.buildServer.configs.kotlin.v2018_2.buildFeatures.freeDiskSpace
 import jetbrains.buildServer.configs.kotlin.v2018_2.ui.*
 
 /*
@@ -16,14 +14,11 @@ changeBuildType(RelativeId("Build")) {
     }
     name = "Unit Testing"
 
-    features {
-        val feature1 = find<FreeDiskSpace> {
-            freeDiskSpace {
-                requiredSpace = "1gb"
-                failBuild = false
-            }
+    failureConditions {
+
+        check(executionTimeoutMin == 30) {
+            "Unexpected option value: executionTimeoutMin = $executionTimeoutMin"
         }
-        feature1.apply {
-        }
+        executionTimeoutMin = 15
     }
 }
