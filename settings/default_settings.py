@@ -3,8 +3,12 @@ import json
 
 from pathlib import Path
 
+APPLICATION_NAME = "eCat"
+APPLICATION_VERSION = "0.1"
+
 # ############## Common settings #############
 DEFAULT_LOG_FILE = "/var/log/enterprise_cloud_admin.log"
+DEFAULT_METRICS_FILE = "/var/log/enterprise_cloud_admin_metrics"
 MODULE_ROOT_DIR = Path(__file__).resolve().parent.parent
 
 # ############## Builder settings ##############
@@ -23,7 +27,7 @@ DEFAULT_TOKEN = (
     if os.path.exists(DEFAULT_TOKEN_FILE)
     else ""
 )
-SUPPORTED_CLOUDS = ["aws", "gcp", "triton"]
+SUPPORTED_CLOUDS = ["gcp"]
 SUPPORTED_VCS_PLATFORMS = ["github"]
 SUPPORTED_ORCHESTRATORS = ["terraform"]
 VALID_PROJECT_ID_FORMAT = "^[a-z]{4}-[a-z0-9]{4,31}-(?:dev|prod|test)$"

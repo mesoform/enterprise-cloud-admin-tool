@@ -1,19 +1,77 @@
 import argparse
 from datetime import datetime
+from typing import Union
 
 import common
-import reporter.local
 
+from code_control import setup, BranchProtectArgAction
 from deployer import deploy
 
-# from checker import check
-from code_control import setup, BranchProtectArgAction
+from reporter.local import get_logger, LocalMetrics
+from reporter.base import MetricsRegistry, Metrics, Notification
+
+from reporter.slack import SlackNotifier
+
+from reporter.stackdriver import StackdriverMetrics
+from reporter.cloudwatch import CloudWatchMetrics
 
 from settings import SETTINGS
 
 
 class CloudControlException(Exception):
     pass
+
+
+class NotificationException(CloudControlException):
+    pass
+
+
+class MonitoringException(CloudControlException):
+    pass
+
+
+class NotificationSystemArgAction(argparse.Action):
+    """
+    Converts "notification-system" cli argument to instance of Metrics
+    """
+
+    def __init__(self, option_strings, dest, nargs=None, **kwargs):
+        if nargs is not None:
+            raise ValueError("nargs not allowed")
+        super().__init__(option_strings, dest, **kwargs)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        if values == "slack":
+            notification_system = SlackNotifier
+        else:
+            raise NotificationException(
+                f"Integration with '{values}' notification system is not implemented yet."
+            )
+
+        setattr(namespace, self.dest, notification_system)
+
+
+class MonitoringSystemArgAction(argparse.Action):
+    """
+    Converts "monitoring-system" cli argument to instance of Metrics
+    """
+
+    def __init__(self, option_strings, dest, nargs=None, **kwargs):
+        if nargs is not None:
+            raise ValueError("nargs not allowed")
+        super().__init__(option_strings, dest, **kwargs)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        if values == "stackdriver":
+            monitoring_system = StackdriverMetrics
+        elif values == "cloudwatch":
+            monitoring_system = CloudWatchMetrics
+        else:
+            raise MonitoringException(
+                f"Integration with '{values}' monitoring system is not implemented yet."
+            )
+
+        setattr(namespace, self.dest, monitoring_system)
 
 
 class ArgumentsParser:
@@ -23,6 +81,21 @@ class ArgumentsParser:
 
     def __init__(self, args=None):
         self.root_parser = common.root_parser()
+
+        self.root_parser.add_argument(
+            "--notification-system",
+            help="notification system, such as GCP Stackdriver, AWS CloudWatch, or Slack",
+            action=NotificationSystemArgAction,
+            choices=["slack"],
+        )
+        self.root_parser.add_argument(
+            "--monitoring-system",
+            help="monitoring system for metrics, such as GCP Stackdriver, AWS CloudWatch, "
+            "Zabbix, etc.",
+            action=MonitoringSystemArgAction,
+            choices=["stackdriver", "cloudwatch", "zabbix"],
+        )
+
         self.management_parser = self.root_parser.add_subparsers(
             help="manage infrastructure deployment or infrastructure"
             " configuration",
@@ -44,8 +117,16 @@ class ArgumentsParser:
             "deploy", help="deploy configuration to the cloud"
         )
         deploy_parser.formatter_class = argparse.RawTextHelpFormatter
+
         deploy_parser.add_argument(
-            "--cloud", choices=["all"] + SETTINGS.SUPPORTED_CLOUDS
+            "project_id",
+            help="ID of project we're deploying changes for",
+            default=SETTINGS.DEFAULT_PROJECT_NAME,
+        )
+        deploy_parser.add_argument(
+            "--cloud",
+            choices=["all"] + SETTINGS.SUPPORTED_CLOUDS,
+            default="gcp",
         )
         deploy_parser.add_argument(
             "--code-repo",
@@ -76,9 +157,15 @@ class ArgumentsParser:
             force=False,
         )
         config_parser.formatter_class = argparse.RawTextHelpFormatter
+
         config_parser.add_argument("--github")
         config_parser.add_argument(
             "c_action", choices=("create", "delete", "update")
+        )
+        config_parser.add_argument(
+            "project_id",
+            help="ID of project we're creating a repository for",
+            default=SETTINGS.DEFAULT_PROJECT_NAME,
         )
         config_parser.add_argument(
             "--config-repo",
@@ -90,15 +177,15 @@ class ArgumentsParser:
             "you need to call it something else, use this argument",
         )
         config_parser.add_argument(
-            '--branch-protection',
-            choices=('standard', 'high'),
-            help='\nThe level to which the branch will be '
-                 'protected\n'
-                 'standard: adds review requirements, stale reviews'
-                 ' and admin enforcement\n'
-                 'high: also code owner reviews and review count',
-            default='standard',
-            action=BranchProtectArgAction
+            "--branch-protection",
+            choices=("standard", "high"),
+            help="\nThe level to which the branch will be "
+            "protected\n"
+            "standard: adds review requirements, stale reviews"
+            " and admin enforcement\n"
+            "high: also code owner reviews and review count",
+            default="standard",
+            action=BranchProtectArgAction,
         )
         config_parser.add_argument(
             "--bypass-branch-protection",
@@ -114,6 +201,12 @@ class ArgumentsParser:
             default=False,
             action="store_true",
         )
+        config_parser.add_argument(
+            "--output-data",
+            help="Output repo data to files in "
+            + str(SETTINGS.PROJECT_DATA_DIR),
+            action="store_true",
+        )
 
 
 class CloudControl:
@@ -121,57 +214,102 @@ class CloudControl:
     Entry point. Calls specific command passed to cli-app.
     """
 
+    CLOUD_NAME_MAP = {
+        "gcp": "Google Cloud Platform",
+        "aws": "Amazon Web Services",
+        "github": "Github",
+    }
+
     def __init__(self, args):
         self.args = args
 
+        if self.args.vcs_platform == "all":
+            raise CloudControlException(
+                "Choosing of all VCS platforms is not implemented currently."
+            )
+
+        if self.args.command == "deploy" and self.args.cloud == "all":
+            raise CloudControlException(
+                "Choosing of all clouds is not implemented currently."
+            )
+
         self._setup_logger()
-        self._setup_app_metrics()
+        self.metrics_registry = MetricsRegistry(args.command)
+        self.metrics_registry.add_metric("total", 1)
+        self._local_metrics = None
+        self._remote_metrics = None
+        self._notification_system = None
+
+        self.local_metrics = LocalMetrics(self.args)
+
+        if self.args.monitoring_system:
+            self.remote_metrics = self.args.monitoring_system(self.args)
+
+        if self.args.notification_system:
+            self.notification_system = self.args.notification_system(self.args)
 
     def _setup_logger(self):
-        self._log = reporter.local.get_logger(
-            __name__, self.args.log_file, self.args.debug
+        self._log = get_logger(
+            __name__,
+            log_file=self.args.log_file,
+            debug=self.args.debug,
+            json_formatter=self.args.json_logging,
         )
 
-    def _setup_app_metrics(self):
-        if getattr(self.args, "key_file", None):
-            auth = common.GcpAuth(self.args.key_file)
-        else:
-            auth = common.GcpAuth()
+    @property
+    def remote_metrics(self) -> Metrics:
+        return self._remote_metrics
 
-        self._app_metrics = reporter.stackdriver.AppMetrics(
-            monitoring_credentials=auth.credentials,
-            monitoring_project=self.args.monitoring_namespace,
-            metrics_set_list=[],
-        )
+    @remote_metrics.setter
+    def remote_metrics(self, value: Metrics):
+        self._remote_metrics = value
 
-    def _log_and_send_metrics(self, command, command_result):
+    @property
+    def local_metrics(self) -> Metrics:
+        return self._local_metrics
+
+    @local_metrics.setter
+    def local_metrics(self, value: Metrics):
+        self._local_metrics = value
+
+    @property
+    def notification_system(self) -> Union[SlackNotifier]:
+        return self._notification_system
+
+    @notification_system.setter
+    def notification_system(self, value: Union[SlackNotifier]):
+        self._notification_system = value
+
+    def _log_and_send_metrics(self, command, success):
         self._log.info("finished " + command + " run")
-        self._app_metrics.end_time = datetime.utcnow()
 
-        self._app_metrics.metrics_set_list = [
-            {
-                "metric_name": "deployment_time",
-                "labels": {
-                    "result": "success" if command_result else "failure",
-                    "command": self.args.command,
-                },
-                "metric_kind": "gauge",
-                "value_type": "double",
-                "value": self._app_metrics.app_runtime.total_seconds(),
-            },
-            {
-                "metric_name": "deployments_rate",
-                "labels": {
-                    "result": "success" if command_result else "failure",
-                    "command": self.args.command,
-                },
-                "metric_kind": "cumulative",
-                "value_type": "int64",
-                "value": 1,
-                "unit": "h",
-            },
-        ]
-        self._app_metrics.send_metrics()
+        self.metrics_registry.add_metric("successes", int(success))
+        self.metrics_registry.add_metric("failures", int(not success))
+
+        end_time = datetime.utcnow()
+        if self.remote_metrics is not None:
+            self.remote_metrics.end_time = end_time
+
+            self.metrics_registry.add_metric(
+                "time", self.remote_metrics.app_runtime.total_seconds()
+            )
+
+            self.remote_metrics.metrics_registry = self.metrics_registry
+            self.remote_metrics.send_metrics()
+
+        if not self.args.disable_local_reporter:
+            if self.metrics_registry.metrics["time"]["value"] is None:
+                self.local_metrics.end_time = end_time
+                self.metrics_registry.add_metric(
+                    "time", self.local_metrics.app_runtime.total_seconds()
+                )
+
+            self.local_metrics.metrics_registry = self.metrics_registry
+            self.local_metrics.send_metrics()
+
+        self._send_notification(
+            "Finished new run.", "success" if success else "failure"
+        )
 
     def perform_command(self):
         """
@@ -188,11 +326,38 @@ class CloudControl:
                 "Command {} does not implemented".format(self.args.command)
             )
 
-        result = False
+        self._send_notification("Started new run.")
+
+        success = False
         try:
-            result = command()
+            success = command()
         finally:
-            self._log_and_send_metrics(self.args.command, result)
+            self._log_and_send_metrics(self.args.command, success)
+
+    def _send_notification(self, message, result=None):
+        """
+        If notification system enabled, collects required information and
+        sends notification.
+        """
+        if self.notification_system:
+            deployment_target = (
+                self.CLOUD_NAME_MAP[self.args.cloud]
+                if self.args.command == "deploy"
+                else self.CLOUD_NAME_MAP[self.args.vcs_platform]
+            )
+
+            notification = {
+                "message": message,
+                "run_type": self.args.command,
+                "project_id": self.args.project_id,
+                "deployment_target": deployment_target,
+            }
+            if result is not None:
+                notification["result"] = result
+
+            self.notification_system.send_notification(
+                Notification(**notification)
+            )
 
     def _deploy(self):
         self._log.info("Starting deployment")

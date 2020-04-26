@@ -27,53 +27,37 @@ def root_parser():
     )
     parser.set_defaults(force=False)
     parser.add_argument(
-        "-a",
         "--api-url",
+        "-a",
         help="URL to GitHub API",
         default=SETTINGS.DEFAULT_GITHUB_API_URL,
     )
     parser.add_argument(
-        "--output-data",
-        help="Output repo data to files in " + str(SETTINGS.PROJECT_DATA_DIR),
-        action="store_true",
-    )
-    parser.add_argument(
-        "-o",
         "--code-org",
+        "-o",
         help="ID of the organisation where the Terraform code" "repository is",
         default=SETTINGS.DEFAULT_CODE_ORG,
     )
     parser.add_argument(
-        "-O",
         "--config-org",
+        "-O",
         help="ID of the organisation where the configuration" "repository is",
         default=SETTINGS.DEFAULT_CONFIG_ORG,
     )
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument(
-        "-p",
-        "--project-id",
-        help="ID of project we're creating a repository for",
-        default=SETTINGS.DEFAULT_PROJECT_NAME,
-    )
-    group.add_argument(
-        "-q",
-        "--queued-projects",
-        help="fetch a list of projects from requests queue",
-        action=QueuedProjectsArgAction,
+    parser.add_argument(
+        "--vcs-token",
+        "-t",
+        help="Authentication for VCS platform"
     )
     parser.add_argument(
-        "-t", "--vcs-token", help="Authentication for VCS platform"
-    )
-    parser.add_argument(
-        "-c",
         "--config-version",
+        "-c",
         help="git branch for the configuration",
         default=SETTINGS.DEFAULT_GIT_REF,
     )
     parser.add_argument(
-        "-T",
         "--code-version",
+        "-T",
         help="git branch for the code",
         default=SETTINGS.DEFAULT_GIT_REF,
     )
@@ -90,13 +74,45 @@ def root_parser():
     )
     parser.add_argument(
         "--log-file",
-        help="path to file, if different from default",
+        help="path to log file, if different from default",
         default=SETTINGS.DEFAULT_LOG_FILE,
+    )
+    parser.add_argument(
+        "--metrics-file",
+        help="path to file containing monitoring metrics, if different from default",
+        default=SETTINGS.DEFAULT_METRICS_FILE,
     )
     parser.add_argument(
         "--debug",
         help="output debug information to help troubleshoot issues",
         default=False,
+    )
+    parser.add_argument(
+        "--disable-local-reporter",
+        help="disable logging and monitoring to local files",
+        default=False,
+        action="store_true",
+    )
+    parser.add_argument(
+        "--json-logging",
+        help="Enable logging in json logging format",
+        default=False,
+        action="store_true",
+    )
+    parser.add_argument(
+        "--slack-token",
+        "-st",
+        help="Slack bot user OAuth access token"
+    )
+    parser.add_argument(
+        "--slack-channel",
+        "-sc",
+        help="Name of channel, where notifications will go",
+    )
+    parser.add_argument(
+        "--vcs-platform",
+        choices=["all"] + SETTINGS.SUPPORTED_VCS_PLATFORMS,
+        default="github"
     )
     return parser
 
@@ -161,19 +177,6 @@ class GcpAuth:
     #     """
     #     return storage_class(project=_get_project_id(),
     #                          credentials=get_gcs_credentials())
-
-
-class QueuedProjectsArgAction(argparse.Action):
-    def __init__(self, option_strings, dest, nargs=None, **kwargs):
-        if nargs is not None:
-            raise ValueError("nargs not allowed")
-        super(QueuedProjectsArgAction, self).__init__(
-            option_strings, dest, nargs=0, **kwargs
-        )
-
-    def __call__(self, parser, namespace, values, option_string=None):
-        # ToDo: add function call to get projects list from JIRA
-        setattr(namespace, "projects_list", [])
 
 
 def get_org(parsed_args, org):
