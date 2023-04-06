@@ -1,5 +1,5 @@
 # Base container
-FROM python:3.6.9-slim-buster as base
+FROM python:3.10.10-slim-buster as base
 
 ENV LC_ALL C.UTF-8
 ENV LANG C.UTF-8
