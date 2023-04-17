@@ -1,0 +1,23 @@
+name: Notify about PR ready for review
+
+on:
+  pull_request:
+    branches: ["main"]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  slackNotification:
+    name: Slack Notification
+    if: startsWith(github.head_ref, 'dependabot/') # This step only runs when PR has dependabot/ HEAD
+    runs-on: ubuntu-latest
+    steps:
+    # Latest version available at: https://github.com/actions/checkout/releases
+    - uses: actions/checkout@v3
+    - name: Slack Notification
+      # Latest version available at: https://github.com/kv109/action-ready-for-review/releases
+      uses: kv109/action-ready-for-review@0.2
+      env:
+        SLACK_CHANNEL: alerts
+        SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
