@@ -1,5 +1,5 @@
 cachetools==3.1.1
-certifi==2019.9.11
+certifi==2022.12.7
 chardet==3.0.4
 Deprecated==1.2.6
 google-api-core==1.14.2
@@ -7,17 +7,18 @@ google-auth==1.6.3
 google-cloud-monitoring==0.33.0
 googleapis-common-protos==1.6.0
 grpcio==1.23.0
-httplib2==0.13.1
+httplib2==0.19.0
 idna==2.8
-protobuf==3.9.1
+protobuf==3.18.3
 pyasn1==0.4.7
 pyasn1-modules==0.2.6
 PyGithub==1.43.8
-PyJWT==1.7.1
+PyJWT==2.4.0
 python-terraform==0.10.1
 pytz==2019.2
 requests==2.22.0
-rsa==4.0
+rsa==4.7
 six==1.12.0
-urllib3==1.25.5
+urllib3==1.26.5
 wrapt==1.11.2
+setuptools>=65.5.1 # not directly required, pinned by Snyk to avoid a vulnerability
