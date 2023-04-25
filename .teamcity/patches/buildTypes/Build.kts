@@ -1,8 +1,6 @@
 package patches.buildTypes
 
 import jetbrains.buildServer.configs.kotlin.v2018_2.*
-import jetbrains.buildServer.configs.kotlin.v2018_2.failureConditions.BuildFailureOnMetric
-import jetbrains.buildServer.configs.kotlin.v2018_2.failureConditions.failOnMetricChange
 import jetbrains.buildServer.configs.kotlin.v2018_2.ui.*
 
 /*
@@ -22,15 +20,5 @@ changeBuildType(RelativeId("Build")) {
             "Unexpected option value: executionTimeoutMin = $executionTimeoutMin"
         }
         executionTimeoutMin = 15
-        add {
-            failOnMetricChange {
-                metric = BuildFailureOnMetric.MetricType.BUILD_DURATION
-                threshold = 3600
-                units = BuildFailureOnMetric.MetricUnit.DEFAULT_UNIT
-                comparison = BuildFailureOnMetric.MetricComparison.MORE
-                compareTo = value()
-                param("anchorBuild", "lastSuccessful")
-            }
-        }
     }
 }
