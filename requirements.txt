@@ -1,5 +1,5 @@
 cachetools==3.1.1
-certifi==2022.12.7
+certifi==2023.7.22
 chardet==3.0.4
 Deprecated==1.2.6
 google-api-core==1.14.2
@@ -16,7 +16,7 @@ PyGithub==1.43.8
 PyJWT==2.4.0
 python-terraform==0.10.1
 pytz==2019.2
-requests==2.22.0
+requests==2.31.0
 rsa==4.7
 six==1.12.0
 urllib3==1.26.5
